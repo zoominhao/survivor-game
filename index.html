@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>长夜守望</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏮%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- 战斗内 HUD -->
+  <div id="hud" class="hidden">
+    <div id="xpbar"><div id="xpfill"></div><span id="lvl">Lv.1</span></div>
+    <div id="timer">🌙 15:00</div>
+    <div id="stats">💀 <b id="kills">0</b>　🪙 <b id="coins">0</b></div>
+    <div id="slots"><div id="wslots"></div><div id="pslots"></div></div>
+    <div id="hudBtns">
+      <button id="btnMute" aria-label="静音">🔊</button>
+      <button id="btnPause" aria-label="暂停">⏸</button>
+    </div>
+    <div id="bossbar" class="hidden"><span>夜魇</span><div><div id="bossfill"></div></div></div>
+    <div id="banner"></div>
+  </div>
+
+  <!-- 虚拟摇杆 -->
+  <div id="joy" class="hidden"><div id="joyKnob"></div></div>
+
+  <!-- 主菜单 -->
+  <section id="menu" class="overlay">
+    <div class="panel">
+      <h1>长夜守望</h1>
+      <p class="sub">提灯穿过荒原,撑过 15 分钟,直到黎明。</p>
+      <div class="wallet">🪙 <b id="menuCoins">0</b>　最佳 <b id="menuBest">--:--</b>　迎来黎明 <b id="menuWins">0</b> 次</div>
+      <div id="charList" class="chars"></div>
+      <div class="row">
+        <button id="btnStart" class="primary">开始守夜</button>
+        <button id="btnShop">永久强化</button>
+        <button id="btnMute2" aria-label="静音">🔊</button>
+      </div>
+      <p class="hint">WASD / 方向键移动 · 触屏拖动 · 武器自动攻击 · Esc 暂停 · M 静音</p>
+    </div>
+  </section>
+
+  <!-- 永久强化 -->
+  <section id="shop" class="overlay hidden">
+    <div class="panel">
+      <h2>永久强化</h2>
+      <div class="wallet">🪙 <b id="shopCoins">0</b></div>
+      <div id="shopList"></div>
+      <div class="row"><button id="btnShopBack">返回</button></div>
+    </div>
+  </section>
+
+  <!-- 升级选卡 -->
+  <section id="levelup" class="overlay hidden">
+    <div class="panel wide">
+      <h2 id="lvTitle">升级!</h2>
+      <div id="cards" class="cards"></div>
+      <div class="row"><button id="btnReroll">🎲 重掷</button></div>
+    </div>
+  </section>
+
+  <!-- 宝箱 -->
+  <section id="chest" class="overlay hidden">
+    <div class="panel wide">
+      <h2 id="chestTitle">发现宝箱</h2>
+      <div class="wallet">🪙 <b id="chestCoins">+0</b></div>
+      <div id="chestCards" class="cards"></div>
+      <div class="row"><button id="btnChestOk" class="primary">收下</button></div>
+    </div>
+  </section>
+
+  <!-- 暂停 -->
+  <section id="pause" class="overlay hidden">
+    <div class="panel">
+      <h2>暂停</h2>
+      <div id="pauseBuild"></div>
+      <div class="row">
+        <button id="btnResume" class="primary">继续</button>
+        <button id="btnQuit">放弃本局</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 结算 -->
+  <section id="result" class="overlay hidden">
+    <div class="panel">
+      <h2 id="resTitle"></h2>
+      <p class="sub" id="resSub"></p>
+      <div id="resStats" class="stats"></div>
+      <ul id="resDmg" class="dmg"></ul>
+      <div class="row">
+        <button id="btnRetry" class="primary">再来一局</button>
+        <button id="btnMenu">返回主菜单</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/weapons.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
