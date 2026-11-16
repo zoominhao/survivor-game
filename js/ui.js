@@ -50,7 +50,6 @@ const UI = {
       const b = document.createElement('button');
       b.className = 'char' + (id === d.lastChar ? ' sel' : '') + (owned ? '' : ' locked');
       b.innerHTML =
-        `<span class="dot" style="background:${c.color}"></span>` +
         `<b>${c.name}</b><small>${w.icon} ${w.name}</small><small>${c.desc}</small>` +
         (owned ? '' : `<span class="price">🔒 🪙 ${c.cost}</span>`);
       b.addEventListener('click', () => {
@@ -67,6 +66,7 @@ const UI = {
         Save.write();
         this.showMenu();
       });
+      b.prepend(Render.avatar(id));
       list.appendChild(b);
     }
     this.show('menu');

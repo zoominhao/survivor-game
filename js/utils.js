@@ -57,6 +57,8 @@ const Save = {
         d.chars = Object.assign({ ella: true }, raw.chars || {});
       }
     } catch (e) { /* 存档损坏或环境不支持时使用默认值 */ }
+    // 免费角色始终视为已解锁(包括后续版本新增的)
+    for (const id in CHARS) if (!CHARS[id].cost) d.chars[id] = true;
     if (!CHARS[d.lastChar] || !d.chars[d.lastChar]) d.lastChar = 'ella';
     this.data = d;
   },
