@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>长夜守望</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏮%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,13 +12,16 @@
 
   <!-- 战斗内 HUD -->
   <div id="hud" class="hidden">
-    <div id="xpbar"><div id="xpfill"></div><span id="lvl">Lv.1</span></div>
-    <div id="timer">🌙 15:00</div>
-    <div id="stats">💀 <b id="kills">0</b>　🪙 <b id="coins">0</b></div>
+    <div id="xpbar"><div id="xpfill"></div><span id="lvl">修为 1</span></div>
+    <div class="watch-time"><span data-icon="moon"></span><div><small>距黎明</small><b id="timer">15:00</b></div></div>
+    <div id="stats">
+      <span><span data-icon="kills"></span><span class="sr-only">击杀：</span><b id="kills">0</b></span>
+      <span><span data-icon="coin"></span><span class="sr-only">金币：</span><b id="coins">0</b></span>
+    </div>
     <div id="slots"><div id="wslots"></div><div id="pslots"></div></div>
     <div id="hudBtns">
-      <button id="btnMute" aria-label="静音">🔊</button>
-      <button id="btnPause" aria-label="暂停">⏸</button>
+      <button id="btnMute" class="icon-button" aria-label="静音"></button>
+      <button id="btnPause" class="icon-button" aria-label="暂停" data-icon="pause"></button>
     </div>
     <div id="bossbar" class="hidden"><span>夜魇</span><div><div id="bossfill"></div></div></div>
     <div id="banner"></div>
@@ -28,54 +31,75 @@
   <div id="joy" class="hidden"><div id="joyKnob"></div></div>
 
   <!-- 主菜单 -->
-  <section id="menu" class="overlay">
-    <div class="panel">
-      <h1>长夜守望</h1>
-      <p class="sub">提灯穿过荒原,撑过 15 分钟,直到黎明。</p>
-      <div class="wallet">🪙 <b id="menuCoins">0</b>　最佳 <b id="menuBest">--:--</b>　迎来黎明 <b id="menuWins">0</b> 次</div>
-      <div id="charList" class="chars"></div>
-      <div class="row">
-        <button id="btnStart" class="primary">开始守夜</button>
-        <button id="btnShop">永久强化</button>
-        <button id="btnMute2" aria-label="静音">🔊</button>
+  <main id="menu" class="overlay" aria-labelledby="gameTitle">
+    <div class="watch-book">
+      <header class="watch-cover">
+        <div class="cover-title">
+          <span class="chapter">荒原夜巡录</span>
+          <h1 id="gameTitle">长夜守望</h1>
+          <img class="cover-seal" src="art/watch-seal.svg" alt="" width="38" height="38">
+          <p>提灯入荒原，守过十五分钟，直到天明。</p>
+        </div>
+      </header>
+      <div class="watch-roster">
+        <div class="roster-head">
+          <div class="chapter">守夜名册</div>
+          <h2 id="rosterTitle">择一人，入夜</h2>
+          <dl class="ledger">
+            <div><dt><span data-icon="coin"></span> 金币</dt><dd id="menuCoins">0</dd></div>
+            <div><dt>最佳守夜</dt><dd id="menuBest">--:--</dd></div>
+            <div><dt>守到天明</dt><dd id="menuWins">0</dd></div>
+          </dl>
+        </div>
+        <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
+        <p id="charNotice" class="char-notice" role="status"></p>
+        <div class="roster-actions">
+          <button id="btnStart" class="primary"><span data-icon="lantern"></span> 开始守夜</button>
+          <button id="btnShop">永久强化</button>
+          <button id="btnMute2" class="icon-button" aria-label="静音"></button>
+        </div>
+        <p class="hint">方向键 / WASD 移动 · 触屏拖动 · 自动攻击 · Esc 暂停</p>
       </div>
-      <p class="hint">WASD / 方向键移动 · 触屏拖动 · 武器自动攻击 · Esc 暂停 · M 静音</p>
     </div>
-  </section>
+  </main>
 
   <!-- 永久强化 -->
-  <section id="shop" class="overlay hidden">
+  <section id="shop" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="panel">
-      <h2>永久强化</h2>
-      <div class="wallet">🪙 <b id="shopCoins">0</b></div>
+      <p class="chapter">砺器册</p>
+      <h2 id="shopTitle">永久强化</h2>
+      <div class="wallet"><span data-icon="coin"></span> 现有金币 <b id="shopCoins">0</b></div>
       <div id="shopList"></div>
       <div class="row"><button id="btnShopBack">返回</button></div>
     </div>
   </section>
 
   <!-- 升级选卡 -->
-  <section id="levelup" class="overlay hidden">
+  <section id="levelup" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lvTitle">
     <div class="panel wide">
-      <h2 id="lvTitle">升级!</h2>
+      <p class="chapter">择符</p>
+      <h2 id="lvTitle">修为精进</h2>
       <div id="cards" class="cards"></div>
-      <div class="row"><button id="btnReroll">🎲 重掷</button></div>
+      <div class="row"><button id="btnReroll"><span data-icon="reroll"></span> <span id="rerollLabel">重掷</span></button></div>
     </div>
   </section>
 
   <!-- 宝箱 -->
-  <section id="chest" class="overlay hidden">
+  <section id="chest" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="chestTitle">
     <div class="panel wide">
+      <p class="chapter">启匣</p>
       <h2 id="chestTitle">发现宝箱</h2>
-      <div class="wallet">🪙 <b id="chestCoins">+0</b></div>
+      <div class="wallet"><span data-icon="coin"></span> 金币 <b id="chestCoins">+0</b></div>
       <div id="chestCards" class="cards"></div>
       <div class="row"><button id="btnChestOk" class="primary">收下</button></div>
     </div>
   </section>
 
   <!-- 暂停 -->
-  <section id="pause" class="overlay hidden">
+  <section id="pause" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
     <div class="panel">
-      <h2>暂停</h2>
+      <p class="chapter">整备</p>
+      <h2 id="pauseTitle">巡夜暂停</h2>
       <div id="pauseBuild"></div>
       <div class="row">
         <button id="btnResume" class="primary">继续</button>
@@ -85,8 +109,9 @@
   </section>
 
   <!-- 结算 -->
-  <section id="result" class="overlay hidden">
+  <section id="result" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="resTitle">
     <div class="panel">
+      <p class="chapter">守夜纪事</p>
       <h2 id="resTitle"></h2>
       <p class="sub" id="resSub"></p>
       <div id="resStats" class="stats"></div>
@@ -103,7 +128,10 @@
   <script src="js/weapons.js"></script>
   <script src="js/core.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/echo-figure.js"></script>
+  <script src="js/food-art.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

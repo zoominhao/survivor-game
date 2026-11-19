@@ -360,6 +360,20 @@ const Render = {
         ctx.strokeStyle = 'rgba(255,140,90,0.75)';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.stroke();
+      } else if (z.type === 'monkey') {
+        const k = 1 - z.t / z.max;
+        ctx.save();
+        ctx.strokeStyle = ctx.fillStyle = z.color;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.32 + 0.42 * k;
+        ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.stroke();
+        ctx.globalAlpha = 0.1 + 0.22 * k;
+        ctx.beginPath(); ctx.arc(z.x, z.y, z.r * k, 0, TAU); ctx.fill();
+        ctx.restore();
+      } else if (z.type === 'ricecake') {
+        FoodArt.ricecake(ctx, z);
+      } else if (z.type === 'fire' && z.look === 'tomato') {
+        FoodArt.sauce(ctx, z);
       } else if (z.type === 'fire') {
         const a = Math.min(1, z.life) * (0.26 + Math.sin(time * 18 + z.x) * 0.06);
         ctx.fillStyle = `rgba(255,120,40,${a})`;
@@ -489,10 +503,11 @@ const Render = {
   },
 
   // ---------- 角色造型 ----------
-  // 以原点为中心、面朝右绘制;walk ∈ [-1, 1] 为走路摆动相位。战斗内和主菜单头像共用
+  // 以原点为中心、面朝右绘制;walk ∈ [-1, 1] 为走路摆动相位
   drawFigure(ctx, charId, walk) {
     const c = CHARS[charId];
     if (c.look === 'girl') this.drawGirl(ctx, walk);
+    else if (c.look === 'echo') EchoFigure.runner(ctx, walk);
     else this.drawCloak(ctx, c.color);
   },
 
@@ -650,9 +665,15 @@ const Render = {
     cv.width = w * S; cv.height = h * S;
     cv.className = 'avatar';
     const x = cv.getContext('2d');
-    x.translate(w * S / 2 - 1.2 * S, h * S / 2 + 2.6 * S);
-    x.scale(S * 1.2, S * 1.2);
-    this.drawFigure(x, charId, 0);
+    if (CHARS[charId].look === 'echo') {
+      x.translate(w * S / 2, 4 * S);
+      x.scale(S * 0.38, S * 0.38);
+      EchoFigure.portrait(x);
+    } else {
+      x.translate(w * S / 2 - 1.2 * S, h * S / 2 + 2.6 * S);
+      x.scale(S * 1.2, S * 1.2);
+      this.drawFigure(x, charId, 0);
+    }
     return cv;
   },
 
@@ -660,10 +681,11 @@ const Render = {
     const bob = p.moving ? Math.sin(p.walkT * 14) * 1.6 : Math.sin(g.time * 3) * 0.6;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y + 12, 10, 4, 0, 0, TAU); ctx.fill();
-    // 提灯的光晕
+    // 角色光晕：开心没有提灯，光源放在角色中心
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.5;
-    this.drawGlow(ctx, '#ffd166', p.x + 14 * p.face, p.y + 2 + bob, 34);
+    const glowOffset = CHARS[p.char].look === 'echo' ? 0 : 14 * p.face;
+    this.drawGlow(ctx, '#ffd166', p.x + glowOffset, p.y + 2 + bob, 34);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     if (p.iframe > 0 && Math.floor(g.time * 24) % 2) ctx.globalAlpha = 0.45; // 无敌闪烁
@@ -681,21 +703,94 @@ const Render = {
     ctx.fillRect(p.x - 17, p.y + 20, 34 * k, 3);
   },
 
+  drawMouse(ctx, b) {
+    const stride = Math.sin(b.age * 31), scale = Math.min(1.8, b.r / 8);
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.translate(b.x, b.y);
+    ctx.rotate(Math.atan2(b.vy, b.vx));
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#17201d99';
+    ctx.beginPath(); ctx.ellipse(-1, 3, 10, 4, 0, 0, TAU); ctx.fill();
+    ctx.translate(0, -Math.abs(stride) * 1.8);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#bb7d6b'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(-7, 1);
+    ctx.bezierCurveTo(-12, 4, -16, 6 + stride * 3, -19, 1 + stride * 3); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-5, 3); ctx.lineTo(-5 + stride * 2, 5);
+    ctx.moveTo(3, 3); ctx.lineTo(3 - stride * 2, 5); ctx.stroke();
+
+    ctx.fillStyle = b.color; ctx.strokeStyle = '#624638'; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.ellipse(-3, 0, 7.5, 4.9, 0, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, 0.7); ctx.quadraticCurveTo(6, -6, 1, -4.5);
+    ctx.quadraticCurveTo(-4, -3.5, -1, 2.6); ctx.quadraticCurveTo(3, 6, 10, 0.7);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#dea08c';
+    ctx.beginPath(); ctx.arc(0.5, -4.8, 2.8, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#352724';
+    ctx.beginPath(); ctx.arc(5, -1.5, 1, 0, TAU); ctx.moveTo(11, 0.7); ctx.arc(10, 0.7, 1, 0, TAU); ctx.fill();
+    ctx.restore();
+  },
+
+  drawMonkeyLeap(ctx, z) {
+    const k = U.clamp(1 - z.t / z.max, 0, 1), lift = Math.sin(k * Math.PI);
+    const scale = z.wid === 'monkeytroop' ? 1.22 : 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.translate(z.fromX + (z.x - z.fromX) * k, z.fromY + (z.y - z.fromY) * k - lift * 42);
+    ctx.scale(z.x < z.fromX ? -scale : scale, scale);
+    ctx.rotate((k - 0.5) * 0.6);
+    ctx.lineCap = 'round';
+
+    ctx.strokeStyle = '#b87a54'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-4, 6);
+    ctx.bezierCurveTo(-11, 13, -21, 9, -18, 2);
+    ctx.bezierCurveTo(-16, -2, -11, 1, -14, 4); ctx.stroke();
+    ctx.strokeStyle = '#d19a6b'; ctx.lineWidth = 3.7;
+    ctx.beginPath();
+    ctx.moveTo(3, 1); ctx.lineTo(12, -2 + k * 6);
+    ctx.moveTo(-2, 6); ctx.lineTo(-8 + k * 10, 10); ctx.stroke();
+
+    ctx.fillStyle = '#a56a48'; ctx.strokeStyle = '#432d26'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(0, 4, 5.6, 6.6, -0.38, 0, TAU); ctx.fill(); ctx.stroke();
+    for (const x of [-5, 9]) {
+      ctx.beginPath(); ctx.arc(x, -6, 3.1, 0, TAU); ctx.fill(); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.ellipse(2, -6.5, 7.2, 7.1, 0, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = z.color;
+    ctx.beginPath(); ctx.moveTo(2, -8.4);
+    ctx.bezierCurveTo(-4.5, -13.9, -6, -2, 0.3, -1);
+    ctx.bezierCurveTo(8, 1.8, 10.9, -11.4, 4.7, -10.2);
+    ctx.quadraticCurveTo(3.1, -10.1, 2, -8.4); ctx.fill();
+    ctx.fillStyle = '#442b24';
+    ctx.beginPath(); ctx.arc(0.1, -6.4, 0.85, 0, TAU); ctx.moveTo(5.6, -6.5); ctx.arc(4.7, -6.5, 0.9, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(2.8, -4.4, 1.8, 0.3, 2.7); ctx.stroke();
+    ctx.restore();
+  },
+
   drawProjs(ctx, g, p, vis) {
     ctx.globalCompositeOperation = 'lighter';
-    // 环绕类武器的光球
+    // 环绕类武器的光球与甜筒
     for (const w of p.weapons) {
       if (WEAPONS[w.id].kind !== 'orbit' || !(w.on > 0)) continue;
       const st = p.st, n = w.s.count + st.amount, R = w.s.radius * st.area, r = w.s.size * st.area;
       const color = WEAPONS[w.id].color;
       for (let i = 0; i < n; i++) {
         const a = w.ang + i / n * TAU;
-        this.drawGlow(ctx, color, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R, r * 2.2);
+        const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+        if (w.id === 'icecream') FoodArt.icecream(ctx, x, y, r, i);
+        else this.drawGlow(ctx, color, x, y, r * 2.2);
       }
     }
     for (const b of g.projs) {
       if (!vis(b.x, b.y, 40)) continue;
-      if (b.look === 'bolt') {
+      if (b.look === 'mouse') {
+        this.drawMouse(ctx, b);
+      } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato') {
+        FoodArt[b.look](ctx, b);
+      } else if (b.look === 'bolt') {
         this.drawGlow(ctx, b.color, b.x, b.y, b.r * 2.4);
         ctx.strokeStyle = b.color;
         ctx.globalAlpha = 0.5;
@@ -730,8 +825,9 @@ const Render = {
         ctx.globalCompositeOperation = 'lighter';
       }
     }
-    // 下落中的陨星
+    // 有延迟的落地技能：下落陨星与跳跃灵猴。
     for (const z of g.zones) {
+      if (z.type === 'monkey') this.drawMonkeyLeap(ctx, z);
       if (z.type !== 'meteor') continue;
       const k = z.t / z.max;
       this.drawGlow(ctx, '#ff9f6b', z.x + k * 110, z.y - k * 340, 16 + (1 - k) * 12);

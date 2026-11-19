@@ -9,6 +9,8 @@ const Input = {
   init() {
     window.addEventListener('keydown', e => {
       Sfx.unlock();
+      // 按钮获得焦点时，交给浏览器用 Enter / 空格触发点击，勿同时触发全局快捷键。
+      if (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space')) return;
       if (e.repeat) return;
       this.keys.add(e.code);
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
@@ -102,6 +104,7 @@ const App = {
   onKey(code) {
     const s = Game.state;
     if (code === 'KeyM') { this.toggleMute(); return; }
+    if (code === 'Escape' && UI.overlayId === 'shop') { UI.showMenu(); return; }
     if (code === 'Escape' || code === 'KeyP') {
       if (s === 'playing') this.pause(); else if (s === 'paused') this.resume();
       return;

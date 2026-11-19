@@ -3,9 +3,12 @@
 
 const UI = {
   cache: {},
+  overlayId: null,
   $(id) { return document.getElementById(id); },
 
   init() {
+    for (const el of document.querySelectorAll('[data-icon]')) el.innerHTML = Icons.html(el.dataset.icon);
+    document.addEventListener('keydown', e => this.trapDialogTab(e));
     const on = (id, fn) => this.$(id).addEventListener('click', () => { Sfx.unlock(); Sfx.play('click'); fn(); });
     on('btnStart', () => App.startRun());
     on('btnShop', () => this.showShop());
@@ -25,15 +28,45 @@ const UI = {
 
   // 显示指定浮层(null = 全部隐藏),并同步 HUD 可见性
   show(id) {
+    const previous = this.overlayId;
+    this.overlayId = id;
+    if (id === 'pause' && id !== previous) this.pauseFromHud = this.$('hud').contains(document.activeElement);
     for (const o of document.querySelectorAll('.overlay')) o.classList.toggle('hidden', o.id !== id);
     const inRun = !!Game.player && Game.state !== 'menu';
-    this.$('hud').classList.toggle('hidden', !inRun);
+    const hud = this.$('hud');
+    hud.classList.toggle('hidden', !inRun);
+    hud.inert = !inRun || !!id;
+    if (id === previous && (!id || id === 'menu' || this.$(id).contains(document.activeElement))) return;
+    if (id && id !== 'menu') {
+      const title = this.$(id).querySelector('h2');
+      title.tabIndex = -1;
+      title.focus({ preventScroll: true });
+    } else if (id === 'menu' && previous) {
+      this.$(previous === 'shop' ? 'btnShop' : 'btnStart').focus();
+    } else if (previous === 'pause' && this.pauseFromHud) {
+      this.$('btnPause').focus({ preventScroll: true });
+    }
+  },
+
+  trapDialogTab(e) {
+    const id = this.overlayId;
+    if (e.key !== 'Tab' || !id || id === 'menu') return;
+    const buttons = [...this.$(id).querySelectorAll('button:not(:disabled)')].filter(el => el.getClientRects().length);
+    if (!buttons.length) return;
+    const current = buttons.indexOf(document.activeElement);
+    const last = buttons.length - 1;
+    if (current === -1 || (e.shiftKey ? current === 0 : current === last)) {
+      e.preventDefault();
+      buttons[e.shiftKey ? last : 0].focus();
+    }
   },
 
   refreshMute() {
-    const t = Sfx.muted ? '🔇' : '🔊';
-    this.$('btnMute').textContent = t;
-    this.$('btnMute2').textContent = t;
+    for (const id of ['btnMute', 'btnMute2']) {
+      const btn = this.$(id);
+      btn.innerHTML = Icons.html(Sfx.muted ? 'mute' : 'sound');
+      btn.setAttribute('aria-pressed', String(Sfx.muted));
+    }
   },
 
   // ---------- 主菜单 ----------
@@ -43,15 +76,20 @@ const UI = {
     this.$('menuCoins').textContent = d.coins;
     this.$('menuBest').textContent = d.best ? U.fmtTime(d.best) : '--:--';
     this.$('menuWins').textContent = d.wins;
+    this.$('charNotice').textContent = '';
     const list = this.$('charList');
     list.innerHTML = '';
     for (const id in CHARS) {
       const c = CHARS[id], owned = !!d.chars[id], w = WEAPONS[c.weapon];
+      const selected = id === d.lastChar;
       const b = document.createElement('button');
-      b.className = 'char' + (id === d.lastChar ? ' sel' : '') + (owned ? '' : ' locked');
+      b.className = 'char' + (selected ? ' sel' : '') + (owned ? '' : ' locked');
+      b.setAttribute('aria-pressed', String(selected));
       b.innerHTML =
-        `<b>${c.name}</b><small>${w.icon} ${w.name}</small><small>${c.desc}</small>` +
-        (owned ? '' : `<span class="price">🔒 🪙 ${c.cost}</span>`);
+        `<span class="char-art"></span><span class="char-info"><b>${c.name}</b>` +
+        `<small class="starter">${Icons.html(c.weapon)} ${w.name}</small><small>${c.desc}</small></span>` +
+        (selected ? '<span class="char-state" aria-hidden="true">已选</span>' : '') +
+        (owned ? '' : `<span class="price">${Icons.html('lock')}<span class="sr-only">解锁所需金币：</span>${c.cost}</span>`);
       b.addEventListener('click', () => {
         Sfx.unlock();
         if (owned) {
@@ -60,13 +98,16 @@ const UI = {
           d.coins -= c.cost; d.chars[id] = true; d.lastChar = id;
           Sfx.play('chest');
         } else {
+          this.$('charNotice').textContent = `还差 ${c.cost - d.coins} 金币解锁${c.name}`;
           b.classList.remove('deny'); void b.offsetWidth; b.classList.add('deny');
           return;
         }
+        const restoreFocus = document.activeElement === b;
         Save.write();
         this.showMenu();
+        if (restoreFocus) list.querySelector('.sel').focus({ preventScroll: true });
       });
-      b.prepend(Render.avatar(id));
+      b.querySelector('.char-art').appendChild(Render.avatar(id));
       list.appendChild(b);
     }
     this.show('menu');
@@ -85,17 +126,23 @@ const UI = {
       let pips = '';
       for (let i = 0; i < m.max; i++) pips += `<i class="${i < lv ? 'on' : ''}"></i>`;
       row.innerHTML =
-        `<span class="ico">${m.icon}</span>` +
+        `<span class="ico">${Icons.html(m.icon || id)}</span>` +
         `<div class="info"><b>${m.name}</b><small>${m.desc}</small><div class="pips">${pips}</div></div>`;
       const btn = document.createElement('button');
-      btn.textContent = maxed ? '已满' : '🪙 ' + cost;
+      btn.innerHTML = maxed ? '已满' : `${Icons.html('coin')} ${cost}`;
+      btn.setAttribute('aria-label', maxed ? `${m.name}已满` : `${m.name}，${cost} 金币`);
       btn.disabled = maxed || d.coins < cost;
       btn.addEventListener('click', () => {
         if (d.coins < cost || d.meta[id] >= m.max) return;
         d.coins -= cost; d.meta[id]++;
         Save.write();
         Sfx.play('coin');
+        const restoreFocus = document.activeElement === btn;
         this.showShop();
+        if (restoreFocus) {
+          const next = list.children[Object.keys(META).indexOf(id)].querySelector('button');
+          (next.disabled ? this.$('btnShopBack') : next).focus();
+        }
       });
       row.appendChild(btn);
       list.appendChild(row);
@@ -104,16 +151,16 @@ const UI = {
   },
 
   cardHtml(info, key) {
-    return `<div class="ico">${info.icon}</div><div class="nm">${info.name}</div>` +
-      (info.tag ? `<div class="tag">${info.tag}</div>` : '') +
-      `<div class="ds">${info.desc.replace(/\n/g, '<br>')}</div>` +
+    return `<span class="ico">${Icons.html(info.icon)}</span><span class="nm">${info.name}</span>` +
+      (info.tag ? `<span class="tag">${info.tag}</span>` : '') +
+      `<span class="ds">${info.desc.replace(/\n/g, '<br>')}</span>` +
       (key ? `<kbd>${key}</kbd>` : '');
   },
 
   // ---------- 升级选卡 ----------
   showLevelUp() {
     const p = Game.player;
-    this.$('lvTitle').textContent = '升级! Lv.' + (p.level - Game.pending + 1);
+    this.$('lvTitle').textContent = '修为精进 · ' + (p.level - Game.pending + 1) + ' 级';
     const box = this.$('cards');
     box.innerHTML = '';
     Game.choices.forEach((c, i) => {
@@ -125,7 +172,7 @@ const UI = {
       box.appendChild(b);
     });
     const rr = this.$('btnReroll');
-    rr.textContent = '🎲 重掷 (' + p.rerolls + ')';
+    this.$('rerollLabel').textContent = '重掷（' + p.rerolls + '）';
     rr.classList.toggle('hidden', Save.data.meta.reroll <= 0);
     rr.disabled = p.rerolls <= 0;
     this.show('levelup');
@@ -150,10 +197,10 @@ const UI = {
   buildHtml() {
     const p = Game.player;
     const item = (icon, name, lv, max) =>
-      `<li><span>${icon}</span>${name}<em>${lv >= max ? 'MAX' : 'Lv.' + lv}</em></li>`;
+      `<li>${Icons.html(icon)}<span>${name}</span><em>${lv >= max ? '已满' : 'Lv.' + lv}</em></li>`;
     return '<ul class="build">' +
-      p.weapons.map(w => { const d = WEAPONS[w.id]; return item(d.icon, d.name, d.evolved ? 9 : w.lv, d.evolved ? 1 : d.max); }).join('') +
-      p.passives.map(q => { const d = PASSIVES[q.id]; return item(d.icon, d.name, q.lv, d.max); }).join('') +
+      p.weapons.map(w => { const d = WEAPONS[w.id]; return item(w.id, d.name, w.lv, d.evolved ? 1 : d.max); }).join('') +
+      p.passives.map(q => { const d = PASSIVES[q.id]; return item(q.id, d.name, q.lv, d.max); }).join('') +
       '</ul>';
   },
 
@@ -173,13 +220,13 @@ const UI = {
       `<div><b>${U.fmtTime(r.time)}</b><small>坚持时间${r.newBest ? ' · 新纪录' : ''}</small></div>` +
       `<div><b>${r.level}</b><small>等级</small></div>` +
       `<div><b>${r.kills}</b><small>击杀</small></div>` +
-      `<div><b>🪙 ${r.earned}</b><small>获得金币</small></div>`;
+      `<div><b>${Icons.html('coin')} ${r.earned}</b><small>获得金币</small></div>`;
     // 各武器伤害占比
     const rows = Object.entries(p.dmgBy).sort((a, b) => b[1] - a[1]);
     const top = rows.length ? rows[0][1] : 1;
     this.$('resDmg').innerHTML = rows.map(([id, v]) => {
-      const d = WEAPONS[id] || { icon: '🕯️', name: '余烬' };
-      return `<li><span>${d.icon} ${d.name}</span><i><u style="width:${(v / top * 100).toFixed(1)}%"></u></i><em>${v}</em></li>`;
+      const d = WEAPONS[id];
+      return `<li><span>${Icons.html(d ? id : 'lantern')} ${d ? d.name : '余烬'}</span><i><u style="width:${(v / top * 100).toFixed(1)}%"></u></i><em>${v}</em></li>`;
     }).join('');
     this.show('result');
   },
@@ -208,8 +255,8 @@ const UI = {
     const g = Game, p = g.player;
     if (!p || g.state === 'menu') return;
     this.set('xpfill', 'width', (Math.min(1, p.xp / p.xpNeed) * 100).toFixed(1) + '%');
-    this.set('lvl', 'text', 'Lv.' + p.level);
-    this.set('timer', 'text', '🌙 ' + U.fmtTime(Math.ceil(CFG.RUN_TIME - g.time)));
+    this.set('lvl', 'text', '修为 ' + p.level);
+    this.set('timer', 'text', U.fmtTime(Math.ceil(CFG.RUN_TIME - g.time)));
     this.set('kills', 'text', String(p.kills));
     this.set('coins', 'text', String(Math.floor(p.coins)));
     const boss = g.boss && !g.boss.dead ? g.boss : null;
@@ -217,9 +264,12 @@ const UI = {
     if (boss) this.set('bossfill', 'width', (Math.max(0, boss.hp / boss.maxHp) * 100).toFixed(1) + '%');
     if (g.dirty) {
       g.dirty = false;
-      const slot = (icon, lv, max) => `<span class="slot${lv >= max ? ' max' : ''}">${icon}<i>${lv >= max ? '★' : lv}</i></span>`;
-      this.$('wslots').innerHTML = p.weapons.map(w => { const d = WEAPONS[w.id]; return slot(d.icon, d.evolved ? 9 : w.lv, d.evolved ? 1 : d.max); }).join('');
-      this.$('pslots').innerHTML = p.passives.map(q => slot(PASSIVES[q.id].icon, q.lv, PASSIVES[q.id].max)).join('');
+      const slot = (id, data, lv) => {
+        const max = data.evolved || lv >= data.max;
+        return `<span class="slot${max ? ' max' : ''}" title="${data.name} · ${max ? '已满' : lv + '级'}">${Icons.html(id)}<i>${max ? '满' : lv}</i></span>`;
+      };
+      this.$('wslots').innerHTML = p.weapons.map(w => slot(w.id, WEAPONS[w.id], w.lv)).join('');
+      this.$('pslots').innerHTML = p.passives.map(q => slot(q.id, PASSIVES[q.id], q.lv)).join('');
     }
   },
 };

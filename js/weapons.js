@@ -23,8 +23,8 @@ function upgradeText(delta) {
     else if (k === 'cd') out.push('冷却 ' + v + ' 秒');
     else if (k === 'count') out.push('数量 +' + v);
     else if (k === 'pierce') out.push('穿透 +' + v);
-    else if (k === 'radius') out.push('范围 +' + v);
-    else if (k === 'dur') out.push('持续 +' + v + ' 秒');
+    else if (k === 'radius' || k === 'blast') out.push('范围 +' + v);
+    else if (k === 'dur' || k === 'sauce') out.push('持续 +' + v + ' 秒');
     else if (k === 'size') out.push('体积 +' + v);
   }
   return out.join(',');
@@ -33,7 +33,42 @@ function upgradeText(delta) {
 const TAU = Math.PI * 2;
 
 const WeaponFns = {
-  // 星火弹 / 星爆:朝最近的敌人连发
+  // 黏黏年糕：有夜兽靠近才在脚下布置，踩中后由区域逻辑触发。
+  ricecake(g, w, s, dt) {
+    const p = g.player, st = p.st;
+    w.timer -= dt;
+    if (w.timer > 0) return;
+    if (!g.nearestEnemy(p.x, p.y, s.range)) { w.timer = 0.2; return; }
+    w.timer = s.cd * st.cd;
+    g.zones.push({
+      type: 'ricecake', x: p.x, y: p.y, r: s.radius * st.area, trigger: s.trigger * st.area,
+      life: s.life, dmg: s.dmg * st.might, slow: s.slow, chill: s.chill,
+      wid: w.id, color: WEAPONS[w.id].color,
+    });
+  },
+
+  // 鼠伴出击 / 百鼠夜行：尽量分开追击不同目标，沿用投射物的追踪和命中规则。
+  mouse(g, w, s, dt) {
+    const p = g.player, st = p.st;
+    w.timer -= dt;
+    if (w.timer > 0) return;
+    const count = s.count + st.amount;
+    const targets = g.nearestEnemies(p.x, p.y, s.range, count);
+    if (!targets.length) { w.timer = 0.15; return; }
+    w.timer = s.cd * st.cd;
+    for (let i = 0; i < count; i++) {
+      const tg = targets[i % targets.length];
+      const a = Math.atan2(tg.y - p.y, tg.x - p.x) + (i - (count - 1) / 2) * 0.14;
+      g.addProj({
+        x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
+        r: s.size * st.area, speed: s.speed, life: s.life, dmg: s.dmg * st.might, pierce: s.pierce,
+        mode: 'homing', tg, seek: 0.2, wid: w.id, look: 'mouse', color: WEAPONS[w.id].color, kb: 75,
+      });
+    }
+    Sfx.play('shoot');
+  },
+
+  // 星火弹 / 星爆 / 彩糖 / 番茄：朝附近敌人连发。
   bolt(g, w, s, dt) {
     const p = g.player, st = p.st;
     w.timer -= dt;
@@ -51,21 +86,22 @@ const WeaponFns = {
       w.burst--;
       const ts = g.nearestEnemies(p.x, p.y, 560, s.spread || 1);
       if (!ts.length) { w.burst = 0; return; }
-      const t = ts[w.shot++ % ts.length];
+      const d = WEAPONS[w.id], shot = w.shot++;
+      const t = ts[shot % ts.length];
       const a = Math.atan2(t.y - p.y, t.x - p.x) + U.rand(-0.06, 0.06);
       g.addProj({
         x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
         r: s.size * st.area, dmg: s.dmg * st.might, pierce: s.pierce, life: 1.4,
-        wid: w.id, look: 'bolt', color: WEAPONS[w.id].color, kb: 120,
-        blast: s.blast ? s.blast * st.area : 0,
+        wid: w.id, look: d.look || 'bolt', color: d.colors ? d.colors[shot % d.colors.length] : d.color, kb: 120,
+        blast: s.blast ? s.blast * st.area : 0, sauce: s.sauce || 0,
       });
       Sfx.play('shoot');
     }
   },
 
-  // 光矛 / 引星矛:朝面向方向投出贯穿矛,进化后自动追踪
+  // 光矛 / 引星矛 / 土豆：朝最近移动方向发射贯穿投射物，引星矛自动追踪。
   lance(g, w, s, dt) {
-    const p = g.player, st = p.st;
+    const p = g.player, st = p.st, d = WEAPONS[w.id];
     w.timer -= dt;
     if (w.timer > 0) return;
     w.timer = s.cd * st.cd;
@@ -81,7 +117,7 @@ const WeaponFns = {
         x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
         r: s.size * st.area, dmg: s.dmg * st.might, pierce: s.pierce,
         life: s.homing ? 2.4 : 1.1, speed: s.speed, mode: s.homing ? 'homing' : '',
-        wid: w.id, look: 'lance', color: WEAPONS[w.id].color, kb: 160,
+        wid: w.id, look: d.look || 'lance', color: d.color, kb: 160,
       });
     }
     Sfx.play('shoot');
@@ -123,7 +159,7 @@ const WeaponFns = {
     Sfx.play('shoot');
   },
 
-  // 环绕萤火 / 永恒星环:位置由角度实时算出,不生成投射物
+  // 环绕萤火 / 永恒星环 / 冰淇淋旋风:位置由角度实时算出,不生成投射物
   orbit(g, w, s, dt) {
     const p = g.player, st = p.st;
     w.ang = (w.ang || 0) + 3.4 * dt;
@@ -142,7 +178,9 @@ const WeaponFns = {
     for (let i = 0; i < n; i++) {
       const a = w.ang + i / n * TAU;
       g.eachEnemyNear(p.x + Math.cos(a) * R, p.y + Math.sin(a) * R, r, e => {
-        if (g.canHit(e, w.id, 0.45)) g.damageEnemy(e, dmg, w.id, e.x - p.x, e.y - p.y, 140);
+        if (!g.canHit(e, w.id, 0.45)) return;
+        g.damageEnemy(e, dmg, w.id, e.x - p.x, e.y - p.y, 140);
+        if (s.slow && !e.dead) g.slowEnemy(e, s.slow, s.chill);
       });
     }
   },
@@ -190,6 +228,29 @@ const WeaponFns = {
     w.timer = s.cd * st.cd;
     g.shake = Math.max(g.shake, 2.5);
     Sfx.play('zap');
+  },
+
+  // 灵猴踏枝 / 群猴闹山：从果果身边跃向标记，依次落地震击。
+  monkey(g, w, s, dt) {
+    const p = g.player, st = p.st;
+    w.timer -= dt;
+    if (w.timer > 0) return;
+    const count = s.count + st.amount;
+    const targets = g.nearestEnemies(p.x, p.y, s.range, count);
+    if (!targets.length) { w.timer = 0.2; return; }
+    w.timer = s.cd * st.cd;
+    for (let i = 0; i < count; i++) {
+      const target = targets[i % targets.length];
+      const a = Math.atan2(target.y - p.y, target.x - p.x);
+      const offset = i < targets.length ? 0 : (i % 2 ? -1 : 1) * Math.min(28, i * 12);
+      const delay = s.delay + i * 0.08;
+      g.zones.push({
+        type: 'monkey', fromX: p.x, fromY: p.y,
+        x: target.x - Math.sin(a) * offset, y: target.y + Math.cos(a) * offset,
+        r: s.radius * st.area, t: delay, max: delay, dmg: s.dmg * st.might, wid: w.id,
+        color: WEAPONS[w.id].color,
+      });
+    }
   },
 
   // 陨星 / 天火:先在地面标记,延迟后落下爆炸

@@ -89,7 +89,8 @@ const Game = {
     }
     if (p.weapons.length < CFG.MAX_WEAPONS) {
       for (const id in WEAPONS) {
-        if (WEAPONS[id].evolved || p.evolved[id] || p.weapons.some(w => w.id === id)) continue;
+        const d = WEAPONS[id];
+        if (d.evolved || (d.exclusive && d.exclusive !== p.char) || p.evolved[id] || p.weapons.some(w => w.id === id)) continue;
         pool.push({ kind: 'weapon', id, lv: 1, wt: 2 });
       }
     }
@@ -99,6 +100,14 @@ const Game = {
     if (p.passives.length < CFG.MAX_PASSIVES) {
       for (const id in PASSIVES) {
         if (!p.passives.some(q => q.id === id)) pool.push({ kind: 'passive', id, lv: 1, wt: 2 });
+      }
+    }
+    // 多选升级时优先给一个尚未习得的专属武器，宝箱单次抽取照旧。
+    if (n > 1 && out.length < n) {
+      const exclusive = pool.filter(c => c.kind === 'weapon' && c.lv === 1 && WEAPONS[c.id].exclusive === p.char);
+      if (exclusive.length) {
+        const choice = exclusive[U.randInt(0, exclusive.length - 1)];
+        out.push(...pool.splice(pool.indexOf(choice), 1));
       }
     }
     // 按权重不放回抽取
@@ -121,11 +130,11 @@ const Game = {
     if (c.kind === 'weapon') {
       const d = WEAPONS[c.id];
       let desc = c.lv === 1 ? d.desc : upgradeText(d.ups[c.lv - 2]);
-      if (c.lv === 1 && d.evo) {
+      if (d.evo && (c.lv === 1 || d.exclusive)) {
         const need = PASSIVES[d.evo.need];
-        desc += '\n进化搭档:' + need.icon + ' ' + need.name;
+        desc += '\n进化搭档：' + need.name;
       }
-      return { icon: d.icon, name: d.name, tag: c.lv === 1 ? '新武器' : 'Lv.' + c.lv, desc, cls: 'weapon' };
+      return { icon: c.id, name: d.name, tag: c.lv === 1 ? '新武器' : 'Lv.' + c.lv, desc, cls: 'weapon' };
     }
     if (c.kind === 'passive') {
       const d = PASSIVES[c.id];
@@ -133,16 +142,16 @@ const Game = {
       // 提示这件被动能让哪把已持有的武器进化
       for (const w of p.weapons) {
         const wd = WEAPONS[w.id];
-        if (wd.evo && wd.evo.need === c.id) desc += '\n可进化:' + wd.icon + ' ' + wd.name;
+        if (wd.evo && wd.evo.need === c.id) desc += '\n可进化：' + wd.name;
       }
-      return { icon: d.icon, name: d.name, tag: c.lv === 1 ? '新道具' : 'Lv.' + c.lv, desc, cls: 'passive' };
+      return { icon: c.id, name: d.name, tag: c.lv === 1 ? '新道具' : 'Lv.' + c.lv, desc, cls: 'passive' };
     }
     if (c.kind === 'evo') {
       const d = WEAPONS[c.to];
-      return { icon: d.icon, name: d.name, tag: '进化', desc: d.desc, cls: 'evo' };
+      return { icon: c.to, name: d.name, tag: '进化', desc: d.desc, cls: 'evo' };
     }
-    if (c.kind === 'coins') return { icon: '🪙', name: '一袋金币', tag: '', desc: '获得 25 金币', cls: 'passive' };
-    return { icon: '❤️', name: '治疗药剂', tag: '', desc: '回复 30% 生命', cls: 'passive' };
+    if (c.kind === 'coins') return { icon: 'coin', name: '一袋金币', tag: '', desc: '获得 25 金币', cls: 'passive' };
+    return { icon: 'tonic', name: '治疗药剂', tag: '', desc: '回复 30% 生命', cls: 'passive' };
   },
 
   applyChoice(c) {
@@ -320,7 +329,7 @@ const Game = {
         e.cd = 3; e.phase = '';
         this.boss = e;
         Sfx.play('boss');
-        UI.banner('⚠ 夜魇降临');
+        UI.banner('夜魇降临');
       }
     }
   },
@@ -668,6 +677,10 @@ const Game = {
           if (b.blast) {
             this.aoe(b.x, b.y, b.blast, b.dmg * 0.6, b.wid, 80);
             this.fx.push({ type: 'boom', x: b.x, y: b.y, r: b.blast, life: 0.25, max: 0.25, c: b.color });
+            if (b.sauce) this.zones.push({
+              type: 'fire', look: 'tomato', x: b.x, y: b.y, r: b.blast, life: b.sauce, tk: 0.25,
+              dmg: b.dmg * 0.45, wid: b.wid, color: b.color,
+            });
           }
           if (--b.pierce <= 0) b.life = 0;
         });
@@ -677,24 +690,27 @@ const Game = {
     arr.length = n;
   },
 
-  // ---------- 区域效果:陨星落点、火海、霜环 ----------
+  // ---------- 区域效果:陨星、灵猴落地、火海、霜环、年糕陷阱 ----------
   updateZones(dt) {
     const arr = this.zones;
     let n = 0;
     for (let i = 0; i < arr.length; i++) {
       const z = arr[i];
       let keep = true;
-      if (z.type === 'meteor') {
+      if (z.type === 'meteor' || z.type === 'monkey') {
         z.t -= dt;
         if (z.t <= 0) {
+          const monkey = z.type === 'monkey';
           keep = false;
-          this.aoe(z.x, z.y, z.r, z.dmg, z.wid, 220);
-          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: '#ff9f6b' });
-          this.burst(z.x, z.y, '#ffb36b', 8);
-          this.shake = Math.max(this.shake, 6);
+          this.aoe(z.x, z.y, z.r, z.dmg, z.wid, monkey ? 75 : 220);
+          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: monkey ? z.color : '#ff9f6b' });
+          this.burst(z.x, z.y, monkey ? z.color : '#ffb36b', 8);
+          this.shake = Math.max(this.shake, monkey ? 2 : 6);
           Sfx.play('boom');
           if (z.burn) arr.push({ type: 'fire', x: z.x, y: z.y, r: z.r * 0.9, life: z.burn, tk: 0.3, dmg: z.dmg * 0.3, wid: z.wid });
         }
+      } else if (z.type === 'ricecake') {
+        keep = this.updateRicecake(z, dt);
       } else if (z.type === 'fire') {
         z.life -= dt; z.tk -= dt;
         if (z.tk <= 0) { z.tk = 0.5; this.aoe(z.x, z.y, z.r, z.dmg, z.wid, 0); }
@@ -713,6 +729,22 @@ const Game = {
       if (keep) arr[n++] = z;
     }
     arr.length = n;
+  },
+
+  updateRicecake(z, dt) {
+    z.life -= dt;
+    if (z.life <= 0) return false;
+    let steppedOn = false;
+    this.eachEnemyNear(z.x, z.y, z.trigger, () => { steppedOn = true; });
+    if (!steppedOn) return true;
+    this.eachEnemyNear(z.x, z.y, z.r, e => {
+      this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0);
+      if (!e.dead) this.slowEnemy(e, z.slow, z.chill);
+    });
+    this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.3, max: 0.3, c: z.color });
+    this.burst(z.x, z.y, z.color, 6);
+    Sfx.play('hit');
+    return false;
   },
 
   // ---------- 敌方子弹 ----------
