@@ -6,7 +6,7 @@
 let UID = 0;
 
 const Game = {
-  state: 'menu',              // menu | playing | levelup | chest | paused | gameover | victory
+  state: 'menu',              // menu | intro | playing | levelup | chest | paused | gameover | victory
   view: { hw: 480, hh: 300 }, // 可视范围半宽/半高(世界单位),由渲染层在 resize 时写入
   grid: new Grid(64),
   player: null,
@@ -68,7 +68,8 @@ const Game = {
   },
 
   addWeapon(id) {
-    this.player.weapons.push({ id, lv: 1, timer: 0, s: weaponStats(id, 1) });
+    const s = weaponStats(id, 1);
+    this.player.weapons.push({ id, lv: 1, timer: 0, s, guards: s.guards || 0 });
     this.dirty = true;
   },
 
@@ -158,7 +159,11 @@ const Game = {
     const p = this.player;
     if (c.kind === 'weapon') {
       const w = p.weapons.find(x => x.id === c.id);
-      if (w) { w.lv++; w.s = weaponStats(w.id, w.lv); } else this.addWeapon(c.id);
+      if (w) {
+        const oldGuards = w.s.guards || 0;
+        w.s = weaponStats(w.id, ++w.lv);
+        if (w.guards > 0) w.guards += Math.max(0, w.s.guards - oldGuards);
+      } else this.addWeapon(c.id);
     } else if (c.kind === 'passive') {
       const q = p.passives.find(x => x.id === c.id);
       if (q) q.lv++; else p.passives.push({ id: c.id, lv: 1 });
@@ -187,6 +192,8 @@ const Game = {
       this.choices = this.buildChoices(3);
       UI.showLevelUp();
     } else {
+      const p = this.player;
+      this.fx.push({ type: 'outfitPulse', x: p.x, y: p.y, life: 0.55, max: 0.55, c: CHARS[p.char].color });
       this.state = 'playing';
       UI.show(null);
     }
@@ -237,11 +244,12 @@ const Game = {
     p.moving = il > 0.08;
     if (p.moving) {
       const k = il > 1 ? 1 / il : 1;
-      p.x += ix * k * st.speed * dt;
-      p.y += iy * k * st.speed * dt;
+      const x = p.x, y = p.y;
+      Terrain.move(p, ix * k * st.speed * dt, iy * k * st.speed * dt, CFG.PLAYER_R);
       p.dirx = ix / il; p.diry = iy / il;
       if (Math.abs(ix) > 0.05) p.face = ix < 0 ? -1 : 1;
-      p.walkT += dt;
+      p.moving = Math.hypot(p.x - x, p.y - y) > 0.05;
+      if (p.moving) p.walkT += dt;
     }
     if (p.iframe > 0) p.iframe -= dt;
     if (st.regen > 0 && p.hp < st.maxHp) p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
@@ -349,6 +357,7 @@ const Game = {
       e.hp = e.maxHp = e.hp * 7;
       e.r *= 1.45; e.xp *= 10; e.kbRes = Math.max(e.kbRes, 0.8);
     }
+    if (type !== 'boss' && !d.ghost) Terrain.move(e, 0, 0, e.r);
     this.enemies.push(e);
     return e;
   },
@@ -359,6 +368,7 @@ const Game = {
     const far = this.spawnR() * 1.7, R = this.spawnR();
     for (const e of this.enemies) {
       if (e.dead) continue;
+      const def = ENEMIES[e.type], avoidsTerrain = !def.ghost && !e.boss;
       e.t += dt;
       if (e.flash > 0) e.flash -= dt;
       const dx = p.x - e.x, dy = p.y - e.y;
@@ -367,9 +377,9 @@ const Game = {
       if (d > far && !e.boss) {
         const a = Math.random() * TAU;
         e.x = p.x + Math.cos(a) * R; e.y = p.y + Math.sin(a) * R;
+        if (avoidsTerrain) Terrain.move(e, 0, 0, e.r);
         continue;
       }
-      const def = ENEMIES[e.type];
       let sp = e.speed;
       if (e.frozen > 0) { e.frozen -= dt; sp = 0; }
       else if (e.slowT > 0) { e.slowT -= dt; sp *= 1 - e.slow; }
@@ -407,13 +417,15 @@ const Game = {
         else if (e.phase === 'charge') { mx = e.cx; my = e.cy; sp *= 3.4; }
       }
 
-      e.x += (mx * sp + e.kx) * dt;
-      e.y += (my * sp + e.ky) * dt;
+      const moveX = (mx * sp + e.kx) * dt, moveY = (my * sp + e.ky) * dt;
+      if (avoidsTerrain && (moveX || moveY)) Terrain.move(e, moveX, moveY, e.r, e.side);
+      else { e.x += moveX; e.y += moveY; }
       const decay = Math.max(0, 1 - 8 * dt);
       e.kx *= decay; e.ky *= decay;
 
       // 敌人之间互相挤开(幽魂和 Boss 不参与)
-      if (!def.ghost && !e.boss) {
+      if (avoidsTerrain) {
+        const x = e.x, y = e.y;
         const cx = Math.floor(e.x / cell), cy = Math.floor(e.y / cell);
         for (let gx = cx - 1; gx <= cx + 1; gx++) {
           for (let gy = cy - 1; gy <= cy + 1; gy++) {
@@ -431,6 +443,7 @@ const Game = {
             }
           }
         }
+        if (e.x !== x || e.y !== y) Terrain.move(e, 0, 0, e.r);
       }
 
       if (d < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e);
@@ -568,6 +581,8 @@ const Game = {
   hurtPlayer(dmg, src) {
     const p = this.player;
     if (p.iframe > 0 || this.state !== 'playing') return;
+    const paper = p.weapons.find(w => w.id === 'exampaper' && w.guards > 0);
+    if (paper) { this.consumeExamGuard(paper); return; }
     dmg = Math.max(1, Math.round(dmg - p.st.armor));
     p.hp -= dmg;
     p.iframe = src && src.boss ? 0.7 : 0.3; // 被 Boss 撞到后给更长的无敌时间,避免贴身秒杀
@@ -581,6 +596,18 @@ const Game = {
       }
     }
     if (p.hp <= 0) this.die();
+  },
+
+  consumeExamGuard(w) {
+    const p = this.player, s = w.s;
+    if (--w.guards === 0) w.timer = s.cd * p.st.cd;
+    p.iframe = 0.3; // 同一波贴身攻击不会在同一帧消耗两张试卷。
+    const radius = s.radius * p.st.area, color = WEAPONS[w.id].color;
+    this.eachEnemyNear(p.x, p.y, radius, e => this.slowEnemy(e, s.slow, s.chill));
+    this.fx.push({ type: 'boom', x: p.x, y: p.y, r: radius, life: 0.34, max: 0.34, c: color });
+    this.burst(p.x, p.y, color, 9);
+    this.texts.push({ x: p.x, y: p.y - 22, s: '抵挡', life: 0.7, c: color });
+    Sfx.play('paper');
   },
 
   die() {
@@ -653,7 +680,7 @@ const Game = {
           b.seek = (b.seek || 0) - dt;
           if (b.seek <= 0 || !b.tg || b.tg.dead) {
             b.seek = 0.12;
-            b.tg = this.nearestEnemy(b.x, b.y, 420, b.hit);
+            b.tg = this.nearestEnemy(b.x, b.y, b.bounceRange || 420, b.hit);
           }
           if (b.tg) {
             const want = Math.atan2(b.tg.y - b.y, b.tg.x - b.x);
@@ -669,8 +696,9 @@ const Game = {
       }
 
       if (b.life > 0) {
+        let rebounded = false;
         this.eachEnemyNear(b.x, b.y, b.r, e => {
-          if (b.life <= 0) return;
+          if (b.life <= 0 || rebounded) return;
           if (b.rehit) { if (!this.canHit(e, b.uid, b.rehit)) return; }
           else { if (b.hit.has(e.id)) return; b.hit.add(e.id); }
           this.damageEnemy(e, b.dmg, b.wid, b.mode === 'spiral' ? e.x - p.x : b.vx, b.mode === 'spiral' ? e.y - p.y : b.vy, b.kb);
@@ -682,7 +710,10 @@ const Game = {
               dmg: b.dmg * 0.45, wid: b.wid, color: b.color,
             });
           }
-          if (--b.pierce <= 0) b.life = 0;
+          if (b.bounceRange) {
+            rebounded = true;
+            this.reboundProjectile(b);
+          } else if (--b.pierce <= 0) b.life = 0;
         });
       }
       if (b.life > 0) arr[n++] = b;
@@ -690,22 +721,36 @@ const Game = {
     arr.length = n;
   },
 
-  // ---------- 区域效果:陨星、灵猴落地、火海、霜环、年糕陷阱 ----------
+  reboundProjectile(b) {
+    const target = b.bounces > 0 ? this.nearestEnemy(b.x, b.y, b.bounceRange, b.hit) : null;
+    if (!target) { b.life = 0; return; }
+    b.bounces--;
+    b.mode = 'homing';
+    b.tg = target;
+    b.seek = Infinity; // 一次弹射锁定一个新目标；目标死亡才重新寻找。
+    const angle = Math.atan2(target.y - b.y, target.x - b.x);
+    b.speed = Math.hypot(b.vx, b.vy);
+    b.vx = Math.cos(angle) * b.speed;
+    b.vy = Math.sin(angle) * b.speed;
+  },
+
+  // ---------- 区域效果:落地冲击、火海、霜环、年糕陷阱 ----------
   updateZones(dt) {
     const arr = this.zones;
     let n = 0;
     for (let i = 0; i < arr.length; i++) {
       const z = arr[i];
       let keep = true;
-      if (z.type === 'meteor' || z.type === 'monkey') {
+      if (z.type === 'meteor' || z.type === 'monkey' || z.type === 'watermelon') {
         z.t -= dt;
         if (z.t <= 0) {
-          const monkey = z.type === 'monkey';
+          const meteor = z.type === 'meteor';
           keep = false;
-          this.aoe(z.x, z.y, z.r, z.dmg, z.wid, monkey ? 75 : 220);
-          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: monkey ? z.color : '#ff9f6b' });
-          this.burst(z.x, z.y, monkey ? z.color : '#ffb36b', 8);
-          this.shake = Math.max(this.shake, monkey ? 2 : 6);
+          this.aoe(z.x, z.y, z.r, z.dmg, z.wid, meteor ? 220 : 75);
+          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: meteor ? '#ff9f6b' : z.color });
+          this.burst(z.x, z.y, meteor ? '#ffb36b' : z.color, 8);
+          if (z.type === 'watermelon') this.burst(z.x, z.y, '#80c48b', 6);
+          this.shake = Math.max(this.shake, meteor ? 6 : 2);
           Sfx.play('boom');
           if (z.burn) arr.push({ type: 'fire', x: z.x, y: z.y, r: z.r * 0.9, life: z.burn, tk: 0.3, dmg: z.dmg * 0.3, wid: z.wid });
         }

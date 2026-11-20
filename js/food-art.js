@@ -114,4 +114,50 @@ const FoodArt = {
     }
     ctx.restore();
   },
+
+  watermelon(ctx, z) {
+    const k = U.clamp(1 - z.t / z.max, 0, 1);
+    const lift = Math.sin(Math.PI * k);
+    const scale = Math.min(1.5, z.r / 65);
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.translate(z.fromX + (z.x - z.fromX) * k, z.fromY + (z.y - z.fromY) * k);
+    ctx.fillStyle = '#101a16a6';
+    ctx.beginPath(); ctx.ellipse(0, 2, 10 * scale, 4 * scale, 0, 0, TAU); ctx.fill();
+    ctx.translate(0, -lift * 56);
+    ctx.rotate(k * TAU * 0.72);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#83bf68'; ctx.strokeStyle = '#284834'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.ellipse(0, 0, 13.8, 11, 0, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#407e4c'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+    for (const offset of [-6, 0, 6]) {
+      ctx.beginPath(); ctx.moveTo(offset * 0.76, -9.1);
+      ctx.bezierCurveTo(offset - 6, -3, offset + 4, 4, offset * 0.76, 9.1); ctx.stroke();
+    }
+    ctx.strokeStyle = '#c8db87'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-10, -3); ctx.quadraticCurveTo(-9, -6, -5.7, -7.6); ctx.stroke();
+    ctx.restore();
+  },
+
+  mangoHeal(ctx, f, k) {
+    const rise = 1 - k;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = Math.min(1, k * 2.8);
+    ctx.strokeStyle = '#a9e8ad'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(f.x, f.y + 6, 13 + 24 * rise, 8 + 13 * rise, 0, 0, TAU); ctx.stroke();
+    ctx.translate(f.x + 13 + rise * 6, f.y - 22 - rise * 32);
+    ctx.rotate(-0.25 + rise * 0.45);
+    for (const [x, color] of [[0, '#e99a48'], [5, '#ffcc65']]) {
+      ctx.translate(x, 0);
+      ctx.fillStyle = color; ctx.strokeStyle = '#865535'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(-7, 4);
+      ctx.bezierCurveTo(-10, -3, 2, -11, 7, -8);
+      ctx.quadraticCurveTo(4, -3, 6, 2); ctx.quadraticCurveTo(2, 7, -7, 4);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#ffe0a0';
+      ctx.beginPath(); ctx.moveTo(-4, 1); ctx.quadraticCurveTo(-2, -3, 3, -5); ctx.stroke();
+    }
+    ctx.restore();
+  },
 };

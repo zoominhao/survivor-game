@@ -11,6 +11,7 @@ const UI = {
     document.addEventListener('keydown', e => this.trapDialogTab(e));
     const on = (id, fn) => this.$(id).addEventListener('click', () => { Sfx.unlock(); Sfx.play('click'); fn(); });
     on('btnStart', () => App.startRun());
+    on('btnIntroSkip', () => App.finishIntro());
     on('btnShop', () => this.showShop());
     on('btnShopBack', () => this.showMenu());
     on('btnReroll', () => Game.reroll());
@@ -32,7 +33,7 @@ const UI = {
     this.overlayId = id;
     if (id === 'pause' && id !== previous) this.pauseFromHud = this.$('hud').contains(document.activeElement);
     for (const o of document.querySelectorAll('.overlay')) o.classList.toggle('hidden', o.id !== id);
-    const inRun = !!Game.player && Game.state !== 'menu';
+    const inRun = !!Game.player && Game.state !== 'menu' && Game.state !== 'intro';
     const hud = this.$('hud');
     hud.classList.toggle('hidden', !inRun);
     hud.inert = !inRun || !!id;
@@ -69,7 +70,21 @@ const UI = {
     }
   },
 
-  // ---------- 主菜单 ----------
+  // ---------- 开场与主菜单 ----------
+  showIntro(charId, duration) {
+    const c = CHARS[charId], w = WEAPONS[c.weapon];
+    const [label, name] = c.name.split('·');
+    this.$('introEpithet').textContent = name ? label : '';
+    this.$('introName').textContent = name || label;
+    this.$('introWeaponName').textContent = w.name;
+    this.$('introWeaponIcon').innerHTML = Icons.html(c.weapon);
+    this.$('introPortrait').replaceChildren(Render.avatar(charId, 8));
+    const intro = this.$('intro');
+    intro.style.setProperty('--intro-accent', c.color);
+    intro.style.setProperty('--intro-duration', duration + 'ms');
+    this.show('intro');
+  },
+
   showMenu() {
     Game.state = 'menu';
     const d = Save.data;

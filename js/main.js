@@ -63,6 +63,7 @@ const Input = {
 
 const App = {
   last: 0,
+  introEndsAt: 0,
 
   init() {
     Save.load();
@@ -77,9 +78,20 @@ const App = {
   },
 
   startRun() {
+    if (Game.state === 'intro') return;
     Input.endJoy();
     Game.start(Save.data.lastChar);
+    Game.state = 'intro';
     UI.cache = {};
+    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2200;
+    this.introEndsAt = performance.now() + duration;
+    UI.showIntro(Game.player.char, duration);
+    Sfx.play('intro');
+  },
+
+  finishIntro() {
+    if (Game.state !== 'intro' || document.hidden) return;
+    Game.state = 'playing';
     UI.show(null);
   },
 
@@ -104,6 +116,10 @@ const App = {
   onKey(code) {
     const s = Game.state;
     if (code === 'KeyM') { this.toggleMute(); return; }
+    if (s === 'intro') {
+      if (['Enter', 'Space', 'Escape'].includes(code)) this.finishIntro();
+      return;
+    }
     if (code === 'Escape' && UI.overlayId === 'shop') { UI.showMenu(); return; }
     if (code === 'Escape' || code === 'KeyP') {
       if (s === 'playing') this.pause(); else if (s === 'paused') this.resume();
@@ -128,7 +144,11 @@ const App = {
     const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     Input.poll();
-    if (Game.state === 'playing') Game.update(dt);
+    if (Game.state === 'intro') {
+      if (now >= this.introEndsAt) this.finishIntro();
+    } else if (Game.state === 'playing') {
+      Game.update(dt);
+    }
     Render.draw(dt);
     UI.updateHud();
     requestAnimationFrame(t => this.frame(t));

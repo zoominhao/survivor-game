@@ -354,6 +354,80 @@ button.card:hover:not(:disabled) { transform: translateY(-2px); background-color
 .dmg u { display: block; height: 100%; background: var(--vermillion); }
 .dmg em { font-style: normal; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
 
+/* ---------- 点灯入阵 ---------- */
+#intro { background: radial-gradient(ellipse at center, #12312c6b, transparent 70%), var(--scrim); }
+.intro-card {
+  position: relative; isolation: isolate; overflow: hidden;
+  width: min(840px, 100%); margin: auto;
+  display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  background: var(--bg); border: 1px solid var(--gold); box-shadow: var(--shadow);
+  animation: intro-unfold .4s cubic-bezier(.16, 1, .3, 1) both;
+}
+.intro-card::before {
+  content: ""; position: absolute; inset: 7px; z-index: 3;
+  border: 1px solid #d8b77f70; pointer-events: none;
+}
+.intro-art {
+  position: relative; isolation: isolate; overflow: hidden;
+  min-height: 356px; display: grid; place-items: center;
+  border-right: 1px solid var(--line);
+  background: radial-gradient(ellipse at center, #59726355, transparent 66%), linear-gradient(#142524ba, #12211cc2), url("art/watch-scroll.svg") center 58% / cover no-repeat;
+}
+.intro-art::after {
+  content: ""; position: absolute; top: -20%; bottom: -20%; left: -35%; width: 39%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, #eed5a36b, transparent);
+  animation: intro-glint .88s .26s ease-out both;
+}
+.intro-medallion {
+  position: absolute; z-index: -1;
+  width: min(73%, 278px); aspect-ratio: 1;
+  border-radius: 50%; border: 1px solid var(--intro-accent, var(--gold));
+  background: radial-gradient(circle, #415b4296, #223c3694 68%, #182d2980);
+  box-shadow: 0 0 0 6px #16252370, 0 0 0 7px #d8b77f50;
+  animation: intro-medallion .56s .05s ease-out both;
+}
+.intro-medallion::after { content: ""; position: absolute; inset: 9px; border: 1px dashed #d8b77f70; border-radius: inherit; }
+.intro-portrait { width: min(76%, 300px); animation: intro-figure .55s .06s cubic-bezier(.16, 1, .3, 1) both; }
+.intro-portrait .avatar { display: block; width: 100%; height: auto; filter: drop-shadow(0 8px 9px #081b18c9); }
+.intro-art-note { position: absolute; left: 18px; bottom: 20px; color: var(--gold); font: 700 11px var(--display); letter-spacing: .26em; writing-mode: vertical-rl; }
+.intro-copy {
+  position: relative; min-width: 0; padding: 32px 36px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  background: repeating-linear-gradient(0deg, #ffffff03 0 1px, transparent 1px 5px);
+}
+.intro-copy h2 {
+  max-width: 100%; margin: 12px 0 20px; color: var(--text);
+  font: 800 clamp(45px, 7vw, 72px)/1.03 var(--display); overflow-wrap: anywhere;
+  animation: intro-title .45s .17s ease-out both;
+}
+.intro-copy h2:focus { outline: none; } /* 弹层标题的程序化焦点，按钮仍保留键盘焦点环。 */
+.intro-copy h2 span { display: block; margin-bottom: 4px; color: var(--intro-accent, var(--gold)); font-size: .34em; letter-spacing: .13em; }
+.intro-copy h2 span:empty { display: none; }
+.intro-stamp {
+  position: absolute; top: 18px; right: 20px; display: grid; place-items: center;
+  width: 38px; min-height: 46px; color: var(--paper); background: var(--vermillion);
+  border: 1px solid var(--red-light); box-shadow: inset 0 0 0 3px var(--vermillion), inset 0 0 0 4px #ffbc9999;
+  text-align: center; font: 700 15px/1.03 var(--display);
+  transform: rotate(7deg); animation: intro-stamp .29s .46s ease-out both;
+}
+.intro-weapon { display: flex; gap: 9px; align-items: center; color: var(--gold); font-size: 15px; }
+.intro-weapon-icon { display: grid; place-items: center; width: 37px; height: 37px; border: 1px solid var(--line); color: var(--intro-accent, var(--gold)); font-size: 21px; }
+.intro-weapon small { display: block; color: var(--dim); font-size: 10px; letter-spacing: .12em; }
+.intro-weapon strong { display: block; color: var(--text); font: 750 17px/1.2 var(--display); }
+.intro-skip { margin-top: 24px; padding-inline: 12px; font-size: 13px; }
+.intro-skip kbd { margin-left: 4px; color: var(--dim); font: 700 10px system-ui; }
+.intro-progress { position: absolute; z-index: 4; right: 0; bottom: 0; left: 0; height: 2px; background: var(--line); pointer-events: none; }
+.intro-progress::after { content: ""; display: block; width: 100%; height: 100%; background: var(--intro-accent, var(--gold)); transform-origin: left; animation: intro-progress var(--intro-duration, 2200ms) linear both; }
+
+@keyframes intro-unfold { from { opacity: .15; transform: scale(.965); } to { opacity: 1; transform: scale(1); } }
+@keyframes intro-figure { from { opacity: 0; transform: translateX(-24px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes intro-medallion { from { opacity: 0; transform: scale(.8) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes intro-title { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@keyframes intro-stamp { from { opacity: 0; transform: rotate(14deg) scale(1.42); } to { opacity: 1; transform: rotate(7deg); } }
+@keyframes intro-glint { 0% { opacity: 0; transform: translateX(0) skewX(-22deg); } 25% { opacity: .72; } 100% { opacity: 0; transform: translateX(390%) skewX(-22deg); } }
+@keyframes intro-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
 /* ---------- 窄屏 ---------- */
 @media (max-width: 860px) {
   .watch-roster { padding: 24px 20px 20px; }
@@ -391,6 +465,16 @@ button.card:hover:not(:disabled) { transform: translateY(-2px); background-color
   .slot { width: 28px; height: 28px; font-size: 15px; }
 }
 
+@media (max-width: 620px) {
+  .intro-card { max-width: 430px; grid-template-columns: minmax(0, 1fr); }
+  .intro-art { min-height: 150px; height: clamp(160px, 35vh, 235px); border-right: 0; border-bottom: 1px solid var(--line); }
+  .intro-medallion { width: min(57%, 191px); }
+  .intro-portrait { width: min(58%, 208px); }
+  .intro-copy { padding: 20px 24px 22px; }
+  .intro-copy h2 { font-size: 48px; margin: 10px 0 14px; }
+  .intro-skip { margin-top: 14px; }
+}
+
 @media (max-width: 480px) {
   .panel { padding: 18px; }
   .chars { gap: 6px; }
@@ -421,5 +505,7 @@ button.card:hover:not(:disabled) { transform: translateY(-2px); background-color
   button, #xpfill { transition: none; }
   .char.deny { animation: none; }
   #banner.show { animation-name: banner-opacity; }
+  .intro-card, .intro-medallion, .intro-portrait, .intro-copy h2, .intro-stamp, .intro-art::after { animation: none; }
+  .intro-art::after, .intro-progress { display: none; }
   @keyframes banner-opacity { 0%, 100% { opacity: 0; } 12%, 75% { opacity: 1; } }
 }

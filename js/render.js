@@ -159,6 +159,7 @@ const Render = {
   init() {
     this.cv = document.getElementById('game');
     this.ctx = this.cv.getContext('2d');
+    this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     this.buildSprites();
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -294,6 +295,8 @@ const Render = {
     ctx.fillStyle = this.ground;
     ctx.fillRect(L, T, hw * 2, hh * 2);
 
+    // 物件先画，角色、掉落物和预警不会被松树遮住。
+    Terrain.forEachProp(L - 90, T - 90, Rt + 90, B + 90, prop => TerrainArt.draw(ctx, prop));
     this.drawZones(ctx, g, p, time);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
@@ -360,7 +363,7 @@ const Render = {
         ctx.strokeStyle = 'rgba(255,140,90,0.75)';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.stroke();
-      } else if (z.type === 'monkey') {
+      } else if (z.type === 'monkey' || z.type === 'watermelon') {
         const k = 1 - z.t / z.max;
         ctx.save();
         ctx.strokeStyle = ctx.fillStyle = z.color;
@@ -504,15 +507,15 @@ const Render = {
 
   // ---------- 角色造型 ----------
   // 以原点为中心、面朝右绘制;walk ∈ [-1, 1] 为走路摆动相位
-  drawFigure(ctx, charId, walk) {
+  drawFigure(ctx, charId, walk, tier = 0) {
     const c = CHARS[charId];
-    if (c.look === 'girl') this.drawGirl(ctx, walk);
-    else if (c.look === 'echo') EchoFigure.runner(ctx, walk);
-    else this.drawCloak(ctx, c.color);
+    if (c.look === 'girl') this.drawGirl(ctx, walk, tier);
+    else if (c.look === 'echo') EchoFigure.runner(ctx, walk, tier);
+    else this.drawCloak(ctx, c.color, tier);
   },
 
   // 默认造型:兜帽斗篷 + 提灯
-  drawCloak(ctx, color) {
+  drawCloak(ctx, color, tier) {
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(-10, 12);
@@ -523,6 +526,11 @@ const Render = {
     ctx.strokeStyle = 'rgba(0,0,0,0.35)';
     ctx.lineWidth = 1.2;
     ctx.stroke();
+    if (tier > 0) {
+      ctx.strokeStyle = '#f4ca86'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(-9, -3); ctx.quadraticCurveTo(-7, -9, 0, -13);
+      ctx.quadraticCurveTo(7, -9, 9, -3); ctx.stroke();
+    }
     // 兜帽下的脸
     ctx.fillStyle = '#1b1626';
     ctx.beginPath(); ctx.ellipse(1.5, -4, 6.2, 5.6, 0, 0, TAU); ctx.fill();
@@ -538,7 +546,7 @@ const Render = {
   },
 
   // 小女孩造型:高马尾 + 黄色发夹、透明圆框眼镜、米白色熊猫九宫格卫衣、灰色阔腿裤、粉色手表
-  drawGirl(ctx, walk) {
+  drawGirl(ctx, walk, tier) {
     const HAIR = '#1d1b20', SKIN = '#f7d7bd', CREAM = '#f4eedc', GREY = '#9c9ea6';
     ctx.lineCap = 'round';
     // 马尾(在身后,随走动甩动)
@@ -628,13 +636,16 @@ const Render = {
     // 耳朵
     ctx.fillStyle = SKIN;
     ctx.beginPath(); ctx.arc(hx - 3, hy + 1.4, 1.2, 0, TAU); ctx.fill();
-    // 黄色发夹
-    ctx.fillStyle = '#f4c430';
-    ctx.save();
-    ctx.translate(hx - 1.4, hy - 5.4);
-    ctx.rotate(-0.5);
-    ctx.fillRect(-1.3, -0.55, 2.6, 1.1);
-    ctx.restore();
+    // 升级后的粉色花发夹，初始仍是黄色发夹。
+    if (tier > 0) Wardrobe.drawFlower(ctx, hx - 2.1, hy - 5.6);
+    else {
+      ctx.fillStyle = '#f4c430';
+      ctx.save();
+      ctx.translate(hx - 1.4, hy - 5.4);
+      ctx.rotate(-0.5);
+      ctx.fillRect(-1.3, -0.55, 2.6, 1.1);
+      ctx.restore();
+    }
     // 腮红
     ctx.fillStyle = 'rgba(240,130,130,0.38)';
     ctx.beginPath(); ctx.arc(hx + 0.5, hy + 3.3, 1.1, 0, TAU); ctx.fill();
@@ -658,9 +669,9 @@ const Render = {
     ctx.lineCap = 'butt';
   },
 
-  // 主菜单用的角色头像
-  avatar(charId) {
-    const S = 3, w = 40, h = 44;
+  // 名册与开场共用角色立绘，小头像和大立绘用不同绘制分辨率。
+  avatar(charId, S = 3) {
+    const w = 40, h = 44;
     const cv = document.createElement('canvas');
     cv.width = w * S; cv.height = h * S;
     cv.className = 'avatar';
@@ -678,13 +689,17 @@ const Render = {
   },
 
   drawPlayer(ctx, g, p) {
-    const bob = p.moving ? Math.sin(p.walkT * 14) * 1.6 : Math.sin(g.time * 3) * 0.6;
+    const stride = p.moving ? Math.sin(p.walkT * 14) : 0;
+    const bob = p.moving ? stride * 1.6 : Math.sin(g.time * 3) * 0.6;
+    const look = CHARS[p.char].look, tier = Wardrobe.stage(p.level, g.pending);
+    const motion = !this.reduceMotion?.matches;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y + 12, 10, 4, 0, 0, TAU); ctx.fill();
+    if (tier >= 3) Wardrobe.drawSeal(ctx, p.x, p.y, look, motion ? g.time : 0);
     // 角色光晕：开心没有提灯，光源放在角色中心
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.5;
-    const glowOffset = CHARS[p.char].look === 'echo' ? 0 : 14 * p.face;
+    const glowOffset = look === 'echo' ? 0 : 14 * p.face;
     this.drawGlow(ctx, '#ffd166', p.x + glowOffset, p.y + 2 + bob, 34);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -692,15 +707,46 @@ const Render = {
     ctx.save();
     ctx.translate(p.x, p.y + bob);
     ctx.scale(p.face, 1);
-    this.drawFigure(ctx, p.char, p.moving ? Math.sin(p.walkT * 14) : 0);
+    Wardrobe.drawTrail(ctx, look, tier, motion ? g.time : 0, motion ? stride : 0);
+    this.drawFigure(ctx, p.char, stride, tier);
+    Wardrobe.drawClasp(ctx, look, tier);
     ctx.restore();
     ctx.globalAlpha = 1;
+    this.drawExamGuard(ctx, p, g.time);
     // 血条
     const k = Math.max(0, p.hp / p.st.maxHp);
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(p.x - 18, p.y + 19, 36, 5);
     ctx.fillStyle = k > 0.35 ? '#e5484d' : '#ff8a3d';
     ctx.fillRect(p.x - 17, p.y + 20, 34 * k, 3);
+  },
+
+  drawExamGuard(ctx, p, time) {
+    const guards = p.weapons.find(w => w.id === 'exampaper')?.guards || 0;
+    if (!guards) return;
+    const r = 31;
+    ctx.save();
+    ctx.translate(p.x, p.y - 2);
+    ctx.strokeStyle = '#f6e2b378'; ctx.lineWidth = 1.3;
+    ctx.setLineDash([4, 5]);
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+    for (let i = 0; i < guards; i++) {
+      const a = time * 2.1 - Math.PI * 0.75 + i * TAU / guards;
+      ctx.save();
+      ctx.translate(Math.cos(a) * r, Math.sin(a) * r);
+      ctx.rotate(Math.cos(a) * 0.42);
+      ctx.fillStyle = '#f6e5be'; ctx.strokeStyle = '#8d7258'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-7, -9); ctx.lineTo(3, -9); ctx.lineTo(7, -5);
+      ctx.lineTo(7, 9); ctx.lineTo(-7, 9); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(3, -9); ctx.lineTo(3, -5); ctx.lineTo(7, -5);
+      ctx.moveTo(-4, -4); ctx.lineTo(1, -4); ctx.moveTo(-4, -1); ctx.lineTo(4, -1);
+      ctx.moveTo(-4, 2); ctx.lineTo(0, 2); ctx.stroke();
+      ctx.strokeStyle = '#a34d42'; ctx.lineWidth = 1.25;
+      ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(2, 7); ctx.lineTo(5, 3); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
   },
 
   drawMouse(ctx, b) {
@@ -770,6 +816,25 @@ const Render = {
     ctx.restore();
   },
 
+  drawBasketball(ctx, b) {
+    const r = b.r;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.translate(b.x, b.y);
+    ctx.fillStyle = '#16201b99';
+    ctx.beginPath(); ctx.ellipse(0, r * 0.6, r, r * 0.37, 0, 0, TAU); ctx.fill();
+    ctx.translate(0, -Math.abs(Math.sin(b.age * 19)) * r * 0.42);
+    ctx.rotate(b.age * 13);
+    ctx.fillStyle = b.color; ctx.strokeStyle = '#593625'; ctx.lineWidth = 1.15;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0);
+    ctx.moveTo(0, -r); ctx.lineTo(0, r);
+    ctx.moveTo(-r * 0.74, -r * 0.66); ctx.quadraticCurveTo(-r * 0.12, 0, -r * 0.74, r * 0.66);
+    ctx.moveTo(r * 0.74, -r * 0.66); ctx.quadraticCurveTo(r * 0.12, 0, r * 0.74, r * 0.66);
+    ctx.stroke();
+    ctx.restore();
+  },
+
   drawProjs(ctx, g, p, vis) {
     ctx.globalCompositeOperation = 'lighter';
     // 环绕类武器的光球与甜筒
@@ -788,6 +853,8 @@ const Render = {
       if (!vis(b.x, b.y, 40)) continue;
       if (b.look === 'mouse') {
         this.drawMouse(ctx, b);
+      } else if (b.look === 'basketball') {
+        this.drawBasketball(ctx, b);
       } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato') {
         FoodArt[b.look](ctx, b);
       } else if (b.look === 'bolt') {
@@ -825,9 +892,10 @@ const Render = {
         ctx.globalCompositeOperation = 'lighter';
       }
     }
-    // 有延迟的落地技能：下落陨星与跳跃灵猴。
+    // 有延迟的落地技能：陨星、灵猴与西瓜。
     for (const z of g.zones) {
       if (z.type === 'monkey') this.drawMonkeyLeap(ctx, z);
+      else if (z.type === 'watermelon') FoodArt.watermelon(ctx, z);
       if (z.type !== 'meteor') continue;
       const k = z.t / z.max;
       this.drawGlow(ctx, '#ff9f6b', z.x + k * 110, z.y - k * 340, 16 + (1 - k) * 12);
@@ -874,6 +942,14 @@ const Render = {
         ctx.globalAlpha = k * 0.25;
         ctx.fillStyle = f.c;
         ctx.fill();
+        ctx.globalAlpha = 1;
+      } else if (f.type === 'mangoHeal') {
+        FoodArt.mangoHeal(ctx, f, k);
+      } else if (f.type === 'outfitPulse' && !this.reduceMotion?.matches) {
+        const r = 13 + 25 * (1 - k);
+        ctx.globalAlpha = k * 0.52;
+        ctx.strokeStyle = f.c; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y + 12, r, r * 0.42, 0, 0, TAU); ctx.stroke();
         ctx.globalAlpha = 1;
       }
     }

@@ -148,16 +148,28 @@ const WEAPONS = {
     base: { dmg: 7, cd: 1.4, count: 3, pierce: 1, speed: 565, size: 6, spread: 3 },
     ups: [{ count: 1 }, { dmg: 3 }, { pierce: 1 }, { count: 1, cd: -0.2 }, { dmg: 5, count: 1 }],
   },
+  watermelon: {
+    name: '西瓜炸弹', color: '#ef8a86', kind: 'lob', look: 'watermelon', max: 6, exclusive: 'echo',
+    desc: '把西瓜抛向附近夜兽，砸地时炸开，伤害落点周围的敌人。',
+    base: { dmg: 26, cd: 2.8, count: 1, radius: 65, range: 380, delay: 0.48 },
+    ups: [{ radius: 8 }, { dmg: 8 }, { cd: -0.45 }, { count: 1 }, { dmg: 10, radius: 10 }],
+  },
+  basketball: {
+    name: '篮球投射', color: '#f2a55b', kind: 'bolt', look: 'basketball', max: 6, exclusive: 'echo',
+    desc: '投出篮球，命中后弹向附近尚未被这颗球命中的夜兽。',
+    base: { dmg: 12, cd: 1.95, count: 1, pierce: 1, speed: 480, size: 9, bounces: 1, bounceRange: 165 },
+    ups: [{ dmg: 5 }, { bounces: 1 }, { cd: -0.3 }, { count: 1 }, { dmg: 7, bounces: 1 }],
+  },
 
   monkey: {
-    name: '灵猴踏枝', color: '#f4b99b', kind: 'monkey', max: 6, exclusive: 'tuan',
+    name: '灵猴踏枝', color: '#f4b99b', kind: 'lob', look: 'monkey', max: 6, exclusive: 'tuan',
     desc: '召唤小猴跳向夜兽，落地时震击周围敌人。',
     base: { dmg: 10, cd: 2.25, count: 1, radius: 44, range: 350, delay: 0.36 },
     ups: [{ dmg: 4 }, { radius: 8 }, { cd: -0.25 }, { count: 1 }, { dmg: 8, radius: 8 }],
     evo: { need: 'area', to: 'monkeytroop' },
   },
   monkeytroop: {
-    name: '群猴闹山', color: '#ffd77f', kind: 'monkey', evolved: true, max: 1,
+    name: '群猴闹山', color: '#ffd77f', kind: 'lob', look: 'monkey', evolved: true, max: 1,
     desc: '一群金色灵猴接连跃下，震击范围扩大。',
     base: { dmg: 29, cd: 1.7, count: 3, radius: 73, range: 410, delay: 0.33 },
   },
@@ -173,6 +185,18 @@ const WEAPONS = {
     desc: '朝附近夜兽投掷番茄。命中时溅开，留下持续伤害夜兽的番茄酱。',
     base: { dmg: 9, cd: 2.8, count: 1, pierce: 1, speed: 430, size: 8, blast: 43, sauce: 1.6, spread: 2 },
     ups: [{ dmg: 4 }, { blast: 8 }, { sauce: 0.8 }, { cd: -0.4 }, { dmg: 6, blast: 10 }],
+  },
+  mango: {
+    name: '芒果干补给', color: '#f8c866', kind: 'mango', max: 6, exclusive: 'tuan',
+    desc: '生命低于 85% 时自动吃一块芒果干，回复 10% 最大生命。',
+    base: { heal: 0.1, threshold: 0.85, cd: 8.5 },
+    ups: [{ heal: 0.03 }, { cd: -0.7 }, { heal: 0.03 }, { cd: -1 }, { heal: 0.04 }],
+  },
+  exampaper: {
+    name: '试卷护盾', color: '#f6e2b3', kind: 'exampaper', max: 6, exclusive: 'tuan',
+    desc: '试卷环绕果果并抵挡伤害。每次挡住攻击都会让附近夜兽减速；用完后开始充能。',
+    base: { guards: 1, cd: 9, radius: 62, slow: 0.4, chill: 1.2 },
+    ups: [{ radius: 10 }, { cd: -0.7 }, { guards: 1 }, { radius: 14 }, { cd: -1.2 }],
   },
 };
 

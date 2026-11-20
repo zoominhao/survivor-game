@@ -63,6 +63,28 @@
     </div>
   </main>
 
+  <!-- 战斗开场 -->
+  <section id="intro" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <div class="intro-card">
+      <div class="intro-art" aria-hidden="true">
+        <div class="intro-medallion"></div>
+        <div id="introPortrait" class="intro-portrait"></div>
+        <span class="intro-art-note">长夜守望</span>
+      </div>
+      <div class="intro-copy">
+        <div class="intro-stamp" aria-hidden="true">入<br>阵</div>
+        <p class="chapter">点灯入阵</p>
+        <h2 id="introTitle"><span id="introEpithet"></span> <b id="introName"></b></h2>
+        <div class="intro-weapon">
+          <span id="introWeaponIcon" class="intro-weapon-icon"></span>
+          <span><small>初始武器</small><strong id="introWeaponName"></strong></span>
+        </div>
+        <button id="btnIntroSkip" class="intro-skip">跳过开场 <kbd>Esc</kbd></button>
+      </div>
+      <div class="intro-progress" aria-hidden="true"></div>
+    </div>
+  </section>
+
   <!-- 永久强化 -->
   <section id="shop" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="panel">
@@ -125,11 +147,14 @@
 
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/terrain.js"></script>
   <script src="js/weapons.js"></script>
   <script src="js/core.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/echo-figure.js"></script>
   <script src="js/food-art.js"></script>
+  <script src="js/terrain-art.js"></script>
+  <script src="js/wardrobe.js"></script>
   <script src="js/render.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/ui.js"></script>

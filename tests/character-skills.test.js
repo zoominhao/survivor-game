@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 
-const scripts = ['config.js', 'utils.js', 'weapons.js', 'core.js'].map(file =>
+const scripts = ['config.js', 'utils.js', 'terrain.js', 'weapons.js', 'core.js', 'wardrobe.js'].map(file =>
   new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', file), 'utf8'), { filename: file }));
 
 function start(charId, oldSave = null) {
@@ -14,12 +14,13 @@ function start(charId, oldSave = null) {
     localStorage: { getItem: () => JSON.stringify(oldSave) },
     Input: { x: 0, y: 0 },
     Sfx: { play() {} },
+    UI: { show() {}, showLevelUp() {} },
   });
   for (const script of scripts) script.runInContext(context);
-  const { Game, Save, CHARS } = vm.runInContext('({ Game, Save, CHARS })', context);
+  const { Game, Save, CHARS, Wardrobe } = vm.runInContext('({ Game, Save, CHARS, Wardrobe })', context);
   Save.load();
   Game.start(charId ?? Save.data.lastChar);
-  return { Game, Save, CHARS };
+  return { Game, Save, CHARS, Wardrobe };
 }
 
 test('旧存档选择仍指向开心，开局携带鼠伴出击', () => {
@@ -115,16 +116,18 @@ test('其他角色不能在升级中抽到果果专属技能，环绕萤火仍�
   assert.ok(choices.some(choice => choice.id === 'orbit'));
 });
 
-const desserts = ['ricecake', 'icecream', 'candy'];
+const echoExtras = ['ricecake', 'icecream', 'candy', 'watermelon', 'basketball'];
 
-test('开心的升级优先给一个未习得的甜点，其他角色抽不到甜点', () => {
+test('开心升级优先获得未习得的专属武器，其他角色抽不到这些武器', () => {
   const { Game } = start('echo');
+  const pool = Game.buildChoices(100);
+  assert.ok(echoExtras.every(id => pool.some(c => c.id === id)));
   const first = Game.buildChoices(3)[0];
-  assert.ok(desserts.includes(first.id) && first.lv === 1);
+  assert.ok(echoExtras.includes(first.id) && first.lv === 1);
   Game.applyChoice(first);
   const second = Game.buildChoices(3)[0];
-  assert.ok(desserts.includes(second.id) && second.lv === 1 && second.id !== first.id);
-  assert.equal(start('tuan').Game.buildChoices(100).some(c => desserts.includes(c.id)), false);
+  assert.ok(echoExtras.includes(second.id) && second.lv === 1 && second.id !== first.id);
+  assert.equal(start('tuan').Game.buildChoices(100).some(c => echoExtras.includes(c.id)), false);
 });
 
 function foodRun(charId, id) {
@@ -180,14 +183,17 @@ test('彩糖连发射出三种颜色，命中后记录糖果的伤害', () => {
   assert.ok(target.hp < target.maxHp && Game.player.dmgBy.candy > 0);
 });
 
-test('果果的升级优先给土豆或番茄，其他角色抽不到这两种武器', () => {
+test('果果的升级优先给未习得的专属技能，其他角色不能抽到', () => {
   const { Game } = start('tuan');
+  const extras = ['potato', 'tomato', 'mango', 'exampaper'];
+  const pool = Game.buildChoices(100);
+  assert.ok(extras.every(id => pool.some(choice => choice.id === id)));
   const first = Game.buildChoices(3)[0];
-  assert.ok(['potato', 'tomato'].includes(first.id) && first.lv === 1);
+  assert.ok(extras.includes(first.id) && first.lv === 1);
   Game.applyChoice(first);
   const second = Game.buildChoices(3)[0];
-  assert.equal(second.id, first.id === 'potato' ? 'tomato' : 'potato');
-  assert.equal(start('echo').Game.buildChoices(100).some(c => ['potato', 'tomato'].includes(c.id)), false);
+  assert.ok(extras.includes(second.id) && second.id !== first.id && second.lv === 1);
+  assert.equal(start('echo').Game.buildChoices(100).some(c => extras.includes(c.id)), false);
 });
 
 test('土豆朝上滚动，可以连续撞中多只夜兽但不会打到身后', () => {
@@ -217,4 +223,106 @@ test('番茄命中留下番茄酱，随后进入的夜兽也受伤，酱汁按�
   for (let i = 0; i < 75; i++) Game.update(1 / 60);
   assert.equal(Game.zones.some(z => z.look === 'tomato'), false);
   assert.match(Game.describe({ kind: 'weapon', id: 'tomato', lv: 4 }).desc, /持续 \+0\.8 秒/);
+});
+
+test('西瓜落地后才炸开，同时伤害落点附近的夜兽', () => {
+  const Game = foodRun('echo', 'watermelon');
+  const target = stationaryEnemy(Game, 125, 0);
+  const nearby = stationaryEnemy(Game, 142, 48);
+  const far = stationaryEnemy(Game, 225, 92);
+  for (let i = 0; i < 12; i++) Game.update(1 / 60);
+  assert.ok(Game.zones.some(z => z.type === 'watermelon'));
+  assert.equal(target.hp, target.maxHp);
+  for (let i = 0; i < 25; i++) Game.update(1 / 60);
+  assert.ok(target.hp < target.maxHp && nearby.hp < nearby.maxHp);
+  assert.equal(far.hp, far.maxHp);
+  assert.equal(Game.zones.some(z => z.type === 'watermelon'), false);
+});
+
+test('一级篮球弹向下一只夜兽，不会重复命中或继续弹射', () => {
+  const Game = foodRun('echo', 'basketball');
+  const first = stationaryEnemy(Game, 82, 0);
+  const second = stationaryEnemy(Game, 133, 76);
+  const third = stationaryEnemy(Game, 209, 73);
+  for (let i = 0; i < 32; i++) Game.update(1 / 60);
+  const damage = [first, second].map(e => e.maxHp - e.hp);
+  assert.ok(damage.every(d => d >= 11 && d <= 13));
+  assert.equal(third.hp, third.maxHp);
+  assert.equal(Game.projs.length, 0);
+  assert.match(Game.describe({ kind: 'weapon', id: 'basketball', lv: 3 }).desc, /弹射次数 \+1/);
+});
+
+test('芒果干只在低于阈值时回血，不在冷却期间重复触发', () => {
+  const Game = foodRun('tuan', 'mango');
+  const p = Game.player, w = p.weapons[0];
+  p.hp = 77;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 77);
+  assert.equal(w.timer, 0);
+  p.hp = 62;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 71);
+  assert.ok(Game.fx.some(f => f.type === 'mangoHeal'));
+  p.hp = 55;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 55);
+  w.timer = 0.01;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 64);
+});
+
+test('试卷挡下致命攻击并减速附近夜兽，用完后才开始充能', () => {
+  const Game = foodRun('tuan', 'exampaper');
+  const p = Game.player, w = p.weapons[0];
+  const near = stationaryEnemy(Game, 45, 0), far = stationaryEnemy(Game, 205, 2);
+  for (const e of [near, far]) Game.grid.insert(e);
+  Game.hurtPlayer(99, null);
+  assert.equal(p.hp, 90);
+  assert.equal(w.guards, 0);
+  assert.equal(w.timer, 9);
+  assert.equal(near.slow, 0.4);
+  assert.equal(far.slow, 0);
+  p.iframe = 0;
+  Game.hurtPlayer(12, null);
+  assert.equal(p.hp, 78);
+  w.timer = 0.01;
+  Game.update(1 / 60);
+  assert.equal(w.guards, 1);
+});
+
+test('四级试卷有两层，第一张用掉后不提前充能', () => {
+  const Game = foodRun('tuan', 'exampaper');
+  for (let lv = 2; lv <= 4; lv++) Game.applyChoice({ kind: 'weapon', id: 'exampaper', lv });
+  const p = Game.player, w = p.weapons[0];
+  assert.equal(w.guards, 2);
+  Game.hurtPlayer(10, null);
+  assert.equal(w.guards, 1);
+  assert.equal(w.timer, 0);
+  p.iframe = 0;
+  Game.hurtPlayer(10, null);
+  assert.equal(p.hp, 90);
+  assert.equal(w.guards, 0);
+  assert.ok(w.timer > 0);
+});
+
+test('成长装饰在二、五、十级分别进入下一阶段', () => {
+  const { Wardrobe } = start('echo');
+  assert.deepEqual([1, 2, 4, 5, 9, 10, 50].map(level => Wardrobe.stage(level)), [0, 1, 1, 2, 2, 3, 3]);
+});
+
+test('只有已选完的升级才点亮装饰，重开后恢复初始造型', () => {
+  const { Game, Wardrobe } = start('tuan');
+  Game.player.level = 10;
+  Game.pending = 2;
+  Game.state = 'levelup';
+  Game.choices = [{ kind: 'coins' }];
+  Game.choose(0);
+  assert.equal(Wardrobe.stage(Game.player.level, Game.pending), 2);
+  assert.equal(Game.fx.length, 0);
+  Game.choices = [{ kind: 'coins' }];
+  Game.choose(0);
+  assert.equal(Wardrobe.stage(Game.player.level, Game.pending), 3);
+  assert.equal(Game.fx.filter(f => f.type === 'outfitPulse').length, 1);
+  Game.start('tuan');
+  assert.equal(Wardrobe.stage(Game.player.level, Game.pending), 0);
 });

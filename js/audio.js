@@ -15,6 +15,9 @@ const SOUNDS = {
   frost: { type: 'sine',     f0: 1200, f1: 300,  dur: 0.30, vol: 0.18, gap: 0.20 },
   chest: { type: 'triangle', f0: 520,  f1: 1560, dur: 0.50, vol: 0.30, gap: 0.20 },
   boss:  { type: 'sawtooth', f0: 90,   f1: 45,   dur: 0.90, vol: 0.40, gap: 1.00 },
+  intro: { type: 'triangle', f0: 164,  f1: 82,   dur: 0.62, vol: 0.24, gap: 0.40 },
+  mango: { type: 'sine',     f0: 490,  f1: 940,  dur: 0.22, vol: 0.21, gap: 0.20 },
+  paper: { type: 'triangle', f0: 700,  f1: 230,  dur: 0.16, vol: 0.22, gap: 0.22 },
   click: { type: 'sine',     f0: 700,  f1: 900,  dur: 0.05, vol: 0.15, gap: 0.03 },
 };
 

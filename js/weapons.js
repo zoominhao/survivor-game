@@ -23,6 +23,9 @@ function upgradeText(delta) {
     else if (k === 'cd') out.push('冷却 ' + v + ' 秒');
     else if (k === 'count') out.push('数量 +' + v);
     else if (k === 'pierce') out.push('穿透 +' + v);
+    else if (k === 'bounces') out.push('弹射次数 +' + v);
+    else if (k === 'guards') out.push('抵挡次数 +' + v);
+    else if (k === 'heal') out.push('回复量 +' + Math.round(v * 100) + '% 最大生命');
     else if (k === 'radius' || k === 'blast') out.push('范围 +' + v);
     else if (k === 'dur' || k === 'sauce') out.push('持续 +' + v + ' 秒');
     else if (k === 'size') out.push('体积 +' + v);
@@ -33,6 +36,26 @@ function upgradeText(delta) {
 const TAU = Math.PI * 2;
 
 const WeaponFns = {
+  // 芒果干补给：只在受伤到阈值以下时消耗冷却，不浪费满血时的补给。
+  mango(g, w, s, dt) {
+    const p = g.player, st = p.st;
+    if (w.timer > 0) w.timer -= dt;
+    if (w.timer > 0 || p.hp >= st.maxHp * s.threshold) return;
+    w.timer = s.cd * st.cd;
+    const healed = Math.min(st.maxHp - p.hp, st.maxHp * s.heal);
+    p.hp += healed;
+    g.texts.push({ x: p.x, y: p.y - 30, s: '+' + Math.round(healed), life: 0.85, c: '#a9e8ad' });
+    g.fx.push({ type: 'mangoHeal', x: p.x, y: p.y, life: 0.7, max: 0.7 });
+    Sfx.play('mango');
+  },
+
+  // 试卷用完才开始充能；就绪时一直保留，直到挡住攻击。
+  exampaper(g, w, s, dt) {
+    if (w.guards > 0) return;
+    w.timer -= dt;
+    if (w.timer <= 0) w.guards = s.guards;
+  },
+
   // 黏黏年糕：有夜兽靠近才在脚下布置，踩中后由区域逻辑触发。
   ricecake(g, w, s, dt) {
     const p = g.player, st = p.st;
@@ -68,7 +91,7 @@ const WeaponFns = {
     Sfx.play('shoot');
   },
 
-  // 星火弹 / 星爆 / 彩糖 / 番茄：朝附近敌人连发。
+  // 星火弹 / 星爆 / 彩糖 / 番茄 / 篮球：朝附近敌人投射。
   bolt(g, w, s, dt) {
     const p = g.player, st = p.st;
     w.timer -= dt;
@@ -94,6 +117,7 @@ const WeaponFns = {
         r: s.size * st.area, dmg: s.dmg * st.might, pierce: s.pierce, life: 1.4,
         wid: w.id, look: d.look || 'bolt', color: d.colors ? d.colors[shot % d.colors.length] : d.color, kb: 120,
         blast: s.blast ? s.blast * st.area : 0, sauce: s.sauce || 0,
+        bounces: s.bounces || 0, bounceRange: s.bounceRange ? s.bounceRange * st.area : 0,
       });
       Sfx.play('shoot');
     }
@@ -230,9 +254,9 @@ const WeaponFns = {
     Sfx.play('zap');
   },
 
-  // 灵猴踏枝 / 群猴闹山：从果果身边跃向标记，依次落地震击。
-  monkey(g, w, s, dt) {
-    const p = g.player, st = p.st;
+  // 灵猴 / 西瓜：从玩家身边跃向标记，落地造成范围伤害。
+  lob(g, w, s, dt) {
+    const p = g.player, st = p.st, d = WEAPONS[w.id];
     w.timer -= dt;
     if (w.timer > 0) return;
     const count = s.count + st.amount;
@@ -245,10 +269,10 @@ const WeaponFns = {
       const offset = i < targets.length ? 0 : (i % 2 ? -1 : 1) * Math.min(28, i * 12);
       const delay = s.delay + i * 0.08;
       g.zones.push({
-        type: 'monkey', fromX: p.x, fromY: p.y,
+        type: d.look, fromX: p.x, fromY: p.y,
         x: target.x - Math.sin(a) * offset, y: target.y + Math.cos(a) * offset,
         r: s.radius * st.area, t: delay, max: delay, dmg: s.dmg * st.might, wid: w.id,
-        color: WEAPONS[w.id].color,
+        color: d.color,
       });
     }
   },

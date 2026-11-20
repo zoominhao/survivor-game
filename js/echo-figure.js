@@ -105,7 +105,7 @@ const EchoFigure = (() => {
     oval(ctx, foot + 0.85, 15 - lift, 2.2, 1.15, '#fff9eb');
   }
 
-  function runner(ctx, stride) {
+  function runner(ctx, stride, tier = 0) {
     ctx.save();
     ctx.lineCap = 'round';
     stepLeg(ctx, stride > 0 ? 1 : -1, stride);
@@ -120,6 +120,15 @@ const EchoFigure = (() => {
     ctx.rotate(stride * 0.055);
     ctx.scale(0.4, 0.4);
     drawHead(ctx);
+    if (tier > 0) {
+      stroke(ctx, paths.bandShine, '#f5bf66', 2.3);
+      for (const side of [-1, 1]) {
+        const x = 24.5 * side;
+        ctx.strokeStyle = '#f5bf66'; ctx.lineWidth = 2.8;
+        ctx.beginPath(); ctx.ellipse(x, 40, 3.7, 10, 0.17 * side, 0, TAU); ctx.stroke();
+        oval(ctx, x, 43, 2.1, 3.6, '#ffe0a8');
+      }
+    }
     ctx.restore();
   }
 
