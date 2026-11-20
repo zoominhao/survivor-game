@@ -255,7 +255,11 @@ const Game = {
     if (p.iframe > 0) p.iframe -= dt;
     if (st.regen > 0 && p.hp < st.maxHp) p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
     const scene = Environment.sceneAt(this.time);
-    if (scene.since > 0 && this.time - dt < scene.since) UI.banner(Environment.scenes[scene.id].name);
+    if (scene.since > 0 && this.time - dt < scene.since) {
+      const setting = Environment.scenes[scene.id];
+      UI.banner(setting.name);
+      if (setting.sound) Sfx.play(setting.sound, 0.78);
+    }
 
     this.spawn(dt);
 
@@ -398,6 +402,8 @@ const Game = {
         sp *= 0.26 + 1.19 * this.hopLift(e, def.hop);
         if (sp > 0 && e.t % def.hop < dt) this.playNearby('corpseHop', e, 235);
       }
+      const stepSound = def.moveSound;
+      if (sp > 0 && stepSound && e.t % stepSound.period < dt) this.playNearby(stepSound.cue, e, stepSound.range);
       let mx = dx / d, my = dy / d;
       if (def.weave) {
         const sway = Math.sin(e.t * 7) * def.weave;
@@ -480,7 +486,7 @@ const Game = {
         r: 5, dmg: e.dmg, life: 4, look: def.shotLook });
     }
     if (def.shotLook === 'weddingPaper') this.playNearby('weddingPaper', e, 400);
-    else if (def.shotLook === 'rainDrop') this.playNearby('frost', e, 350);
+    else if (def.shotSound) this.playNearby(def.shotSound, e, 350);
   },
 
   playNearby(cue, source, range) {

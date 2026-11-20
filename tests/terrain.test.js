@@ -174,7 +174,7 @@ test('定时出现僵尸合围和鬼新娘，僵尸按起跳节奏移动', () =>
   Game.time = 168; Game.spawn(0);
   assert.equal(Game.enemies.filter(e => e.type === 'bride').length, 1);
   assert.ok(banners.includes('黄符僵尸围了上来') && banners.includes('红盖头下，喜帖无声'));
-  assert.deepEqual(cues.map(args => args[0]), ['rustle', 'corpseAmbush', 'frost', 'bridalBell']);
+  assert.deepEqual(cues.map(args => args[0]), ['paperChild', 'corpseAmbush', 'umbrellaOpen', 'bridalBell']);
   const zombie = Game.spawnEnemy('jiangshi', 90, 0);
   zombie.t = 0; const before = zombie.x; Game.updateEnemies(1 / 60);
   const landSpeed = before - zombie.x;
@@ -291,4 +291,24 @@ test('补给木匣只发放一次奖励，换景不会刷新，新开局会重�
   assert.equal(Game.environment.landmarkReady.get(key), Infinity);
   Game.start('ella');
   assert.equal(Game.environment.landmarkReady.has(key), false);
+});
+
+test('竹径、雨庭、雪岭的环境提示音只在踏入场景时响一次', () => {
+  const { Game, cues } = setup();
+  for (const time of [55, 105, 177]) {
+    Game.time = time - 0.01;
+    Game.update(1 / 60); Game.update(1 / 60);
+  }
+  assert.deepEqual(cues.filter(([name]) => name.endsWith('Pass')).map(([name]) => name),
+    ['bambooPass', 'rainPass', 'snowPass']);
+});
+
+test('纸童与白无常发出方位声，伞鬼射雨滴时不复用普通霜环音', () => {
+  const { Game, cues } = setup();
+  Game.spawnEnemy('paperChild', -95, 0).t = 1.29;
+  Game.spawnEnemy('snowEnvoy', 95, 0).t = 1.64;
+  Game.spawnEnemy('umbrellaGhost', 118, 96).shootT = 0;
+  Game.updateEnemies(1 / 60);
+  assert.deepEqual(cues.map(([name]) => name), ['paperChild', 'envoyChain', 'umbrellaDrip']);
+  assert.ok(cues[0][2] < 0 && cues[1][2] > 0 && cues[2][2] > 0);
 });

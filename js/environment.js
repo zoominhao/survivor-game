@@ -4,9 +4,9 @@ const Environment = {
   scenes: {
     dusk: { name: '松灯古道', ground: '#364234', weather: 'clear', darkness: 0.78 },
     night: { name: '月下松林', ground: '#202e28', weather: 'clear', darkness: 1 },
-    bamboo: { name: '风过竹径', ground: '#283f31', weather: 'wind', darkness: 0.9 },
-    rain: { name: '雨落石庭', ground: '#303e49', weather: 'rain', darkness: 1 },
-    snow: { name: '霜封山径', ground: '#5d7479', weather: 'snow', darkness: 0.82 },
+    bamboo: { name: '风过竹径', ground: '#283f31', weather: 'wind', darkness: 0.9, sound: 'bambooPass' },
+    rain: { name: '雨落石庭', ground: '#303e49', weather: 'rain', darkness: 1, sound: 'rainPass' },
+    snow: { name: '霜封山径', ground: '#5d7479', weather: 'snow', darkness: 0.82, sound: 'snowPass' },
     dawn: { name: '天光破晓', ground: '#6c6345', weather: 'clear', darkness: 0.19 },
   },
   route: [[0, 'dusk'], [26, 'night'], [55, 'bamboo'], [105, 'rain'], [177, 'snow'],

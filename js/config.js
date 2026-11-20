@@ -286,10 +286,12 @@ const ENEMIES = {
   jiangshi: { name: '黄符僵尸', hp: 22, speed: 61, dmg: 8, r: 13, xp: 2, color: '#a1ba8d', hop: 0.9 },
   bride:   { name: '鬼新娘', hp: 44, speed: 56, dmg: 8, r: 15, xp: 4, color: '#e07b77', ghost: true,
     ranged: true, keep: 175, fan: 3, spread: 0.27, shotSpeed: 128, shotCd: 3.4, shotLook: 'weddingPaper' },
-  paperChild: { name: '纸扎童子', hp: 12, speed: 76, dmg: 5, r: 11, xp: 1, color: '#d1bc8c', weave: 0.72 },
+  paperChild: { name: '纸扎童子', hp: 12, speed: 76, dmg: 5, r: 11, xp: 1, color: '#d1bc8c', weave: 0.72,
+    moveSound: { cue: 'paperChild', period: 1.3, range: 230 } },
   umbrellaGhost: { name: '油纸伞鬼', hp: 35, speed: 62, dmg: 7, r: 15, xp: 4, color: '#83b6c8', ghost: true,
-    ranged: true, keep: 156, shotSpeed: 135, shotCd: 2.8, shotLook: 'rainDrop' },
-  snowEnvoy: { name: '白无常', hp: 73, speed: 45, dmg: 12, r: 18, xp: 6, color: '#d0e7ea', kbRes: 0.64 },
+    ranged: true, keep: 156, shotSpeed: 135, shotCd: 2.8, shotLook: 'rainDrop', shotSound: 'umbrellaDrip' },
+  snowEnvoy: { name: '白无常', hp: 73, speed: 45, dmg: 12, r: 18, xp: 6, color: '#d0e7ea', kbRes: 0.64,
+    moveSound: { cue: 'envoyChain', period: 1.65, range: 260 } },
   golem:   { name: '晶岩魔', hp: 220, speed: 34,  dmg: 18, r: 26, xp: 15, color: '#7df9ff', kbRes: 0.85 },
   boss:    { name: '夜魇',   hp: 1,   speed: 62,  dmg: 20, r: 44, xp: 0,  color: '#b0305a', kbRes: 1 },
 };
@@ -318,12 +320,12 @@ const WAVES = [
 
 // ----- 定时事件:包围圈 / Boss -----
 const EVENTS = [
-  { t: 16, kind: 'arrival', enemy: 'paperChild', msg: '纸扎童子摇摇晃晃地来了', sound: 'rustle' },
+  { t: 16, kind: 'arrival', enemy: 'paperChild', msg: '纸扎童子摇摇晃晃地来了', sound: 'paperChild' },
   { t: 70, kind: 'ring', enemy: 'jiangshi', n: 10, msg: '黄符僵尸围了上来' },
-  { t: 119, kind: 'arrival', enemy: 'umbrellaGhost', msg: '雨幕里撑起一把油纸伞', sound: 'frost' },
+  { t: 119, kind: 'arrival', enemy: 'umbrellaGhost', msg: '雨幕里撑起一把油纸伞', sound: 'umbrellaOpen' },
   { t: 150, kind: 'ring', enemy: 'swarm',  n: 26 },
   { t: 168, kind: 'arrival', enemy: 'bride', msg: '红盖头下，喜帖无声' },
-  { t: 193, kind: 'arrival', enemy: 'snowEnvoy', msg: '雪地现出一道白影', sound: 'corpseAmbush' },
+  { t: 193, kind: 'arrival', enemy: 'snowEnvoy', msg: '雪地现出一道白影', sound: 'envoyCall' },
   { t: 240, kind: 'boss', tier: 0 },
   { t: 390, kind: 'ring', enemy: 'moth',   n: 34 },
   { t: 480, kind: 'boss', tier: 1 },
