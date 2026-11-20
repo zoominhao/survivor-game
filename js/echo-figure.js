@@ -113,7 +113,48 @@ const EchoFigure = (() => {
     oval(ctx, foot + 0.85, 15 - lift, 2.2, 1.15, '#fff9eb');
   }
 
-  function runner(ctx, stride, tier = 0) {
+  const handX = stride => 9.8 - stride * 2.4;
+  const handY = 6.7, lensX = 9.1;
+
+  function heldLight(ctx, stride, aim) {
+    ctx.save(); ctx.translate(handX(stride), handY); ctx.rotate(aim);
+    ctx.fillStyle = '#508d86'; ctx.strokeStyle = '#254a4c'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.roundRect(-1.5, -1.75, 8.4, 3.5, 1.1); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#78b9a9'; ctx.fillRect(0.2, -1.2, 3.7, 1);
+    ctx.fillStyle = '#e4ae62';
+    ctx.beginPath(); ctx.moveTo(5.1, -1.75); ctx.lineTo(7.3, -2.7); ctx.lineTo(lensX, -2.7);
+    ctx.lineTo(lensX, 2.7); ctx.lineTo(7.3, 2.7); ctx.lineTo(5.1, 1.75); ctx.closePath(); ctx.fill(); ctx.stroke();
+    line(ctx, '#fff0b2', 1.4, lensX, -1.65, lensX, 1.65);
+    ctx.restore();
+  }
+
+  let beamSprite;
+  function drawBeam(ctx, p, { stride, bob, aim }) {
+    if (!beamSprite) {
+      // 预制柔边光锥：只在首次使用时生成像素，不在每帧计算渐变。
+      const length = 266, half = 100;
+      beamSprite = document.createElement('canvas');
+      beamSprite.width = length; beamSprite.height = half * 2;
+      const c = beamSprite.getContext('2d'), image = c.createImageData(length, half * 2);
+      for (let x = 0; x < length; x++) {
+        const spread = 3 + x * 0.36;
+        const brightness = 0.34 * (1 - x / length) ** 1.3;
+        for (let y = Math.ceil(half - spread); y <= Math.floor(half + spread); y++) {
+          const off = (y - half) / spread, i = (y * length + x) * 4;
+          image.data[i] = 255; image.data[i + 1] = 220; image.data[i + 2] = 151;
+          image.data[i + 3] = 255 * brightness * (1 - off * off) ** 2;
+        }
+      }
+      c.putImageData(image, 0, 0);
+    }
+    ctx.save(); ctx.globalCompositeOperation = 'screen';
+    ctx.translate(p.x, p.y + bob); ctx.scale(p.face, 1);
+    ctx.translate(handX(stride), handY); ctx.rotate(aim);
+    ctx.drawImage(beamSprite, lensX, -beamSprite.height / 2);
+    ctx.restore();
+  }
+
+  function runner(ctx, stride, tier = 0, aim = 0) {
     ctx.save();
     ctx.lineCap = 'round';
     stepLeg(ctx, stride > 0 ? 1 : -1, stride);
@@ -123,7 +164,9 @@ const EchoFigure = (() => {
     ctx.translate(0, -24); ctx.scale(0.36, 0.36);
     drawShirt(ctx);
     ctx.restore();
-    line(ctx, skin, 3.3, 8, 1.8, 9.8 - stride * 2.4, 6.7);
+    line(ctx, skin, 3.3, 8, 1.8, handX(stride), handY);
+    heldLight(ctx, stride, aim);
+    oval(ctx, handX(stride), handY, 1.55, 1.5, skin);
     ctx.translate(0.65 + stride * 0.65, -25.8);
     ctx.rotate(stride * 0.055);
     ctx.scale(0.43, 0.43);
@@ -140,5 +183,5 @@ const EchoFigure = (() => {
     ctx.restore();
   }
 
-  return { portrait, runner };
+  return { portrait, runner, drawBeam };
 })();

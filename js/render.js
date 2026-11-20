@@ -297,10 +297,12 @@ const Render = {
 
     // 物件先画，角色、掉落物和预警不会被松树遮住。
     Terrain.forEachProp(L - 90, T - 90, Rt + 90, B + 90, prop => TerrainArt.draw(ctx, prop));
+    const pose = this.playerPose(p, time);
+    if (p.char === 'echo' && g.state !== 'intro') EchoFigure.drawBeam(ctx, p, pose);
     this.drawZones(ctx, g, p, time);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
-    this.drawPlayer(ctx, g, p);
+    this.drawPlayer(ctx, g, p, pose);
     this.drawProjs(ctx, g, p, vis);
     this.drawFx(ctx, g, vis);
 
@@ -509,10 +511,10 @@ const Render = {
 
   // ---------- 角色造型 ----------
   // 以原点为中心、面朝右绘制;walk ∈ [-1, 1] 为走路摆动相位
-  drawFigure(ctx, charId, walk, tier = 0) {
+  drawFigure(ctx, charId, walk, tier = 0, aim = 0) {
     const c = CHARS[charId];
     if (c.look === 'girl') this.drawGirl(ctx, walk, tier);
-    else if (c.look === 'echo') EchoFigure.runner(ctx, walk, tier);
+    else if (c.look === 'echo') EchoFigure.runner(ctx, walk, tier, aim);
     else if (c.look === 'xiaoxiao') XiaoxiaoArt.runner(ctx, walk, tier);
     else this.drawCloak(ctx, c.color, tier);
   },
@@ -693,9 +695,15 @@ const Render = {
     return cv;
   },
 
-  drawPlayer(ctx, g, p) {
+  playerPose(p, time) {
     const stride = p.moving ? Math.sin(p.walkT * 14) : 0;
-    const bob = p.moving ? stride * 1.6 : Math.sin(g.time * 3) * 0.6;
+    const bob = p.moving ? stride * 1.6 : Math.sin(time * 3) * 0.6;
+    // 角色局部坐标会左右镜像，手电和光锥使用同一个局部角度。
+    const aim = Math.atan2(p.diry, p.dirx * p.face);
+    return { stride, bob, aim };
+  },
+
+  drawPlayer(ctx, g, p, { stride, bob, aim } = this.playerPose(p, g.time)) {
     const look = CHARS[p.char].look, tier = Wardrobe.stage(p.level, g.pending);
     const motion = !this.reduceMotion?.matches;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -703,7 +711,7 @@ const Render = {
     if (tier >= 3) Wardrobe.drawSeal(ctx, p.x, p.y, look, motion ? g.time : 0);
     // 没有提灯的角色把光源放在角色中心。
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = look === 'echo' ? 0.34 : 0.5;
     const glowOffset = look === 'echo' || look === 'xiaoxiao' ? 0 : 14 * p.face;
     this.drawGlow(ctx, '#ffd166', p.x + glowOffset, p.y + 2 + bob, 34);
     ctx.globalAlpha = 1;
@@ -713,7 +721,7 @@ const Render = {
     ctx.translate(p.x, p.y + bob);
     ctx.scale(p.face, 1);
     Wardrobe.drawTrail(ctx, look, tier, motion ? g.time : 0, motion ? stride : 0);
-    this.drawFigure(ctx, p.char, stride, tier);
+    this.drawFigure(ctx, p.char, stride, tier, aim);
     Wardrobe.drawClasp(ctx, look, tier);
     ctx.restore();
     ctx.globalAlpha = 1;
