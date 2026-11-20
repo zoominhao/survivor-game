@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 
-const scripts = ['config', 'utils', 'terrain', 'weapons', 'core', 'main'].map(name =>
+const scripts = ['config', 'utils', 'terrain', 'environment', 'weapons', 'core', 'main'].map(name =>
   new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', name + '.js'), 'utf8')));
 
 function startIntro({ reducedMotion = false } = {}) {

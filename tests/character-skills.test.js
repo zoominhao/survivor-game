@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 
-const scripts = ['config.js', 'utils.js', 'terrain.js', 'weapons.js', 'core.js', 'wardrobe.js'].map(file =>
+const scripts = ['config.js', 'utils.js', 'terrain.js', 'environment.js', 'weapons.js', 'core.js', 'wardrobe.js'].map(file =>
   new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', file), 'utf8'), { filename: file }));
 
 function start(charId, oldSave = null) {

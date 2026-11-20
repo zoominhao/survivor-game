@@ -292,11 +292,8 @@ const Render = {
     const L = p.x - hw, T = p.y - hh, Rt = p.x + hw, B = p.y + hh;
     const vis = (x, y, pad) => x > L - pad && x < Rt + pad && y > T - pad && y < B + pad;
 
-    ctx.fillStyle = this.ground;
-    ctx.fillRect(L, T, hw * 2, hh * 2);
-
-    // 物件先画，角色、掉落物和预警不会被松树遮住。
-    Terrain.forEachProp(L - 90, T - 90, Rt + 90, B + 90, prop => TerrainArt.draw(ctx, prop));
+    const scene = Environment.sceneAt(time);
+    EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
     const pose = this.playerPose(p, time);
     if (p.char === 'echo' && g.state !== 'intro') EchoFigure.drawBeam(ctx, p, pose);
     this.drawZones(ctx, g, p, time);
@@ -319,17 +316,19 @@ const Render = {
     }
     ctx.globalAlpha = 1;
 
-    // 屏幕空间:夜色遮罩,最后 90 秒随黎明临近逐渐变亮变暖
+    // 屏幕空间：天黑、黎明及轻量天气粒子，使用战斗时钟以支持暂停。
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const dawn = U.clamp((time - (CFG.RUN_TIME - 90)) / 90, 0, 1);
-    ctx.globalAlpha = 1 - dawn * 0.85;
+    const before = Environment.scenes[scene.from], current = Environment.scenes[scene.id];
+    ctx.globalAlpha = before.darkness + (current.darkness - before.darkness) * scene.mix;
     ctx.fillStyle = this.dark;
     ctx.fillRect(0, 0, W, H);
-    if (dawn > 0) {
-      ctx.globalAlpha = dawn * 0.22;
+    if (scene.id === 'dawn') {
+      ctx.globalAlpha = scene.mix * 0.22;
       ctx.fillStyle = '#ffb347';
       ctx.fillRect(0, 0, W, H);
     }
+    ctx.globalAlpha = 1;
+    EnvironmentArt.drawWeather(ctx, W, H, s, time, scene, this.reduceMotion?.matches);
     // 低血量红色警示
     const hpK = p.hp / p.st.maxHp;
     if (hpK < 0.35 && g.state === 'playing') {

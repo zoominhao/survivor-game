@@ -15,6 +15,7 @@ const Game = {
   start(charId) {
     const c = CHARS[charId], m = Save.data.meta;
     this.time = 0;
+    this.environment = Environment.createRun();
     this.spawnAcc = 0;
     this.evIdx = 0;
     this.eliteT = 45;
@@ -253,6 +254,9 @@ const Game = {
     }
     if (p.iframe > 0) p.iframe -= dt;
     if (st.regen > 0 && p.hp < st.maxHp) p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
+    Environment.step(this);
+    const scene = Environment.sceneAt(this.time);
+    if (scene.since > 0 && this.time - dt < scene.since) UI.banner(Environment.scenes[scene.id].name);
 
     this.spawn(dt);
 

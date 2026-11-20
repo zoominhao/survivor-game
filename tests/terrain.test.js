@@ -6,17 +6,17 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 
-const scripts = ['config', 'utils', 'terrain', 'weapons', 'core'].map(name =>
+const scripts = ['config', 'utils', 'terrain', 'environment', 'weapons', 'core'].map(name =>
   new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', name + '.js'), 'utf8')));
 
 function setup() {
   const input = { x: 0, y: 0 };
   const context = vm.createContext({ Input: input, Sfx: { play() {} }, localStorage: { getItem: () => null } });
   for (const script of scripts) script.runInContext(context);
-  const { Game, Terrain, Save, CFG } = vm.runInContext('({ Game, Terrain, Save, CFG })', context);
+  const { Game, Terrain, Environment, Save, CFG } = vm.runInContext('({ Game, Terrain, Environment, Save, CFG })', context);
   Save.load();
   Game.start('ella');
-  return { Game, Terrain, input, radius: CFG.PLAYER_R };
+  return { Game, Terrain, Environment, input, radius: CFG.PLAYER_R };
 }
 
 test('区块移出缓存后重建一致，开局中心没有障碍', () => {
@@ -74,4 +74,48 @@ test('石灯不会挡人，幽魂和投射物可以穿过山石', () => {
   for (let i = 0; i < 21; i++) Game.updateProjs(1 / 60);
   assert.equal(Game.projs.length, 1);
   assert.ok(Game.projs[0].x > rock.x + rock.r);
+});
+
+test('战场由暮色入夜并经过风、雨、雪，最后逐步天亮', () => {
+  const { Environment } = setup();
+  const at = t => Environment.sceneAt(t);
+  assert.deepEqual([0, 32, 61, 111, 183, 899].map(t => at(t).id), ['dusk', 'night', 'bamboo', 'rain', 'snow', 'dawn']);
+  assert.equal(at(105).from, 'bamboo');
+  assert.equal(at(105).mix, 0);
+  assert.equal(at(107.5).mix, 0.5);
+  assert.equal(at(855).mix, 0.5);
+  assert.equal(at(900).mix, 1);
+});
+
+test('走近点灯，满血不浪费治疗，每局每盏灯只恢复一次', () => {
+  const { Game, Environment } = setup();
+  const lamp = { x: 78, y: 103 }, key = Environment.key(lamp);
+  const p = Game.player;
+  p.x = lamp.x; p.y = lamp.y;
+  Game.update(1 / 60);
+  assert.ok(Game.environment.lit.has(key));
+  assert.ok(!Game.environment.healed.has(key));
+  p.hp = 68;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 80);
+  assert.ok(Game.environment.healed.has(key));
+  Game.update(1 / 60);
+  assert.equal(p.hp, 80);
+  Game.start('ella');
+  assert.ok(!Game.environment.lit.has(key) && !Game.environment.healed.has(key));
+});
+
+test('穿过芦苇会留下短暂摆动，静止时不会触发', () => {
+  const { Game, Terrain, Environment, input } = setup();
+  const reed = Terrain.chunk(0, 0).props.find(p => p.kind === 'reeds');
+  const key = Environment.key(reed);
+  Object.assign(Game.player, { x: reed.x, y: reed.y });
+  Game.update(1 / 60);
+  assert.equal(Game.environment.reeds.has(key), false);
+  input.x = 1;
+  Game.update(1 / 60);
+  assert.equal(Game.environment.reeds.has(key), true);
+  input.x = 0;
+  for (let i = 0; i < 60; i++) Game.update(1 / 60);
+  assert.equal(Game.environment.reeds.has(key), false);
 });

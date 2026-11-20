@@ -6,9 +6,14 @@ const TerrainArt = {
   height: 124,
   anchorY: 94,
 
-  draw(ctx, prop) {
+  draw(ctx, prop, scene, lean = 0, lit = false) {
     const { width, height, anchorY } = this;
-    let image = this.sprites[prop.kind];
+    let kind = prop.kind;
+    if (scene === 'bamboo' && kind === 'pine') kind = 'bamboo';
+    if (scene === 'snow' && kind === 'pine') kind = 'snowPine';
+    if (scene === 'snow' && kind === 'rock') kind = 'snowRock';
+    if (kind === 'lantern' && lit) kind = 'litLantern';
+    let image = this.sprites[kind];
     if (!image) {
       image = document.createElement('canvas');
       image.width = width * 2;
@@ -16,10 +21,13 @@ const TerrainArt = {
       const c = image.getContext('2d');
       c.scale(2, 2);
       c.translate(width / 2, anchorY);
-      this[prop.kind](c);
-      this.sprites[prop.kind] = image;
+      this[kind](c);
+      this.sprites[kind] = image;
     }
-    ctx.drawImage(image, prop.x - width / 2, prop.y - anchorY, width, height);
+    if (lean && ['pine', 'bamboo', 'reeds'].includes(kind)) {
+      ctx.save(); ctx.translate(prop.x, prop.y); ctx.rotate(lean);
+      ctx.drawImage(image, -width / 2, -anchorY, width, height); ctx.restore();
+    } else ctx.drawImage(image, prop.x - width / 2, prop.y - anchorY, width, height);
   },
 
   ellipse(ctx, x, y, rx, ry, fill) {
@@ -60,15 +68,40 @@ const TerrainArt = {
     ctx.moveTo(-20, -25); ctx.lineTo(-26, -18); ctx.stroke();
   },
 
-  lantern(ctx) {
-    const glow = ctx.createRadialGradient(0, -20, 0, 0, -20, 34);
-    glow.addColorStop(0, '#edbf596b'); glow.addColorStop(1, '#edbf5900');
-    ctx.fillStyle = glow; ctx.fillRect(-35, -55, 70, 70);
+  bamboo(ctx) {
+    this.ellipse(ctx, 0, 6, 28, 12, '#0d1716bb');
+    ctx.lineCap = 'round';
+    for (const [x, end, y] of [[-13, -26, -63], [0, 3, -83], [12, 26, -67]]) {
+      ctx.strokeStyle = '#668f5b'; ctx.lineWidth = 4.2;
+      ctx.beginPath(); ctx.moveTo(x, 8); ctx.quadraticCurveTo(x, -37, end, y); ctx.stroke();
+      for (let i = 1; i <= 3; i++) {
+        const t = i / 4, lx = x + (end - x) * t * t, ly = 8 + (y - 8) * t, dir = i % 2 ? -1 : 1;
+        this.polygon(ctx, i === 3 ? '#a0b679' : '#769f68', [lx, ly, lx + 14 * dir, ly - 12, lx + 25 * dir, ly - 11, lx + 10 * dir, ly - 5]);
+        this.polygon(ctx, '#507655', [lx, ly - 8, lx - 12 * dir, ly - 17, lx - 21 * dir, ly - 12, lx - 8 * dir, ly - 11]);
+      }
+    }
+  },
+
+  snowPine(ctx) {
+    this.pine(ctx);
+    this.polygon(ctx, '#d5e4df', [0, -84, -17, -54, -8, -57, -4, -55, 2, -60, 11, -57]);
+    this.polygon(ctx, '#b8d6d4', [-12, -44, -28, -30, -14, -33, -6, -31, 0, -38, 12, -35, 23, -32, 17, -44]);
+    this.polygon(ctx, '#aacacc', [-23, -26, -34, -13, -18, -17, -7, -15, 0, -20, 12, -18, 27, -14, 22, -24]);
+  },
+
+  snowRock(ctx) {
+    this.rock(ctx);
+    this.polygon(ctx, '#c3dcdf', [-25, -19, -12, -31, 7, -34, 21, -23, 19, -17, 10, -20, 2, -12, -7, -17, -18, -13]);
+  },
+
+  litLantern(ctx) { this.lantern(ctx, true); },
+
+  lantern(ctx, lit = false) {
     this.ellipse(ctx, 0, 6, 18, 8, '#0b1919a6');
     this.polygon(ctx, '#4d5950', [-14, 4, -8, -2, 8, -2, 14, 4, 11, 9, -11, 9], '#35443e');
     this.polygon(ctx, '#88917a', [-4, 2, -3, -15, 4, -15, 5, 2]);
     this.polygon(ctx, '#a1a285', [-9, -12, -8, -26, 7, -26, 9, -12], '#474b3b');
-    this.polygon(ctx, '#ffcf70', [-4, -15, -4, -23, 4, -23, 4, -15]);
+    this.polygon(ctx, lit ? '#fff0b0' : '#98815a', [-4, -15, -4, -23, 4, -23, 4, -15]);
     this.polygon(ctx, '#727f73', [-15, -25, -8, -29, 0, -40, 8, -29, 15, -25], '#4c584d');
     ctx.strokeStyle = '#aaa982'; ctx.lineWidth = 1.3;
     ctx.beginPath(); ctx.moveTo(-9, -27); ctx.lineTo(0, -34); ctx.lineTo(9, -27); ctx.stroke();
