@@ -39,16 +39,21 @@ const Terrain = {
     });
     props.push({
       x: x0 + (flip ? 252 : 66) + (this.hash(cx, cy, 8) - 0.5) * 44,
-      y: y0 + 211 + this.hash(cx, cy, 9) * 76, kind: this.hash(cx, cy, 5) < 0.45 ? 'lantern' : 'slabs',
+      y: y0 + 211 + this.hash(cx, cy, 9) * 76, kind: this.lightKind(cx, cy),
     });
     if (key === '0:0') props.push({ x: 78, y: 103, kind: 'lantern' });
-    if (key === '-1:-1') props.push({ x: -96, y: -70, kind: 'lantern' });
-    if (key === '0:-1') props.push({ x: 44, y: -73, kind: 'slabs' });
+    if (key === '-1:-1') props.push({ x: -96, y: -70, kind: 'brazier' });
+    if (key === '0:-1') props.push({ x: 52, y: -91, kind: 'paperLamp' });
 
     const chunk = { solid, props };
     if (this.cache.size >= 192) this.cache.delete(this.cache.keys().next().value);
     this.cache.set(key, chunk);
     return chunk;
+  },
+
+  lightKind(cx, cy) {
+    const n = this.hash(cx, cy, 5);
+    return n < 0.19 ? 'lantern' : n < 0.32 ? 'brazier' : n < 0.45 ? 'paperLamp' : 'slabs';
   },
 
   forEachProp(left, top, right, bottom, visit) {

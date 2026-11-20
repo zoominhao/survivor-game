@@ -293,7 +293,10 @@ const Render = {
     const vis = (x, y, pad) => x > L - pad && x < Rt + pad && y > T - pad && y < B + pad;
 
     const scene = Environment.sceneAt(time);
-    EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
+    const before = Environment.scenes[scene.from], current = Environment.scenes[scene.id];
+    const darkness = before.darkness + (current.darkness - before.darkness) * scene.mix;
+    const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
+    EnvironmentArt.drawLighting(ctx, this, lights, darkness);
     const pose = this.playerPose(p, time);
     if (p.char === 'echo' && g.state !== 'intro') EchoFigure.drawBeam(ctx, p, pose);
     this.drawZones(ctx, g, p, time);
@@ -302,6 +305,7 @@ const Render = {
     this.drawPlayer(ctx, g, p, pose);
     this.drawProjs(ctx, g, p, vis);
     this.drawFx(ctx, g, vis);
+    EnvironmentArt.drawLightHint(ctx, hint);
 
     // 伤害数字
     ctx.font = 'bold 12px system-ui, sans-serif';
@@ -316,12 +320,8 @@ const Render = {
     }
     ctx.globalAlpha = 1;
 
-    // 屏幕空间：天黑、黎明及轻量天气粒子，使用战斗时钟以支持暂停。
+    // 屏幕空间：黎明暖色及轻量天气粒子，使用战斗时钟以支持暂停。
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const before = Environment.scenes[scene.from], current = Environment.scenes[scene.id];
-    ctx.globalAlpha = before.darkness + (current.darkness - before.darkness) * scene.mix;
-    ctx.fillStyle = this.dark;
-    ctx.fillRect(0, 0, W, H);
     if (scene.id === 'dawn') {
       ctx.globalAlpha = scene.mix * 0.22;
       ctx.fillStyle = '#ffb347';

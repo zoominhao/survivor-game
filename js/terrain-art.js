@@ -12,8 +12,8 @@ const TerrainArt = {
     if (scene === 'bamboo' && kind === 'pine') kind = 'bamboo';
     if (scene === 'snow' && kind === 'pine') kind = 'snowPine';
     if (scene === 'snow' && kind === 'rock') kind = 'snowRock';
-    if (kind === 'lantern' && lit) kind = 'litLantern';
-    let image = this.sprites[kind];
+    const spriteKey = lit ? `${kind}:lit` : kind;
+    let image = this.sprites[spriteKey];
     if (!image) {
       image = document.createElement('canvas');
       image.width = width * 2;
@@ -21,8 +21,8 @@ const TerrainArt = {
       const c = image.getContext('2d');
       c.scale(2, 2);
       c.translate(width / 2, anchorY);
-      this[kind](c);
-      this.sprites[kind] = image;
+      this[kind](c, lit);
+      this.sprites[spriteKey] = image;
     }
     if (lean && ['pine', 'bamboo', 'reeds'].includes(kind)) {
       ctx.save(); ctx.translate(prop.x, prop.y); ctx.rotate(lean);
@@ -94,8 +94,6 @@ const TerrainArt = {
     this.polygon(ctx, '#c3dcdf', [-25, -19, -12, -31, 7, -34, 21, -23, 19, -17, 10, -20, 2, -12, -7, -17, -18, -13]);
   },
 
-  litLantern(ctx) { this.lantern(ctx, true); },
-
   lantern(ctx, lit = false) {
     this.ellipse(ctx, 0, 6, 18, 8, '#0b1919a6');
     this.polygon(ctx, '#4d5950', [-14, 4, -8, -2, 8, -2, 14, 4, 11, 9, -11, 9], '#35443e');
@@ -105,6 +103,28 @@ const TerrainArt = {
     this.polygon(ctx, '#727f73', [-15, -25, -8, -29, 0, -40, 8, -29, 15, -25], '#4c584d');
     ctx.strokeStyle = '#aaa982'; ctx.lineWidth = 1.3;
     ctx.beginPath(); ctx.moveTo(-9, -27); ctx.lineTo(0, -34); ctx.lineTo(9, -27); ctx.stroke();
+  },
+
+  brazier(ctx, lit) {
+    this.ellipse(ctx, 0, 5, 19, 7, '#0b1919a6');
+    this.polygon(ctx, '#776254', [-12, -4, -5, -5, -7, 7, -12, 7, 6, 7, 4, -5, 11, -4, 12, 6, 8, 9, -10, 9], '#392c2b');
+    this.polygon(ctx, '#916044', [-17, -12, 17, -12, 12, -3, 5, 0, -6, 0, -13, -4], '#4c3230');
+    this.ellipse(ctx, 0, -12, 17, 4.5, '#624437');
+    this.ellipse(ctx, 0, -12, 13.5, 2.5, lit ? '#ef9a59' : '#362d30');
+    if (!lit) return;
+    this.polygon(ctx, '#f58445', [-10, -12, -11, -20, -6, -18, -2, -30, 2, -22, 6, -31, 11, -21, 10, -14, 5, -10, -5, -10]);
+    this.polygon(ctx, '#ffe1a3', [-6, -12, -4, -19, 0, -16, 3, -24, 6, -17, 3, -11]);
+  },
+
+  paperLamp(ctx, lit) {
+    this.ellipse(ctx, 0, 5, 16, 6, '#101c1aa4');
+    this.polygon(ctx, '#695646', [-10, 7, -7, -48, 13, -48, 13, -45, -4, -45, -5, 7], '#473b36');
+    this.polygon(ctx, '#907762', [4, -45, 6, -45, 6, -40, 4, -40]);
+    this.polygon(ctx, lit ? '#fec4a0' : '#a66f6d', [-2, -40, 12, -40, 16, -34, 15, -26, 11, -22, -1, -22, -5, -27, -5, -34], '#6c3d43');
+    const rib = lit ? '#ed835e' : '#835356';
+    this.polygon(ctx, rib, [-1, -38, 1, -38, -1, -31, 1, -24, -1, -24, -3, -31]);
+    this.polygon(ctx, rib, [9, -38, 11, -38, 13, -31, 11, -24, 9, -24, 11, -31]);
+    this.polygon(ctx, '#9c5d53', [3, -22, 7, -22, 7, -17, 5, -15, 3, -17]);
   },
 
   reeds(ctx) {

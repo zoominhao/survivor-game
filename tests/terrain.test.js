@@ -105,6 +105,29 @@ test('走近点灯，满血不浪费治疗，每局每盏灯只恢复一次', ()
   assert.ok(!Game.environment.lit.has(key) && !Game.environment.healed.has(key));
 });
 
+test('起点附近三类光源默认熄灭，走近点亮并在离开后保留，只有石灯回血', () => {
+  const { Game, Terrain, Environment, radius } = setup();
+  const targets = [];
+  Terrain.forEachProp(-140, -140, 140, 140, prop => {
+    if (Object.hasOwn(Environment.lights, prop.kind)) targets.push(prop);
+  });
+  assert.deepEqual([...new Set(targets.map(prop => prop.kind))].sort(), ['brazier', 'lantern', 'paperLamp']);
+  assert.ok(Environment.lights.brazier.radius > Environment.lights.lantern.radius);
+  Game.update(1 / 60);
+  assert.equal(Game.environment.lit.size, 0);
+  for (const prop of targets) {
+    const p = Game.player, key = Environment.key(prop);
+    assert.equal(Terrain.obstacleAt(prop.x, prop.y, radius), null);
+    Object.assign(p, { x: prop.x, y: prop.y, hp: 75 });
+    Game.update(1 / 60);
+    assert.ok(Game.environment.lit.has(key));
+    assert.equal(p.hp, prop.kind === 'lantern' ? 87 : 75);
+    p.x = p.y = 0;
+    Game.update(1 / 60);
+    assert.ok(Game.environment.lit.has(key));
+  }
+});
+
 test('穿过芦苇会留下短暂摆动，静止时不会触发', () => {
   const { Game, Terrain, Environment, input } = setup();
   const reed = Terrain.chunk(0, 0).props.find(p => p.kind === 'reeds');

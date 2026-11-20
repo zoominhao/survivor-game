@@ -2,6 +2,7 @@
 // 接近石灯有暖光，雨雪和风独立绘制，不遮挡战斗提示或改变移动速度。
 const EnvironmentArt = {
   groundTiles: {},
+  lightMasks: new Map(),
 
   ground(ctx, id, plain) {
     if (id === 'night') return plain;
@@ -56,15 +57,20 @@ const EnvironmentArt = {
     }
     const landscape = mix < 0.5 ? from : id;
     const reduced = render.reduceMotion?.matches, time = g.time;
-    Terrain.forEachProp(left - 94, top - 94, right + 94, bottom + 94, prop => {
+    const lights = [];
+    let hint = null, hintDist = 122;
+    // 包括画面外一段距离，边缘的光池不会随着物件出入画面突然消失。
+    Terrain.forEachProp(left - 172, top - 172, right + 172, bottom + 172, prop => {
       const key = Environment.key(prop);
-      const lit = prop.kind === 'lantern' && g.environment.lit.has(key);
+      const light = Object.hasOwn(Environment.lights, prop.kind) ? Environment.lights[prop.kind] : null;
+      const lit = !!light && g.environment.lit.has(key);
       const rustle = Math.max(0, (g.environment.reeds.get(key) || 0) - time);
-      if (lit) {
-        ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.38;
-        render.drawGlow(ctx, '#d49645', prop.x, prop.y - 14, 71);
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      if (lit) lights.push({ x: prop.x, y: prop.y - light.height, light });
+      else if (light && g.state === 'playing') {
+        const d = Math.hypot(g.player.x - prop.x, g.player.y - prop.y);
+        if (d < hintDist) { hint = { prop, light }; hintDist = d; }
       }
+      if (prop.x < left - 94 || prop.x > right + 94 || prop.y < top - 94 || prop.y > bottom + 94) return;
       const gust = reduced ? 0 : 0.067 * Math.sin(time * 5 + prop.y * 0.02);
       const lean = (landscape === 'bamboo' ? gust : 0) +
         (!reduced && prop.kind === 'reeds' ? rustle * 0.35 * Math.sin(time * 27) : 0);
@@ -77,6 +83,58 @@ const EnvironmentArt = {
         ctx.globalAlpha = 1;
       } else TerrainArt.draw(ctx, prop, landscape, lean, lit);
     });
+    return { lights, hint };
+  },
+
+  // 在独立夜色层开出柔边光池，露出原有地表纹理，不洗掉角色、伤害字或预警。
+  drawLighting(ctx, render, lights, darkness) {
+    const { W: w, H: h, s } = render;
+    const { e, f } = ctx.getTransform();
+    if (!this.shade) this.shade = document.createElement('canvas');
+    if (this.shade.width !== w || this.shade.height !== h) {
+      this.shade.width = w; this.shade.height = h;
+    }
+    const layer = this.shade.getContext('2d');
+    layer.clearRect(0, 0, w, h);
+    layer.fillStyle = '#060d1b'; layer.globalAlpha = darkness * 0.38; layer.fillRect(0, 0, w, h);
+    layer.fillStyle = render.dark; layer.globalAlpha = darkness * 0.88; layer.fillRect(0, 0, w, h);
+    layer.globalAlpha = 1;
+    layer.globalCompositeOperation = 'destination-out';
+    for (const { x, y, light } of lights) {
+      const cx = x * s + e, cy = y * s + f, r = light.radius * s;
+      layer.drawImage(this.lightMask(light), cx - r, cy - r, r * 2, r * 2);
+    }
+    layer.globalCompositeOperation = 'source-over';
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this.shade, 0, 0); ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.18 + darkness * 0.16;
+    for (const { x, y, light } of lights) render.drawGlow(ctx, light.color, x, y, light.radius * 0.73);
+    ctx.restore();
+  },
+
+  lightMask(light) {
+    let mask = this.lightMasks.get(light);
+    if (!mask) {
+      const r = light.radius;
+      mask = document.createElement('canvas'); mask.width = mask.height = r * 2;
+      const c = mask.getContext('2d'), cut = c.createRadialGradient(r, r, 0, r, r, r);
+      cut.addColorStop(0, `rgba(0,0,0,${light.strength})`);
+      cut.addColorStop(0.42, `rgba(0,0,0,${light.strength * 0.68})`);
+      cut.addColorStop(1, '#0000');
+      c.fillStyle = cut; c.fillRect(0, 0, r * 2, r * 2);
+      this.lightMasks.set(light, mask);
+    }
+    return mask;
+  },
+
+  drawLightHint(ctx, hint) {
+    if (!hint) return;
+    const { prop, light } = hint;
+    ctx.save(); ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = '#111b22'; ctx.fillStyle = '#f5ddb1';
+    const label = `靠近点亮${light.name}`;
+    ctx.strokeText(label, prop.x, prop.y + 22); ctx.fillText(label, prop.x, prop.y + 22);
+    ctx.restore();
   },
 
   drawWeather(ctx, w, h, scale, time, scene, reduced) {
