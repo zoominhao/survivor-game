@@ -298,7 +298,10 @@ const Render = {
     const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
     EnvironmentArt.drawLighting(ctx, this, lights, darkness);
     const pose = this.playerPose(p, time);
-    if (p.char === 'echo' && g.state !== 'intro') EchoFigure.drawBeam(ctx, p, pose);
+    if (g.state !== 'intro') {
+      if (p.char === 'echo') EchoFigure.drawBeam(ctx, p, pose);
+      else if (p.char === 'xiaoxiao') XiaoxiaoArt.drawBeam(ctx, p, pose);
+    }
     this.drawZones(ctx, g, p, time);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
@@ -514,7 +517,7 @@ const Render = {
     const c = CHARS[charId];
     if (c.look === 'girl') this.drawGirl(ctx, walk, tier);
     else if (c.look === 'echo') EchoFigure.runner(ctx, walk, tier, aim);
-    else if (c.look === 'xiaoxiao') XiaoxiaoArt.runner(ctx, walk, tier);
+    else if (c.look === 'xiaoxiao') XiaoxiaoArt.runner(ctx, walk, tier, aim);
     else this.drawCloak(ctx, c.color, tier);
   },
 
@@ -708,11 +711,11 @@ const Render = {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y + 12, 10, 4, 0, 0, TAU); ctx.fill();
     if (tier >= 3) Wardrobe.drawSeal(ctx, p.x, p.y, look, motion ? g.time : 0);
-    // 没有提灯的角色把光源放在角色中心。
+    const directionalLight = look === 'echo' || look === 'xiaoxiao';
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = look === 'echo' ? 0.34 : 0.5;
-    const glowOffset = look === 'echo' || look === 'xiaoxiao' ? 0 : 14 * p.face;
-    this.drawGlow(ctx, '#ffd166', p.x + glowOffset, p.y + 2 + bob, 34);
+    ctx.globalAlpha = directionalLight ? 0.34 : 0.5;
+    const glowOffset = directionalLight ? 0 : 14 * p.face;
+    this.drawGlow(ctx, look === 'xiaoxiao' ? '#c6e5fd' : '#ffd166', p.x + glowOffset, p.y + 2 + bob, 34);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     if (p.iframe > 0 && Math.floor(g.time * 24) % 2) ctx.globalAlpha = 0.45; // 无敌闪烁

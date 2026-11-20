@@ -128,31 +128,8 @@ const EchoFigure = (() => {
     ctx.restore();
   }
 
-  let beamSprite;
-  function drawBeam(ctx, p, { stride, bob, aim }) {
-    if (!beamSprite) {
-      // 预制柔边光锥：只在首次使用时生成像素，不在每帧计算渐变。
-      const length = 266, half = 100;
-      beamSprite = document.createElement('canvas');
-      beamSprite.width = length; beamSprite.height = half * 2;
-      const c = beamSprite.getContext('2d'), image = c.createImageData(length, half * 2);
-      for (let x = 0; x < length; x++) {
-        const spread = 3 + x * 0.36;
-        const brightness = 0.34 * (1 - x / length) ** 1.3;
-        for (let y = Math.ceil(half - spread); y <= Math.floor(half + spread); y++) {
-          const off = (y - half) / spread, i = (y * length + x) * 4;
-          image.data[i] = 255; image.data[i + 1] = 220; image.data[i + 2] = 151;
-          image.data[i + 3] = 255 * brightness * (1 - off * off) ** 2;
-        }
-      }
-      c.putImageData(image, 0, 0);
-    }
-    ctx.save(); ctx.globalCompositeOperation = 'screen';
-    ctx.translate(p.x, p.y + bob); ctx.scale(p.face, 1);
-    ctx.translate(handX(stride), handY); ctx.rotate(aim);
-    ctx.drawImage(beamSprite, lensX, -beamSprite.height / 2);
-    ctx.restore();
-  }
+  const beam = HandLight.create(266, 100, 0.36, 0.34, [255, 220, 151]);
+  const drawBeam = (ctx, p, pose) => beam(ctx, p, pose, handX(pose.stride), handY, lensX);
 
   function runner(ctx, stride, tier = 0, aim = 0) {
     ctx.save();

@@ -111,7 +111,22 @@ const XiaoxiaoArt = (() => {
     ctx.restore();
   }
 
-  function runner(ctx, stride, tier) {
+  const handX = stride => 10.4 - stride * 1.35;
+  const handY = 3.25, lensX = 8.2, lensY = -1.55;
+  const beam = HandLight.create(218, 88, 0.38, 0.34, [198, 229, 253]);
+  const drawBeam = (ctx, p, pose) => beam(ctx, p, pose, handX(pose.stride), handY, lensX, lensY);
+
+  function phone(ctx, x, aim) {
+    ctx.save(); ctx.translate(x, handY); ctx.rotate(aim);
+    ctx.fillStyle = '#bd6776'; ctx.strokeStyle = '#542f40'; ctx.lineWidth = 0.75;
+    ctx.beginPath(); ctx.roundRect(-2.4, -3.35, 11.3, 6.7, 1.4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#283d52'; ctx.beginPath(); ctx.roundRect(-1.3, -2.45, 8.9, 4.9, 0.7); ctx.fill();
+    line(ctx, '#7eacc1', 0.7, 0.5, 1.45, 4.8, 1.45);
+    oval(ctx, lensX, lensY, 0.85, 0.85, '#e9f8ff');
+    ctx.restore();
+  }
+
+  function runner(ctx, stride, tier, aim = 0) {
     ctx.save(); ctx.lineCap = 'round';
     const hx = 0.4 + stride * 0.5, hy = -15.7;
     for (const side of [-1, 1]) {
@@ -124,9 +139,10 @@ const XiaoxiaoArt = (() => {
     backHair(ctx, hx, hy, 0.39, stride * 0.065);
     line(ctx, '#d2dddc', 3.2, -6.8, -1, -8.7 + stride * 2.1, 6.7);
     ctx.save(); ctx.translate(0, -8); ctx.scale(0.43, 0.47); coat(ctx, stride * 3, tier); ctx.restore();
-    line(ctx, white, 3.25, 7.1, -0.7, 8.8 - stride * 2.3, 6.7);
-    oval(ctx, 8.8 - stride * 2.3, 7.65, 1.45, 1.45, skin);
+    line(ctx, white, 3.25, 7.1, -0.7, handX(stride), handY);
     head(ctx, hx, hy, 0.39, tier);
+    phone(ctx, handX(stride), aim);
+    oval(ctx, handX(stride), handY, 1.45, 1.45, skin);
     ctx.restore();
   }
 
@@ -184,5 +200,5 @@ const XiaoxiaoArt = (() => {
     ctx.restore();
   }
 
-  return { portrait, runner, latiao, pony, roar, balm };
+  return { portrait, runner, drawBeam, latiao, pony, roar, balm };
 })();
