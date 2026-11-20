@@ -254,7 +254,6 @@ const Game = {
     }
     if (p.iframe > 0) p.iframe -= dt;
     if (st.regen > 0 && p.hp < st.maxHp) p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
-    Environment.step(this);
     const scene = Environment.sceneAt(this.time);
     if (scene.since > 0 && this.time - dt < scene.since) UI.banner(Environment.scenes[scene.id].name);
 
@@ -263,6 +262,7 @@ const Game = {
     // 重建空间网格
     this.grid.clear();
     for (const e of this.enemies) this.grid.insert(e);
+    Environment.step(this);
 
     // 玩家可能在敌人/子弹阶段阵亡,此时本帧后续逻辑(尤其是拾取宝箱)不能再改状态
     this.updateEnemies(dt);

@@ -30,6 +30,11 @@ const Environment = {
     snow: { snowEnvoy: 1 },
     dawn: { snowEnvoy: 2, jiangshi: 1 },
   },
+  landmarks: {
+    wardBell: { name: '镇魂钟', prompt: '靠近撞钟 · 震退夜兽', status: '钟声冷却', cd: 35, radius: 155, color: '#ffe1a0', sound: 'wardBell' },
+    starSigil: { name: '引星符阵', prompt: '靠近引星 · 吸取经验', status: '符阵充能', cd: 24, radius: 285, color: '#b8e5d2', sound: 'sigilGather' },
+    supplyBox: { name: '补给木匣', prompt: '靠近开匣 · 金币与经验', status: '木匣已开', cd: Infinity, coins: 5, xp: 4, color: '#f1bd7c', sound: 'chest' },
+  },
 
   sceneAt(time) {
     let index = this.route.length - 1;
@@ -50,7 +55,7 @@ const Environment = {
     return this.sceneEnemies[localRoll < scene.mix ? scene.id : scene.from];
   },
 
-  createRun() { return { lit: new Set(), healed: new Set(), reeds: new Map() }; },
+  createRun() { return { lit: new Set(), healed: new Set(), reeds: new Map(), landmarkReady: new Map() }; },
   key(prop) { return `${prop.x}:${prop.y}`; },
 
   // 交互由走位触发，手机不用增加按钮；点亮、治疗分别记录，满血不会浪费治疗。
@@ -62,12 +67,48 @@ const Environment = {
     Terrain.forEachProp(p.x - reach, p.y - reach, p.x + reach, p.y + reach, prop => {
       const dist = Math.hypot(p.x - prop.x, p.y - prop.y), key = this.key(prop);
       if (Object.hasOwn(this.lights, prop.kind) && dist <= 36) this.visitLight(g, prop, key, this.lightKind(prop.kind, landscape));
+      if (Object.hasOwn(this.landmarks, prop.kind) && dist <= 34) this.visitLandmark(g, prop, key);
       if (prop.kind === 'reeds' && p.moving && dist <= 24 && !run.reeds.has(key)) {
         run.reeds.set(key, g.time + 0.95);
         g.burst(prop.x, prop.y, '#a3b66c', 5);
         Sfx.play('rustle');
       }
     });
+  },
+
+  visitLandmark(g, prop, key) {
+    const ready = g.environment.landmarkReady;
+    if ((ready.get(key) ?? 0) > g.time) return;
+    const def = this.landmarks[prop.kind];
+    let message = def.name;
+    if (prop.kind === 'wardBell') {
+      let hit = false;
+      g.eachEnemyNear(prop.x, prop.y, def.radius, e => {
+        const dx = e.x - prop.x, dy = e.y - prop.y, d = Math.hypot(dx, dy) || 1;
+        const push = (1 - e.kbRes) * 385;
+        e.kx += dx / d * push; e.ky += dy / d * push;
+        g.slowEnemy(e, 0.48, 2.4);
+        hit = true;
+      });
+      if (!hit) return; // 没有怪时不会浪费冷却。
+    } else if (prop.kind === 'starSigil') {
+      let gathered = false;
+      for (const gem of g.gems) {
+        if (gem.mag || (gem.x - prop.x) ** 2 + (gem.y - prop.y) ** 2 > def.radius ** 2) continue;
+        gem.mag = true; gathered = true;
+      }
+      if (!gathered) return;
+    } else if (prop.kind === 'supplyBox') {
+      const coins = g.player.coins;
+      g.player.coins += def.coins * g.player.st.greed;
+      g.gainXp(def.xp);
+      message = `+${Math.floor(g.player.coins) - Math.floor(coins)} 金币 · +${Number((def.xp * g.player.st.growth).toFixed(1))} 经验`;
+    }
+    ready.set(key, g.time + def.cd);
+    g.texts.push({ x: prop.x, y: prop.y - 24, s: message, life: 0.95, c: def.color });
+    g.fx.push({ type: 'boom', x: prop.x, y: prop.y, r: Math.min(150, def.radius ?? 48), life: 0.48, max: 0.48, c: def.color });
+    g.burst(prop.x, prop.y, def.color, 8);
+    Sfx.play(def.sound);
   },
 
   visitLight(g, prop, key, kind = prop.kind) {

@@ -240,3 +240,55 @@ test('纸扎童子摆动逼近，伞鬼从障碍里放出雨滴，白无常抗�
   assert.equal(Game.ebullets[0].look, 'rainDrop');
   assert.ok(envoy.kbRes > 0.6);
 });
+
+test('镇魂钟只在附近有敌人时触发，冷却后才能再次击退', () => {
+  const { Game, Terrain, Environment, cues } = setup();
+  const bell = Terrain.chunk(0, 0).props.find(o => o.kind === 'wardBell');
+  Object.assign(Game.player, { x: bell.x, y: bell.y });
+  const key = Environment.key(bell);
+  assert.equal(Terrain.obstacleAt(bell.x, bell.y, 11), null);
+  Game.update(1 / 60);
+  assert.equal(Game.environment.landmarkReady.has(key), false);
+  const near = Game.spawnEnemy('shade', bell.x + 70, bell.y);
+  const far = Game.spawnEnemy('shade', bell.x + 180, bell.y);
+  Game.update(1 / 60);
+  assert.ok(near.kx > 0 && near.slow > 0);
+  assert.equal(far.slow, 0);
+  assert.equal(near.hp, near.maxHp);
+  Game.update(1 / 60);
+  assert.equal(cues.filter(c => c[0] === 'wardBell').length, 1);
+  Game.time = Game.environment.landmarkReady.get(key);
+  Environment.step(Game);
+  assert.equal(cues.filter(c => c[0] === 'wardBell').length, 2);
+});
+
+test('引星符阵只吸引范围内的经验，空触发不进入冷却', () => {
+  const { Game, Terrain, Environment } = setup();
+  const sigil = Terrain.chunk(-1, 0).props.find(o => o.kind === 'starSigil');
+  Object.assign(Game.player, { x: sigil.x, y: sigil.y });
+  const key = Environment.key(sigil);
+  Game.update(1 / 60);
+  assert.equal(Game.environment.landmarkReady.has(key), false);
+  Game.dropGem(sigil.x - 180, sigil.y, 2);
+  Game.dropGem(sigil.x - 346, sigil.y, 2);
+  Game.update(1 / 60);
+  assert.equal(Game.gems[0].mag, true);
+  assert.equal(Game.gems[1].mag, false);
+  assert.ok(Game.environment.landmarkReady.get(key) > Game.time);
+});
+
+test('补给木匣只发放一次奖励，换景不会刷新，新开局会重置', () => {
+  const { Game, Terrain, Environment } = setup();
+  const box = Terrain.chunk(0, -1).props.find(o => o.kind === 'supplyBox');
+  const key = Environment.key(box);
+  for (const time of [0, 61, 111, 192]) {
+    Object.assign(Game.player, { x: box.x, y: box.y });
+    Game.time = time;
+    Environment.step(Game);
+    assert.equal(Game.player.coins, 5);
+    assert.equal(Game.player.xp, 4);
+  }
+  assert.equal(Game.environment.landmarkReady.get(key), Infinity);
+  Game.start('ella');
+  assert.equal(Game.environment.landmarkReady.has(key), false);
+});

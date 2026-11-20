@@ -44,6 +44,8 @@ const Terrain = {
     if (key === '0:0') props.push({ x: 78, y: 103, kind: 'lantern' });
     if (key === '-1:-1') props.push({ x: -96, y: -70, kind: 'brazier' });
     if (key === '0:-1') props.push({ x: 52, y: -91, kind: 'paperLamp' });
+    const landmark = this.landmark(cx, cy);
+    if (landmark) props.push(landmark);
 
     const chunk = { solid, props };
     if (this.cache.size >= 192) this.cache.delete(this.cache.keys().next().value);
@@ -54,6 +56,17 @@ const Terrain = {
   lightKind(cx, cy) {
     const n = this.hash(cx, cy, 5);
     return n < 0.19 ? 'lantern' : n < 0.32 ? 'brazier' : n < 0.45 ? 'paperLamp' : 'slabs';
+  },
+
+  landmark(cx, cy) {
+    if (cx === 0 && cy === 0) return { x: 151, y: 57, kind: 'wardBell' };
+    if (cx === -1 && cy === 0) return { x: -111, y: 69, kind: 'starSigil' };
+    if (cx === 0 && cy === -1) return { x: 117, y: -52, kind: 'supplyBox' };
+    if (cx === -1 && cy === -1) return null;
+    const roll = this.hash(cx, cy, 11);
+    if (roll > 0.66) return null;
+    const x = 88 + this.hash(cx, cy, 12) * 143;
+    return { x: cx * this.size + x, y: cy * this.size + 31, kind: roll < 0.22 ? 'wardBell' : roll < 0.44 ? 'starSigil' : 'supplyBox' };
   },
 
   forEachProp(left, top, right, bottom, visit) {

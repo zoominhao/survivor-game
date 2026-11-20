@@ -68,6 +68,8 @@ const EnvironmentArt = {
       const skin = mix < 0.5 ? oldKind : newKind;
       const light = Object.hasOwn(Environment.lights, skin) ? Environment.lights[skin] : null;
       const lit = !!light && g.environment.lit.has(key);
+      const landmark = Object.hasOwn(Environment.landmarks, prop.kind) ? Environment.landmarks[prop.kind] : null;
+      const remaining = landmark ? Math.max(0, (g.environment.landmarkReady.get(key) ?? 0) - time) : 0;
       const rustle = Math.max(0, (g.environment.reeds.get(key) || 0) - time);
       if (lit) {
         const addGlow = (kind, weight) => {
@@ -77,9 +79,13 @@ const EnvironmentArt = {
         if (oldKind === newKind) addGlow(skin, 1);
         else { addGlow(oldKind, 1 - mix); addGlow(newKind, mix); }
       }
-      else if (light && g.state === 'playing') {
+      else if ((light || landmark) && g.state === 'playing') {
         const d = Math.hypot(g.player.x - prop.x, g.player.y - prop.y);
-        if (d < hintDist) { hint = { prop, light }; hintDist = d; }
+        if (d < hintDist && (!remaining || d < 52)) {
+          const text = light ? `靠近点亮${light.name}` : !remaining ? landmark.prompt :
+            Number.isFinite(remaining) ? `${landmark.status} ${Math.ceil(remaining)}秒` : landmark.status;
+          hint = { prop, text, used: !!remaining }; hintDist = d;
+        }
       }
       if (prop.x < left - 94 || prop.x > right + 94 || prop.y < top - 94 || prop.y > bottom + 94) return;
       const gust = reduced ? 0 : 0.067 * Math.sin(time * 5 + prop.y * 0.02);
@@ -92,7 +98,7 @@ const EnvironmentArt = {
         ctx.globalAlpha = mix;
         TerrainArt.draw(ctx, prop, id, id === 'bamboo' ? gust : 0, lit, newKind);
         ctx.globalAlpha = 1;
-      } else TerrainArt.draw(ctx, prop, landscape, lean, lit, skin);
+      } else TerrainArt.draw(ctx, prop, landscape, lean, lit || (!!landmark && remaining === 0), skin);
     });
     return { lights, hint };
   },
@@ -157,11 +163,10 @@ const EnvironmentArt = {
 
   drawLightHint(ctx, hint) {
     if (!hint) return;
-    const { prop, light } = hint;
+    const { prop, text, used } = hint;
     ctx.save(); ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.lineWidth = 3; ctx.strokeStyle = '#111b22'; ctx.fillStyle = '#f5ddb1';
-    const label = `靠近点亮${light.name}`;
-    ctx.strokeText(label, prop.x, prop.y + 22); ctx.fillText(label, prop.x, prop.y + 22);
+    ctx.lineWidth = 3; ctx.strokeStyle = '#111b22'; ctx.fillStyle = used ? '#a8ada6' : '#f5ddb1';
+    ctx.strokeText(text, prop.x, prop.y + 22); ctx.fillText(text, prop.x, prop.y + 22);
     ctx.restore();
   },
 

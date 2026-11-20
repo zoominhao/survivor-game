@@ -127,6 +127,35 @@ const TerrainArt = {
     this.polygon(ctx, '#9c5d53', [3, -22, 7, -22, 7, -17, 5, -15, 3, -17]);
   },
 
+  wardBell(ctx, ready) {
+    this.ellipse(ctx, 0, 6, 26, 8, '#151a20a6');
+    this.polygon(ctx, '#6e5747', [-20, 8, -17, -37, 17, -37, 20, 8, 15, 8, 12, -32, -12, -32, -15, 8], '#332e39');
+    this.polygon(ctx, '#876358', [-23, -34, -16, -40, 0, -44, 17, -40, 23, -34], '#48363a');
+    this.polygon(ctx, ready ? '#c6a370' : '#756e65', [-5, -30, 5, -30, 10, -23, 11, -13, 16, -7, -16, -7, -11, -13, -10, -23], '#51403b');
+    this.ellipse(ctx, 0, -7, 16, 3.5, ready ? '#e6c589' : '#969386');
+    this.ellipse(ctx, 0, -4, 3.4, 4.5, '#7d6551');
+    ctx.strokeStyle = ready ? '#fbe2a6' : '#948a7b'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-6, -21); ctx.quadraticCurveTo(0, -25, 7, -20); ctx.stroke();
+  },
+
+  starSigil(ctx, ready) {
+    this.ellipse(ctx, 0, 5, 24, 12, '#141e20a5');
+    this.ellipse(ctx, 0, 0, 22, 10, ready ? '#5d8b74' : '#475d59');
+    this.ellipse(ctx, 0, -1.5, 19, 7.5, '#233e37');
+    const color = ready ? '#b8e5d2' : '#748b82';
+    this.polygon(ctx, color, [0, -9, 3.3, -3, 12, -0.5, 3.3, 2, 0, 8, -3.3, 2, -12, -0.5, -3.3, -3]);
+    for (const x of [-16, 16]) this.ellipse(ctx, x, -1, 1.5, 1, color);
+  },
+
+  supplyBox(ctx, ready) {
+    this.ellipse(ctx, 0, 5, 22, 9, '#111b1caa');
+    this.polygon(ctx, '#95674f', [-17, -8, 16, -8, 16, 7, -17, 7], '#443239');
+    this.polygon(ctx, ready ? '#be8761' : '#735345', ready ? [-17, -8, -12, -15, 15, -15, 19, -8] : [-17, -8, -21, -18, 13, -18, 16, -8], '#49343a');
+    this.polygon(ctx, '#654a43', [-15, 1, 14, 1, 14, 3, -15, 3]);
+    if (ready) this.polygon(ctx, '#e6b477', [-4, -10, 4, -10, 4, -2, -4, -2], '#825747');
+    else this.polygon(ctx, '#49353a', [-14, -8, -17, -14, 12, -14, 14, -8]);
+  },
+
   reeds(ctx) {
     this.ellipse(ctx, 0, 4, 19, 6, '#101e1980');
     ctx.lineCap = 'round'; ctx.lineWidth = 1.15;
