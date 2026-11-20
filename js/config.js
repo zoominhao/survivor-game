@@ -203,6 +203,30 @@ const WEAPONS = {
     base: { guards: 1, cd: 9, radius: 62, slow: 0.4, chill: 1.2 },
     ups: [{ radius: 10 }, { cd: -0.7 }, { guards: 1 }, { radius: 14 }, { cd: -1.2 }],
   },
+  latiao: {
+    name: '香辣连发', color: '#ef764e', kind: 'bolt', look: 'latiao', max: 6, exclusive: 'xiaoxiao', sound: 'candy',
+    desc: '朝附近夜兽连发红油辣条，升级后可以穿透多个目标。',
+    base: { dmg: 7, cd: 1.35, count: 2, pierce: 1, speed: 510, size: 7, spread: 2 },
+    ups: [{ count: 1 }, { dmg: 4 }, { pierce: 1 }, { count: 1, cd: -0.2 }, { dmg: 6, pierce: 1 }],
+  },
+  gallop: {
+    name: '万马奔腾', color: '#efbd7e', kind: 'lance', look: 'pony', max: 6, exclusive: 'xiaoxiao', sound: 'roll',
+    desc: '沿最近移动的方向派出一排小马，蹦跳穿过沿途夜兽。',
+    base: { dmg: 12, cd: 3.2, count: 3, pierce: 3, speed: 390, size: 12, spreadAngle: 0.29 },
+    ups: [{ dmg: 4 }, { count: 1 }, { cd: -0.5 }, { pierce: 1, size: 2 }, { dmg: 7, count: 1 }],
+  },
+  momroar: {
+    name: '妈妈怒吼', color: '#ef9c91', kind: 'frost', look: 'roar', max: 6, exclusive: 'xiaoxiao', sound: 'roar',
+    desc: '夜兽靠近时发出一圈声浪，伤害并震退周围敌人。',
+    base: { dmg: 13, cd: 3.8, radius: 114, kb: 310 },
+    ups: [{ radius: 16 }, { dmg: 6 }, { cd: -0.55 }, { radius: 18 }, { dmg: 8, cd: -0.4 }],
+  },
+  skincare: {
+    name: '水润护肤', color: '#b9ead8', kind: 'skincare', max: 6, exclusive: 'xiaoxiao',
+    desc: '受伤或夜兽靠近时涂上面霜，回复 6% 最大生命，并在 3 秒内减少 30% 所受伤害。',
+    base: { heal: 0.06, cd: 8.8, dur: 3, reduce: 0.3, range: 170 },
+    ups: [{ heal: 0.02 }, { dur: 0.6 }, { reduce: 0.08 }, { cd: -1 }, { heal: 0.02, cd: -0.5 }],
+  },
 };
 
 // ----- 被动道具 -----
@@ -225,6 +249,7 @@ const CHARS = {
   ella: { name: '提灯人·艾拉', color: '#f4a261', weapon: 'spark',   cost: 0,   desc: '均衡的守夜人。伤害 +10%', might: 0.1 },
   tuan: { name: '小啾咪·果果', color: '#f4eedc', weapon: 'monkey', cost: 0,   desc: '小猴落地震击，数量 +1、生命 -10', look: 'girl', amount: 1, hp: -10 },
   echo: { name: '小老鼠·开心', color: '#f6c94e', weapon: 'mouse', cost: 0,    desc: '鼠伴自动追敌，移速 +8%、生命 -10', look: 'echo', speed: 0.08, hp: -10 },
+  xiaoxiao: { name: '妈妈·霄霄', color: '#f4a58e', weapon: 'latiao', cost: 0, desc: '香辣连发，生命 +10、护甲 +1', look: 'xiaoxiao', hp: 10, armor: 1 },
   bron: { name: '铁匠·布隆',   color: '#8d99ae', weapon: 'aura',    cost: 300, desc: '生命 +40,护甲 +1,移速 -10%', hp: 40, armor: 1, speed: -0.1 },
   nova: { name: '观星者·诺瓦', color: '#9d7bff', weapon: 'thunder', cost: 600, desc: '冷却 -12%,生命 -20', haste: 0.12, hp: -20 },
   sain: { name: '游侠·塞恩',   color: '#52b788', weapon: 'blade',   cost: 900, desc: '移速 +15%,拾取范围 +30%', speed: 0.15, magnet: 0.3 },

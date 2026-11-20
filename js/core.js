@@ -583,7 +583,8 @@ const Game = {
     if (p.iframe > 0 || this.state !== 'playing') return;
     const paper = p.weapons.find(w => w.id === 'exampaper' && w.guards > 0);
     if (paper) { this.consumeExamGuard(paper); return; }
-    dmg = Math.max(1, Math.round(dmg - p.st.armor));
+    const care = p.weapons.find(w => w.id === 'skincare' && w.on > 0);
+    dmg = Math.max(1, Math.round((dmg - p.st.armor) * (care ? 1 - care.s.reduce : 1)));
     p.hp -= dmg;
     p.iframe = src && src.boss ? 0.7 : 0.3; // 被 Boss 撞到后给更长的无敌时间,避免贴身秒杀
     this.shake = Math.max(this.shake, 5);
@@ -769,9 +770,9 @@ const Game = {
         this.eachEnemyNear(z.x, z.y, z.r, e => {
           if (z.hit.has(e.id)) return;
           z.hit.add(e.id);
-          this.damageEnemy(e, z.dmg, z.wid, e.x - z.x, e.y - z.y, 60);
+          this.damageEnemy(e, z.dmg, z.wid, e.x - z.x, e.y - z.y, z.kb ?? 60);
           if (z.freeze && !e.boss) e.frozen = z.freeze;
-          this.slowEnemy(e, z.slow, z.freeze + 2);
+          if (z.slow) this.slowEnemy(e, z.slow, z.freeze + 2);
         });
         keep = z.r < z.maxR;
       }

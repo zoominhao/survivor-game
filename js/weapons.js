@@ -26,6 +26,7 @@ function upgradeText(delta) {
     else if (k === 'bounces') out.push('弹射次数 +' + v);
     else if (k === 'guards') out.push('抵挡次数 +' + v);
     else if (k === 'heal') out.push('回复量 +' + Math.round(v * 100) + '% 最大生命');
+    else if (k === 'reduce') out.push('减伤 +' + Math.round(v * 100) + '%');
     else if (k === 'radius' || k === 'blast') out.push('范围 +' + v);
     else if (k === 'dur' || k === 'sauce') out.push('持续 +' + v + ' 秒');
     else if (k === 'size') out.push('体积 +' + v);
@@ -36,6 +37,21 @@ function upgradeText(delta) {
 const TAU = Math.PI * 2;
 
 const WeaponFns = {
+  // 水润护肤：有恢复或防护需求才消耗冷却，减伤时间随战斗时钟递减。
+  skincare(g, w, s, dt) {
+    const p = g.player, st = p.st;
+    w.on = Math.max(0, (w.on || 0) - dt);
+    if (w.timer > 0) w.timer -= dt;
+    if (w.timer > 0 || w.on > 0 || (p.hp >= st.maxHp && !g.nearestEnemy(p.x, p.y, s.range))) return;
+    w.timer = s.cd * st.cd;
+    w.on = s.dur;
+    const healed = Math.min(st.maxHp - p.hp, st.maxHp * s.heal);
+    p.hp += healed;
+    if (Math.round(healed) > 0) g.texts.push({ x: p.x, y: p.y - 30, s: '+' + Math.round(healed), life: 0.8, c: '#b9ead8' });
+    g.fx.push({ type: 'skincare', x: p.x, y: p.y, life: 0.7, max: 0.7 });
+    Sfx.play('mango');
+  },
+
   // 芒果干补给：只在受伤到阈值以下时消耗冷却，不浪费满血时的补给。
   mango(g, w, s, dt) {
     const p = g.player, st = p.st;
@@ -136,7 +152,7 @@ const WeaponFns = {
       if (t) base = Math.atan2(t.y - p.y, t.x - p.x);
     }
     for (let i = 0; i < n; i++) {
-      const a = base + (i - (n - 1) / 2) * (s.homing ? 0.5 : 0.16);
+      const a = base + (i - (n - 1) / 2) * (s.spreadAngle ?? (s.homing ? 0.5 : 0.16));
       g.addProj({
         x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
         r: s.size * st.area, dmg: s.dmg * st.might, pierce: s.pierce,
@@ -299,9 +315,9 @@ const WeaponFns = {
     w.timer = fired ? s.cd * st.cd : 0.2;
   },
 
-  // 霜环 / 凛冬:从玩家位置向外扩散的寒霜
+  // 从玩家位置向外扩散的寒霜或声浪。
   frost(g, w, s, dt) {
-    const p = g.player, st = p.st;
+    const p = g.player, st = p.st, d = WEAPONS[w.id];
     w.timer -= dt;
     if (w.timer > 0) return;
     const R = s.radius * st.area;
@@ -309,8 +325,9 @@ const WeaponFns = {
     w.timer = s.cd * st.cd;
     g.zones.push({
       type: 'ring', x: p.x, y: p.y, r: 12, maxR: R, spd: R / 0.45,
-      dmg: s.dmg * st.might, wid: w.id, slow: s.slow, freeze: s.freeze || 0, hit: new Set(),
+      dmg: s.dmg * st.might, wid: w.id, slow: s.slow || 0, freeze: s.freeze || 0, hit: new Set(),
+      look: d.look, color: d.color, kb: s.kb ?? 60,
     });
-    Sfx.play('frost');
+    Sfx.play(d.sound || 'frost');
   },
 };

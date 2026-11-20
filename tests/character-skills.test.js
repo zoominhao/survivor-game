@@ -326,3 +326,63 @@ test('只有已选完的升级才点亮装饰，重开后恢复初始造型', ()
   Game.start('tuan');
   assert.equal(Wardrobe.stage(Game.player.level, Game.pending), 0);
 });
+
+test('妈妈·霄霄默认解锁，专属武器不会出现在其他角色的选项里', () => {
+  const { Game, Save, CHARS } = start('xiaoxiao', { lastChar: 'echo', coins: 34 });
+  assert.equal(CHARS.xiaoxiao.name, '妈妈·霄霄');
+  assert.equal(Game.player.weapons[0].id, 'latiao');
+  assert.equal(Game.player.hp, 110);
+  assert.equal(Game.player.st.armor, 1);
+  assert.equal(Save.data.chars.xiaoxiao, true);
+  assert.equal(Save.data.lastChar, 'echo');
+  assert.equal(Save.data.coins, 34);
+  const skills = ['latiao', 'gallop', 'momroar', 'skincare'];
+  assert.ok(skills.every(id => Game.buildChoices(100).some(c => c.id === id)));
+  assert.ok(skills.includes(Game.buildChoices(3)[0].id));
+  assert.equal(start('echo').Game.buildChoices(100).some(c => skills.includes(c.id)), false);
+});
+
+test('香辣连发朝夜兽投出两条辣条', () => {
+  const { Game } = start('xiaoxiao');
+  stationaryEnemy(Game, 240, 0);
+  for (let i = 0; i < 10; i++) Game.update(1 / 60);
+  assert.equal(Game.projs.length, 2);
+  assert.ok(Game.projs.every(b => b.look === 'latiao' && b.vx > 0));
+});
+
+test('万马奔腾朝移动方向派出三匹能穿透的小马', () => {
+  const Game = foodRun('xiaoxiao', 'gallop');
+  Game.player.dirx = 0; Game.player.diry = -1;
+  Game.update(1 / 60);
+  assert.equal(Game.projs.length, 3);
+  assert.ok(Game.projs.every(b => b.look === 'pony' && b.vy < 0 && b.pierce === 3));
+  assert.ok(Game.projs[0].vx < Game.projs[2].vx);
+});
+
+test('妈妈怒吼伤害并震退附近夜兽，不会打到远处目标', () => {
+  const Game = foodRun('xiaoxiao', 'momroar');
+  const near = stationaryEnemy(Game, 72, 0), far = stationaryEnemy(Game, 235, 0);
+  for (let i = 0; i < 23; i++) Game.update(1 / 60);
+  assert.ok(near.hp < near.maxHp && near.x > 72);
+  assert.equal(far.hp, far.maxHp);
+  assert.ok(Game.player.dmgBy.momroar > 0);
+});
+
+test('水润护肤在需要时回复生命，并且只在护肤时间内减伤', () => {
+  const Game = foodRun('xiaoxiao', 'skincare');
+  const p = Game.player, w = p.weapons[0];
+  Game.update(1 / 60);
+  assert.equal(w.on, 0);
+  p.hp = 90;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 96.6);
+  assert.equal(w.on, 3);
+  Game.hurtPlayer(31, null);
+  assert.equal(p.hp, 75.6);
+  w.on = 0.02;
+  Game.update(1 / 60); Game.update(1 / 60);
+  assert.equal(w.on, 0);
+  p.iframe = 0;
+  Game.hurtPlayer(31, null);
+  assert.ok(Math.abs(p.hp - 45.6) < 0.001);
+});

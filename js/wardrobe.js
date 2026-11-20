@@ -9,11 +9,12 @@ const Wardrobe = {
   scarf: {
     echo: { base: '#398f82', edge: '#94d8b5' },
     girl: { base: '#bd657b', edge: '#ffc9ce' },
+    xiaoxiao: { base: '#bc4652', edge: '#f3bb92' },
     cloak: { base: '#546c94', edge: '#b8cbe3' },
   },
 
   drawTrail(ctx, look, tier, time, stride) {
-    if (tier < 2) return;
+    if (tier < 2 || look === 'xiaoxiao') return; // 霄霄直接升级身上的红围巾。
     const cloth = this.scarf[look] || this.scarf.cloak;
     const swing = Math.sin(time * 6) * 2.1 + stride * 2.6;
     const tail = -24 - Math.abs(stride) * 4;
@@ -30,7 +31,7 @@ const Wardrobe = {
   },
 
   drawClasp(ctx, look, tier) {
-    if (tier < 2) return;
+    if (tier < 2 || look === 'xiaoxiao') return;
     const cloth = this.scarf[look] || this.scarf.cloak;
     ctx.save();
     ctx.translate(look === 'echo' ? -5 : -6, look === 'echo' ? 0 : -2.2);

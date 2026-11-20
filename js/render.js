@@ -383,6 +383,8 @@ const Render = {
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.fill();
         ctx.fillStyle = `rgba(255,210,90,${a * 0.8})`;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r * 0.55, 0, TAU); ctx.fill();
+      } else if (z.type === 'ring' && z.look === 'roar') {
+        XiaoxiaoArt.roar(ctx, z);
       } else if (z.type === 'ring') {
         const k = 1 - z.r / z.maxR;
         ctx.strokeStyle = `rgba(190,240,255,${0.25 + k * 0.7})`;
@@ -511,6 +513,7 @@ const Render = {
     const c = CHARS[charId];
     if (c.look === 'girl') this.drawGirl(ctx, walk, tier);
     else if (c.look === 'echo') EchoFigure.runner(ctx, walk, tier);
+    else if (c.look === 'xiaoxiao') XiaoxiaoArt.runner(ctx, walk, tier);
     else this.drawCloak(ctx, c.color, tier);
   },
 
@@ -676,10 +679,12 @@ const Render = {
     cv.width = w * S; cv.height = h * S;
     cv.className = 'avatar';
     const x = cv.getContext('2d');
-    if (CHARS[charId].look === 'echo') {
+    const look = CHARS[charId].look;
+    if (look === 'echo' || look === 'xiaoxiao') {
       x.translate(w * S / 2, 4 * S);
       x.scale(S * 0.38, S * 0.38);
-      EchoFigure.portrait(x);
+      if (look === 'echo') EchoFigure.portrait(x);
+      else XiaoxiaoArt.portrait(x);
     } else {
       x.translate(w * S / 2 - 1.2 * S, h * S / 2 + 2.6 * S);
       x.scale(S * 1.2, S * 1.2);
@@ -696,10 +701,10 @@ const Render = {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y + 12, 10, 4, 0, 0, TAU); ctx.fill();
     if (tier >= 3) Wardrobe.drawSeal(ctx, p.x, p.y, look, motion ? g.time : 0);
-    // 角色光晕：开心没有提灯，光源放在角色中心
+    // 没有提灯的角色把光源放在角色中心。
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.5;
-    const glowOffset = look === 'echo' ? 0 : 14 * p.face;
+    const glowOffset = look === 'echo' || look === 'xiaoxiao' ? 0 : 14 * p.face;
     this.drawGlow(ctx, '#ffd166', p.x + glowOffset, p.y + 2 + bob, 34);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -712,6 +717,10 @@ const Render = {
     Wardrobe.drawClasp(ctx, look, tier);
     ctx.restore();
     ctx.globalAlpha = 1;
+    if (look === 'xiaoxiao' && p.weapons.some(w => w.id === 'skincare' && w.on > 0)) {
+      ctx.strokeStyle = '#b9ead8ae'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y - 2, 22, 28, 0, Math.PI * 0.12, Math.PI * 1.88); ctx.stroke();
+    }
     this.drawExamGuard(ctx, p, g.time);
     // 血条
     const k = Math.max(0, p.hp / p.st.maxHp);
@@ -855,6 +864,8 @@ const Render = {
         this.drawMouse(ctx, b);
       } else if (b.look === 'basketball') {
         this.drawBasketball(ctx, b);
+      } else if (b.look === 'latiao' || b.look === 'pony') {
+        XiaoxiaoArt[b.look](ctx, b);
       } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato') {
         FoodArt[b.look](ctx, b);
       } else if (b.look === 'bolt') {
@@ -945,6 +956,8 @@ const Render = {
         ctx.globalAlpha = 1;
       } else if (f.type === 'mangoHeal') {
         FoodArt.mangoHeal(ctx, f, k);
+      } else if (f.type === 'skincare') {
+        XiaoxiaoArt.balm(ctx, f, k);
       } else if (f.type === 'outfitPulse' && !this.reduceMotion?.matches) {
         const r = 13 + 25 * (1 - k);
         ctx.globalAlpha = k * 0.52;
