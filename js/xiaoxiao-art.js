@@ -3,14 +3,16 @@
 const XiaoxiaoArt = (() => {
   const skin = '#f2be9c', hair = '#29232f', white = '#faf5ed', seam = '#aab8bd', denim = '#314659';
   const paths = {
-    backHair: new Path2D('M-21 31 C-28 26 -28 4 -24 -9 C-23 -22 -14 -28 0 -28 C15 -29 25 -19 26 -4 C25 10 29 21 30 33 Q24 38 16 34 L8 28 L-7 29 Q-15 37 -21 31 Z'),
-    face: new Path2D('M-19 -14 Q-12 -23 0 -23 Q14 -23 20 -11 L21 5 C21 18 12 25 2 26 C-8 26 -19 19 -21 8 Q-23 -3 -19 -14 Z'),
-    leftHair: new Path2D('M1 -24 Q-10 -22 -17 -12 C-22 -6 -22 6 -22 17 Q-22 24 -25 29 C-26 15 -30 4 -25 -11 C-20 -27 -8 -30 1 -27 Z'),
-    rightHair: new Path2D('M1 -27 C18 -29 27 -17 26 -1 Q26 18 30 32 Q26 35 22 30 C22 20 21 7 19 -4 C17 -14 9 -22 1 -24 Z'),
-    hairLight: new Path2D('M-4 -24 Q-18 -19 -22 -7 Q-25 5 -24 16 M7 -25 Q23 -19 23 -3 Q23 14 27 22'),
+    backHair: new Path2D('M-30 39 C-25 23 -33 12 -29 -8 C-28 -24 -17 -33 0 -32 C16 -34 30 -24 30 -8 C31 7 24 26 35 41 Q33 46 27 44 Q35 54 22 54 Q15 53 11 46 Q3 54 -4 47 Q-14 55 -24 49 Q-30 48 -32 44 Z'),
+    face: new Path2D('M-18 -15 Q-11 -24 0 -23 Q14 -23 18 -11 Q22 -2 19 9 C17 18 10 24 2 26 C-7 24 -15 19 -18 11 Q-22 1 -18 -15 Z'),
+    leftHair: new Path2D('M1 -27 Q-12 -23 -18 -12 C-24 -3 -20 11 -25 22 Q-25 32 -20 43 C-30 39 -29 28 -29 20 C-28 12 -34 0 -28 -16 C-22 -31 -7 -34 1 -30 Z'),
+    rightHair: new Path2D('M1 -30 C17 -34 29 -22 30 -7 C31 13 23 24 32 41 Q29 47 23 45 C18 36 24 24 22 12 Q20 2 18 -8 Q12 -23 1 -27 Z'),
+    hairLight: new Path2D('M-2 -28 Q-17 -23 -22 -11 C-29 1 -24 17 -26 28 Q-26 34 -24 38 M6 -28 C23 -25 26 -13 25 1 Q22 20 25 34 M15 -27 C30 -19 27 -10 28 -3'),
+    hairThreads: new Path2D('M-7 -28 C-25 -25 -31 -6 -28 5 M-28 31 Q-29 40 -25 44 M20 -23 C30 -14 29 0 27 9 M26 26 Q26 38 30 41'),
     brows: new Path2D('M-14 -5 Q-9 -8 -4 -5 M5 -5.5 Q10 -8 14 -5'),
     lids: new Path2D('M-14 1.4 Q-10 -2.8 -5 0.7 M5 0.8 Q10 -3 14 1.1'),
-    smile: new Path2D('M-7 13 Q0 15.3 7 12.1 C5 17 2 19 -0.6 19 Q-5 18.8 -7 13 Z'),
+    smile: new Path2D('M-6.6 13 Q0 15 6.8 12.2 Q4.4 18.3 0.4 18.6 Q-4.8 18.2 -6.6 13 Z'),
+    teeth: new Path2D('M-4.4 14 Q1.1 14.8 5.1 13.3 Q2.1 16 -2.4 15.7 Z'),
     coat: new Path2D('M-7 -2 Q-16 0 -20 11 L-20 32 Q-11 38 0 35 Q11 39 20 34 L19 12 Q16 1 7 -2 Z'),
     quilt: new Path2D('M-18 10 Q-13 12 -8 11 M5 11 Q13 14 18 11 M-19 20 Q-11 22 -3 20 M4 21 Q12 24 18 20 M-18 29 Q-10 32 -2 30 M5 30 Q13 33 19 29 M1 3 L2 34'),
     raised: new Path2D('M-11 63 C-22 61 -27 53 -31 42 Q-37 28 -38 17 L-28 14 Q-25 26 -21 34 Q-15 43 -4 53 Z'),
@@ -35,8 +37,9 @@ const XiaoxiaoArt = (() => {
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(u, v); ctx.stroke();
   }
 
-  function backHair(ctx, x, y, scale) {
+  function backHair(ctx, x, y, scale, sway = 0) {
     ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+    ctx.transform(1, 0, sway, 1, sway * 19, 0);
     fill(ctx, paths.backHair, hair, '#201e2a', 1.1);
     ctx.restore();
   }
@@ -47,19 +50,23 @@ const XiaoxiaoArt = (() => {
     blush.addColorStop(0, '#f8cfaa'); blush.addColorStop(0.58, '#facdab'); blush.addColorStop(1, '#e6a486');
     fill(ctx, paths.face, blush, '#a26455');
     fill(ctx, paths.leftHair, hair); fill(ctx, paths.rightHair, hair);
-    ctx.strokeStyle = '#55404e'; ctx.lineWidth = 1.45; ctx.stroke(paths.hairLight);
+    ctx.strokeStyle = '#604856'; ctx.lineWidth = 1.5; ctx.stroke(paths.hairLight);
+    ctx.strokeStyle = '#88617080'; ctx.lineWidth = 0.8; ctx.stroke(paths.hairThreads);
     ctx.strokeStyle = '#68433f'; ctx.lineWidth = 1.18; ctx.stroke(paths.brows);
     for (const side of [-1, 1]) {
       const ex = 9.5 * side;
       oval(ctx, ex, 2, 4.6, 3.12, '#fff0dc');
       oval(ctx, ex, 1.7, 2.95, 3.02, '#463039');
       oval(ctx, ex - 0.75, 0.52, 1.14, 0.84, '#fff4e4');
-      oval(ctx, ex * 1.42, 8.7, 4.25, 1.95, '#e77f8078');
+      oval(ctx, ex * 1.42, 8.7, 4.05, 1.65, '#e77f8062');
     }
     ctx.strokeStyle = '#593738'; ctx.lineWidth = 1.27; ctx.stroke(paths.lids);
     oval(ctx, 0.45, 9.1, 1.3, 0.68, '#b77866');
     fill(ctx, paths.smile, '#9a514e');
+    fill(ctx, paths.teeth, '#ffebdf');
     oval(ctx, 0.1, 17.1, 2.75, 0.9, '#df8c84');
+    oval(ctx, -20.9, 10.7, 1.06, 1.46, '#eabf83');
+    oval(ctx, 20.5, 10.7, 1.06, 1.46, '#eabf83');
     if (tier > 0) {
       line(ctx, '#f6d38c', 2.6, -17, -16.5, -11, -17.8);
       oval(ctx, -11, -17.8, 1.45, 1.45, '#fff0c4');
@@ -99,27 +106,27 @@ const XiaoxiaoArt = (() => {
     fill(ctx, paths.palm, skin, '#b17762', 0.9);
     line(ctx, '#b47c66', 0.85, -40, 8, -36, 9); line(ctx, '#b47c66', 0.72, -38, 12, -34, 11);
     fill(ctx, paths.sleeve, white, '#90a2a6'); oval(ctx, 25, 85, 3.7, 4.5, skin);
-    ctx.save(); ctx.translate(5, 55); coat(ctx, 0); ctx.restore();
+    ctx.save(); ctx.translate(5, 55); ctx.scale(0.86, 1.01); coat(ctx, 0); ctx.restore();
     head(ctx, 5, 27, 1);
     ctx.restore();
   }
 
   function runner(ctx, stride, tier) {
     ctx.save(); ctx.lineCap = 'round';
-    const hx = 0.4 + stride * 0.5, hy = -15.1;
+    const hx = 0.4 + stride * 0.5, hy = -15.7;
     for (const side of [-1, 1]) {
-      const hip = side * 4.2, step = stride * side, foot = hip + step * 5.2, lift = Math.max(0, step) * 2.2;
-      line(ctx, denim, 5.8, hip, 5, foot, 14.8 - lift);
+      const hip = side * 3.6, step = stride * side, foot = hip + step * 4.8, lift = Math.max(0, step) * 2.2;
+      line(ctx, denim, 4.45, hip, 4, foot, 14.8 - lift);
       line(ctx, '#59717c', 0.9, hip + 0.8, 8, foot + 0.55, 14.1 - lift);
       oval(ctx, foot + 1, 15.7 - lift, 3.1, 1.55, '#cfd6da');
       line(ctx, '#f7f3e9', 0.7, foot - 0.7, 15.25 - lift, foot + 2, 15.25 - lift);
     }
-    backHair(ctx, hx, hy, 0.41);
-    line(ctx, '#d2dddc', 3.8, -8, -0.2, -10 + stride * 2.1, 7);
-    ctx.save(); ctx.translate(0, -7.5); ctx.scale(0.52, 0.52); coat(ctx, stride * 3, tier); ctx.restore();
-    line(ctx, white, 3.7, 8, -0.1, 10 - stride * 2.3, 7);
-    oval(ctx, 10 - stride * 2.3, 8.1, 1.6, 1.6, skin);
-    head(ctx, hx, hy, 0.41, tier);
+    backHair(ctx, hx, hy, 0.39, stride * 0.065);
+    line(ctx, '#d2dddc', 3.2, -6.8, -1, -8.7 + stride * 2.1, 6.7);
+    ctx.save(); ctx.translate(0, -8); ctx.scale(0.43, 0.47); coat(ctx, stride * 3, tier); ctx.restore();
+    line(ctx, white, 3.25, 7.1, -0.7, 8.8 - stride * 2.3, 6.7);
+    oval(ctx, 8.8 - stride * 2.3, 7.65, 1.45, 1.45, skin);
+    head(ctx, hx, hy, 0.39, tier);
     ctx.restore();
   }
 
