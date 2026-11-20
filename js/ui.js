@@ -166,9 +166,10 @@ const UI = {
   },
 
   cardHtml(info, key) {
-    return `<span class="ico">${Icons.html(info.icon)}</span><span class="nm">${info.name}</span>` +
+    return `<span class="card-layout"><span class="ico">${Icons.html(info.icon)}</span>` +
+      `<span class="card-copy"><span class="card-heading"><span class="nm">${info.name}</span>` +
       (info.tag ? `<span class="tag">${info.tag}</span>` : '') +
-      `<span class="ds">${info.desc.replace(/\n/g, '<br>')}</span>` +
+      `</span><span class="ds">${info.desc.replace(/\n/g, '<br>')}</span></span></span>` +
       (key ? `<kbd>${key}</kbd>` : '');
   },
 
