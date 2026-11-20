@@ -107,8 +107,9 @@ const EnvironmentArt = {
     }
     const layer = this.shade.getContext('2d');
     layer.clearRect(0, 0, w, h);
-    layer.fillStyle = '#060d1b'; layer.globalAlpha = 0.95 * Math.min(1, darkness / 0.78); layer.fillRect(0, 0, w, h);
-    layer.fillStyle = render.dark; layer.globalAlpha = darkness * 0.55; layer.fillRect(0, 0, w, h);
+    // 留一层环境微光，没点灯也能辨认道路和怪物轮廓。
+    layer.fillStyle = '#0a1420'; layer.globalAlpha = 0.74 * Math.min(1, darkness / 0.86); layer.fillRect(0, 0, w, h);
+    layer.fillStyle = render.dark; layer.globalAlpha = darkness * 0.34; layer.fillRect(0, 0, w, h);
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'destination-out';
     for (const { x, y, light, weight } of lights) {
