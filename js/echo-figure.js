@@ -1,18 +1,19 @@
 'use strict';
 // 照片参考转绘：头像保留双手比耶，战斗站姿共用头部和衣服图形。
 const EchoFigure = (() => {
-  const hair = '#25232a', skin = '#e2ab87', skinShade = '#bf856b';
-  const ink = '#171822', yellow = '#f6c94e', navy = '#202839';
+  const hair = '#282530', skin = '#f1bb97', skinShade = '#bd826e';
+  const ink = '#171822', yellow = '#fbd35a', navy = '#253044';
   const paths = {
     band: new Path2D('M-26 32 C-28 17 -19 5 -10 2 C-3 -1 7 0 13 3 C23 9 28 19 27 32 L23 34 C23 18 18 10 11 7 C4 4 -5 4 -12 8 C-20 13 -24 22 -22 34 Z'),
     bandShine: new Path2D('M-24 22 C-21 8 -10 1 0 1 C8 1 15 4 20 10'),
-    face: new Path2D('M-19 16 C-17 9 -10 6 -1 6 C10 6 18 10 20 18 L20 35 C19 46 15 51 8 56 C4 59 0 61 -4 59 C-12 56 -19 50 -20 39 C-21 33 -21 25 -19 16 Z'),
+    face: new Path2D('M-20 17 C-18 9 -9 6 -1 6 C10 6 19 10 21 19 C23 26 21 31 23 37 C27 47 20 55 10 57 Q0 61 -10 57 C-20 55 -26 48 -23 37 C-21 30 -23 24 -20 17 Z'),
     hair: new Path2D('M-21 35 C-24 28 -22 17 -19 12 C-15 5 -7 4 -1 4 C10 4 17 7 20 13 C23 20 23 30 20 36 L18 25 C17 17 15 13 12 12 C5 10 -8 10 -14 13 C-18 16 -19 22 -20 29 Z'),
-    buzz: new Path2D('M-19 18 L-17 14 M-16 13 L-14 10 M-12 11 L-10 8 M-7 10 L-5 7 M-2 10 L0 7 M3 10 L5 7 M8 10 L10 8 M13 12 L15 10 M16 15 L18 13'),
-    brows: new Path2D('M-16 29 C-13 26 -8 26 -5 29 M5 30 C8 27 13 28 16 31'),
-    eyes: new Path2D('M-15 34 C-12 31 -8 31 -5 34.5 C-8 35.7 -12 35.6 -15 34 Z M5 35 C8 32 13 32 16 35.8 C12 37 8 36.5 5 35 Z'),
-    nose: new Path2D('M-2 37 Q-2.5 40 -4 42 Q-4.5 44 -1 44 M1 44 Q4 44 3.5 42.5'),
-    smile: new Path2D('M-8 48 C-3 50 2 50.7 9 47.8 C6 51 2 52 -1 51.6 C-5 51 -7 50 -8 48 Z'),
+    buzz: new Path2D('M-19 17 Q-17 13 -15 11 M-14 12 Q-11 8 -8 8 M-7 10 Q-4 7 -1 7 M0 10 Q3 7 6 8 M8 10 Q11 8 13 10 M15 12 Q18 13 19 15'),
+    brows: new Path2D('M-16 28 Q-11 24 -6 28 M6 28.5 Q11 25 16 29'),
+    lids: new Path2D('M-16 34 Q-11 28.5 -6 33.5 M6 34 Q11 29 16 34.5'),
+    nose: new Path2D('M-1.8 41 Q-2.4 43.5 1 43.2'),
+    smile: new Path2D('M-8 47.5 Q0 50.7 8 47 Q5 53.8 0 54.2 Q-5.8 54 -8 47.5 Z'),
+    smileGlow: new Path2D('M-3.5 52.7 Q0 50.7 4 52.1 Q1 54.1 -3.5 52.7 Z'),
     collar: new Path2D('M-10 51 L-11 60 Q-7 68 0 69 Q7 67 11 60 L10 51 Z'),
     shirt: new Path2D('M-8 54 C-19 55 -26 59 -29 72 L-20 77 L-16 71 L-14 88 Q0 91 14 88 L16 71 L20 77 L29 72 C26 59 19 55 8 54 Q7 62 0 65 Q-7 62 -8 54 Z'),
     seam: new Path2D('M-18 65 L-16 71 M18 65 L16 71 M-10 56 Q-8 64 0 67 Q8 64 10 56 M-13 86 Q0 89 13 86'),
@@ -34,26 +35,33 @@ const EchoFigure = (() => {
   let headSprite;
   function paintHead(ctx) {
     fill(ctx, paths.band, ink);
-    stroke(ctx, paths.bandShine, '#596070', 1.35);
+    stroke(ctx, paths.bandShine, '#666b82', 1.6);
     for (const side of [-1, 1]) {
-      oval(ctx, 23 * side, 40, 5.8, 13.8, ink, 0.17 * side);
-      oval(ctx, 25 * side, 39, 2.5, 10.7, '#414452', 0.17 * side);
-      oval(ctx, 26 * side, 32, 1.4, 2, '#777a86');
+      oval(ctx, 23.5 * side, 39, 6.1, 13.3, ink, 0.17 * side);
+      oval(ctx, 26 * side, 38, 2.4, 10, '#474a61', 0.17 * side);
+      oval(ctx, 26.2 * side, 32, 1.2, 2, '#8c8ca1');
     }
-    const face = ctx.createLinearGradient(-19, 28, 22, 50);
-    face.addColorStop(0, '#cc9376'); face.addColorStop(0.53, '#efbd98'); face.addColorStop(1, '#d59a7c');
-    stroke(ctx, paths.face, '#6d4942', 1.1);
+    const face = ctx.createLinearGradient(-18, 19, 20, 54);
+    face.addColorStop(0, '#f5c3a0'); face.addColorStop(0.55, '#f9d0ad'); face.addColorStop(1, '#e9ad8c');
+    stroke(ctx, paths.face, '#88574c', 1.2);
     fill(ctx, paths.face, face);
     fill(ctx, paths.hair, hair);
-    stroke(ctx, paths.buzz, '#4b3f44', 0.9);
-    oval(ctx, -13, 40.8, 4.7, 2.6, '#dc967d', -0.18);
-    oval(ctx, 13.2, 42.2, 4.7, 2.5, '#dc967d', 0.18);
+    stroke(ctx, paths.buzz, '#514653', 1.1);
+    oval(ctx, -14.6, 42.8, 6.1, 3.5, '#e7807c73', -0.14);
+    oval(ctx, 14.6, 43.2, 6.1, 3.5, '#e7807c73', 0.14);
     stroke(ctx, paths.brows, '#674740', 1.2);
-    fill(ctx, paths.eyes, '#38282b');
-    oval(ctx, -9.4, 33.6, 0.95, 0.6, '#dfbdaf');
-    oval(ctx, 11.1, 34.8, 0.95, 0.6, '#dfbdaf');
-    stroke(ctx, paths.nose, '#b27d65', 0.8);
-    fill(ctx, paths.smile, '#935c50');
+    for (const side of [-1, 1]) {
+      const x = 11 * side, y = side < 0 ? 34.2 : 34.8;
+      oval(ctx, x, y, 5, 3.8, '#fff5df', 0.12 * side);
+      oval(ctx, x + 0.35, y - 0.1, 3.6, 3.75, '#402832');
+      oval(ctx, x + 0.7, y + 1.7, 2.05, 1.35, '#854d3e');
+      oval(ctx, x - 1, y - 1.55, 1.3, 1.05, '#fff8e8');
+      oval(ctx, x + 1.8, y + 0.85, 0.55, 0.6, '#f5d6b4');
+    }
+    stroke(ctx, paths.lids, '#4b3032', 1.35);
+    stroke(ctx, paths.nose, '#c08571', 0.85);
+    fill(ctx, paths.smile, '#93544f');
+    fill(ctx, paths.smileGlow, '#df8f88');
   }
 
   function drawHead(ctx) {
@@ -116,9 +124,9 @@ const EchoFigure = (() => {
     drawShirt(ctx);
     ctx.restore();
     line(ctx, skin, 3.3, 8, 1.8, 9.8 - stride * 2.4, 6.7);
-    ctx.translate(0.65 + stride * 0.65, -24.5);
+    ctx.translate(0.65 + stride * 0.65, -25.8);
     ctx.rotate(stride * 0.055);
-    ctx.scale(0.4, 0.4);
+    ctx.scale(0.43, 0.43);
     drawHead(ctx);
     if (tier > 0) {
       stroke(ctx, paths.bandShine, '#f5bf66', 2.3);
