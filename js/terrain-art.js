@@ -6,9 +6,9 @@ const TerrainArt = {
   height: 124,
   anchorY: 94,
 
-  draw(ctx, prop, scene, lean = 0, lit = false) {
+  draw(ctx, prop, scene, lean = 0, lit = false, skin = prop.kind) {
     const { width, height, anchorY } = this;
-    let kind = prop.kind;
+    let kind = skin;
     if (scene === 'bamboo' && kind === 'pine') kind = 'bamboo';
     if (scene === 'snow' && kind === 'pine') kind = 'snowPine';
     if (scene === 'snow' && kind === 'rock') kind = 'snowRock';

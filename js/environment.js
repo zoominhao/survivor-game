@@ -17,14 +17,21 @@ const Environment = {
     brazier: { name: '火盆', color: '#ff9b58', radius: 161, height: 13, strength: 0.93 },
     paperLamp: { name: '纸灯笼', color: '#ffb3a0', radius: 103, height: 33, strength: 0.87 },
   },
-
+  sceneLights: {
+    bamboo: { lantern: 'paperLamp', brazier: 'lantern' },
+    rain: { paperLamp: 'lantern', brazier: 'lantern' },
+    snow: { paperLamp: 'brazier', lantern: 'brazier' },
+  },
   sceneAt(time) {
     let index = this.route.length - 1;
     while (index > 0 && time < this.route[index][0]) index--;
     const [since, id] = this.route[index];
     const from = this.route[Math.max(0, index - 1)][1];
-    return { id, from, since, mix: index === 0 ? 1 : U.clamp((time - since) / (id === 'dawn' ? 90 : 5), 0, 1) };
+    const t = index === 0 ? 1 : U.clamp((time - since) / (id === 'dawn' ? 90 : 5), 0, 1);
+    return { id, from, since, mix: t * t * (3 - 2 * t) };
   },
+
+  lightKind(kind, sceneId) { return this.sceneLights[sceneId]?.[kind] || kind; },
 
   createRun() { return { lit: new Set(), healed: new Set(), reeds: new Map() }; },
   key(prop) { return `${prop.x}:${prop.y}`; },
@@ -32,11 +39,12 @@ const Environment = {
   // 交互由走位触发，手机不用增加按钮；点亮、治疗分别记录，满血不会浪费治疗。
   step(g) {
     const p = g.player, run = g.environment;
+    const scene = this.sceneAt(g.time), landscape = scene.mix < 0.5 ? scene.from : scene.id;
     for (const [key, end] of run.reeds) if (end <= g.time) run.reeds.delete(key);
     const reach = 42;
     Terrain.forEachProp(p.x - reach, p.y - reach, p.x + reach, p.y + reach, prop => {
       const dist = Math.hypot(p.x - prop.x, p.y - prop.y), key = this.key(prop);
-      if (Object.hasOwn(this.lights, prop.kind) && dist <= 36) this.visitLight(g, prop, key);
+      if (Object.hasOwn(this.lights, prop.kind) && dist <= 36) this.visitLight(g, prop, key, this.lightKind(prop.kind, landscape));
       if (prop.kind === 'reeds' && p.moving && dist <= 24 && !run.reeds.has(key)) {
         run.reeds.set(key, g.time + 0.95);
         g.burst(prop.x, prop.y, '#a3b66c', 5);
@@ -45,15 +53,15 @@ const Environment = {
     });
   },
 
-  visitLight(g, prop, key) {
+  visitLight(g, prop, key, kind = prop.kind) {
     const p = g.player, run = g.environment;
     if (!run.lit.has(key)) {
-      const light = this.lights[prop.kind];
+      const light = this.lights[kind];
       run.lit.add(key);
       g.burst(prop.x, prop.y - light.height, light.color, 6);
       Sfx.play('lantern');
     }
-    if (prop.kind !== 'lantern') return;
+    if (kind !== 'lantern') return;
     const heal = Math.min(p.st.maxHp - p.hp, Math.round(p.st.maxHp * 0.12));
     if (heal < 1 || run.healed.has(key)) return;
     run.healed.add(key);

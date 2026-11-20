@@ -129,7 +129,7 @@ const EchoFigure = (() => {
   }
 
   const beam = HandLight.create(266, 100, 0.36, 0.34, [255, 220, 151]);
-  const drawBeam = (ctx, p, pose) => beam(ctx, p, pose, handX(pose.stride), handY, lensX);
+  const drawBeam = (ctx, p, pose, mask) => beam(ctx, p, pose, handX(pose.stride), handY, lensX, 0, mask);
 
   function runner(ctx, stride, tier = 0, aim = 0) {
     ctx.save();

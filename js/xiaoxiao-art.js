@@ -114,7 +114,7 @@ const XiaoxiaoArt = (() => {
   const handX = stride => 10.4 - stride * 1.35;
   const handY = 3.25, lensX = 8.2, lensY = -1.55;
   const beam = HandLight.create(218, 88, 0.38, 0.34, [198, 229, 253]);
-  const drawBeam = (ctx, p, pose) => beam(ctx, p, pose, handX(pose.stride), handY, lensX, lensY);
+  const drawBeam = (ctx, p, pose, mask) => beam(ctx, p, pose, handX(pose.stride), handY, lensX, lensY, mask);
 
   function phone(ctx, x, aim) {
     ctx.save(); ctx.translate(x, handY); ctx.rotate(aim);

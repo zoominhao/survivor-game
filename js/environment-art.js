@@ -3,6 +3,8 @@
 const EnvironmentArt = {
   groundTiles: {},
   lightMasks: new Map(),
+  closeLight: { radius: 61, strength: 0.97 },
+  carriedLantern: { radius: 125, strength: 0.95 },
 
   ground(ctx, id, plain) {
     if (id === 'night') return plain;
@@ -62,10 +64,19 @@ const EnvironmentArt = {
     // 包括画面外一段距离，边缘的光池不会随着物件出入画面突然消失。
     Terrain.forEachProp(left - 172, top - 172, right + 172, bottom + 172, prop => {
       const key = Environment.key(prop);
-      const light = Object.hasOwn(Environment.lights, prop.kind) ? Environment.lights[prop.kind] : null;
+      const oldKind = Environment.lightKind(prop.kind, from), newKind = Environment.lightKind(prop.kind, id);
+      const skin = mix < 0.5 ? oldKind : newKind;
+      const light = Object.hasOwn(Environment.lights, skin) ? Environment.lights[skin] : null;
       const lit = !!light && g.environment.lit.has(key);
       const rustle = Math.max(0, (g.environment.reeds.get(key) || 0) - time);
-      if (lit) lights.push({ x: prop.x, y: prop.y - light.height, light });
+      if (lit) {
+        const addGlow = (kind, weight) => {
+          const source = Environment.lights[kind];
+          if (weight > 0) lights.push({ x: prop.x, y: prop.y - source.height, light: source, weight });
+        };
+        if (oldKind === newKind) addGlow(skin, 1);
+        else { addGlow(oldKind, 1 - mix); addGlow(newKind, mix); }
+      }
       else if (light && g.state === 'playing') {
         const d = Math.hypot(g.player.x - prop.x, g.player.y - prop.y);
         if (d < hintDist) { hint = { prop, light }; hintDist = d; }
@@ -74,20 +85,20 @@ const EnvironmentArt = {
       const gust = reduced ? 0 : 0.067 * Math.sin(time * 5 + prop.y * 0.02);
       const lean = (landscape === 'bamboo' ? gust : 0) +
         (!reduced && prop.kind === 'reeds' ? rustle * 0.35 * Math.sin(time * 27) : 0);
-      // 树和石头的外观随地表一起淡变，脚底位置不跳动。
-      if (mix > 0 && mix < 1 && (prop.kind === 'pine' || prop.kind === 'rock')) {
+      // 灯具、树和石头一起淡变，不改变世界坐标。
+      if (mix > 0 && mix < 1 && (oldKind !== newKind || prop.kind === 'pine' || prop.kind === 'rock')) {
         ctx.globalAlpha = 1 - mix;
-        TerrainArt.draw(ctx, prop, from, from === 'bamboo' ? gust : 0);
+        TerrainArt.draw(ctx, prop, from, from === 'bamboo' ? gust : 0, lit, oldKind);
         ctx.globalAlpha = mix;
-        TerrainArt.draw(ctx, prop, id, id === 'bamboo' ? gust : 0);
+        TerrainArt.draw(ctx, prop, id, id === 'bamboo' ? gust : 0, lit, newKind);
         ctx.globalAlpha = 1;
-      } else TerrainArt.draw(ctx, prop, landscape, lean, lit);
+      } else TerrainArt.draw(ctx, prop, landscape, lean, lit, skin);
     });
     return { lights, hint };
   },
 
-  // 在独立夜色层开出柔边光池，露出原有地表纹理，不洗掉角色、伤害字或预警。
-  drawLighting(ctx, render, lights, darkness) {
+  // 夜色覆盖地形与怪物，手持光和已点亮的场景灯在同一层开出视野。
+  drawLighting(ctx, render, lights, darkness, player, pose, beam) {
     const { W: w, H: h, s } = render;
     const { e, f } = ctx.getTransform();
     if (!this.shade) this.shade = document.createElement('canvas');
@@ -96,20 +107,36 @@ const EnvironmentArt = {
     }
     const layer = this.shade.getContext('2d');
     layer.clearRect(0, 0, w, h);
-    layer.fillStyle = '#060d1b'; layer.globalAlpha = darkness * 0.38; layer.fillRect(0, 0, w, h);
-    layer.fillStyle = render.dark; layer.globalAlpha = darkness * 0.88; layer.fillRect(0, 0, w, h);
+    layer.fillStyle = '#060d1b'; layer.globalAlpha = 0.95 * Math.min(1, darkness / 0.78); layer.fillRect(0, 0, w, h);
+    layer.fillStyle = render.dark; layer.globalAlpha = darkness * 0.55; layer.fillRect(0, 0, w, h);
     layer.globalAlpha = 1;
     layer.globalCompositeOperation = 'destination-out';
-    for (const { x, y, light } of lights) {
-      const cx = x * s + e, cy = y * s + f, r = light.radius * s;
-      layer.drawImage(this.lightMask(light), cx - r, cy - r, r * 2, r * 2);
+    for (const { x, y, light, weight } of lights) {
+      layer.globalAlpha = weight;
+      this.reveal(layer, light, x * s + e, y * s + f, s);
+    }
+    layer.globalAlpha = 1;
+    const near = beam ? this.closeLight : this.carriedLantern;
+    this.reveal(layer, near, (player.x + (beam ? 0 : 10 * player.face)) * s + e, player.y * s + f, s);
+    if (beam) {
+      layer.save(); layer.setTransform(s, 0, 0, s, e, f);
+      beam(layer, player, pose, true);
+      layer.restore();
     }
     layer.globalCompositeOperation = 'source-over';
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this.shade, 0, 0); ctx.restore();
-    ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.18 + darkness * 0.16;
-    for (const { x, y, light } of lights) render.drawGlow(ctx, light.color, x, y, light.radius * 0.73);
+    ctx.save(); ctx.globalCompositeOperation = 'screen';
+    for (const { x, y, light, weight } of lights) {
+      ctx.globalAlpha = (0.18 + darkness * 0.16) * weight;
+      render.drawGlow(ctx, light.color, x, y, light.radius * 0.73);
+    }
     ctx.restore();
+  },
+
+  reveal(layer, light, x, y, scale) {
+    const r = light.radius * scale;
+    layer.drawImage(this.lightMask(light), x - r, y - r, r * 2, r * 2);
   },
 
   lightMask(light) {
@@ -145,6 +172,18 @@ const EnvironmentArt = {
       this.particles(ctx, w, h, scale, time, before.weather, fadeOut, reduced);
       this.particles(ctx, w, h, scale, time, after.weather, scene.mix, reduced);
     }
+  },
+
+  drawTransition(ctx, w, h, scene, reduced) {
+    const k = scene.mix;
+    if (reduced || k <= 0 || k >= 1 || scene.id === 'dawn') return;
+    // 薄雾只从画面上下掠过，主角与弹幕仍保持清晰。
+    const fog = ctx.createLinearGradient(0, 0, w * 0.32, h);
+    fog.addColorStop(0, '#bad4c08c'); fog.addColorStop(0.32, '#a7c0be00');
+    fog.addColorStop(0.71, '#a7c0be00'); fog.addColorStop(1, '#bad4c08c');
+    ctx.save(); ctx.globalAlpha = Math.sin(k * Math.PI) * 0.48;
+    ctx.translate(w * (k - 0.5) * 0.12, 0);
+    ctx.fillStyle = fog; ctx.fillRect(-w * 0.1, 0, w * 1.2, h); ctx.restore();
   },
 
   particles(ctx, w, h, scale, time, kind, weight, reduced) {

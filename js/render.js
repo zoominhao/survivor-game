@@ -296,15 +296,14 @@ const Render = {
     const before = Environment.scenes[scene.from], current = Environment.scenes[scene.id];
     const darkness = before.darkness + (current.darkness - before.darkness) * scene.mix;
     const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
-    EnvironmentArt.drawLighting(ctx, this, lights, darkness);
     const pose = this.playerPose(p, time);
-    if (g.state !== 'intro') {
-      if (p.char === 'echo') EchoFigure.drawBeam(ctx, p, pose);
-      else if (p.char === 'xiaoxiao') XiaoxiaoArt.drawBeam(ctx, p, pose);
-    }
+    const beam = g.state === 'intro' ? null : p.char === 'echo' ? EchoFigure.drawBeam : p.char === 'xiaoxiao' ? XiaoxiaoArt.drawBeam : null;
     this.drawZones(ctx, g, p, time);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
+    EnvironmentArt.drawLighting(ctx, this, lights, darkness, p, pose, beam);
+    if (beam) beam(ctx, p, pose);
+    this.drawBossWarning(ctx, g.boss);
     this.drawPlayer(ctx, g, p, pose);
     this.drawProjs(ctx, g, p, vis);
     this.drawFx(ctx, g, vis);
@@ -331,6 +330,7 @@ const Render = {
       ctx.fillRect(0, 0, W, H);
     }
     ctx.globalAlpha = 1;
+    EnvironmentArt.drawTransition(ctx, W, H, scene, this.reduceMotion?.matches);
     EnvironmentArt.drawWeather(ctx, W, H, s, time, scene, this.reduceMotion?.matches);
     // 低血量红色警示
     const hpK = p.hp / p.st.maxHp;
@@ -398,8 +398,10 @@ const Render = {
         ctx.fill();
       }
     }
-    // Boss 蓄力时的冲锋预警通道
-    const b = g.boss;
+  },
+
+  // 冲锋提示和弹幕画在夜色层上方，看不见怪物时仍能反应。
+  drawBossWarning(ctx, b) {
     if (b && !b.dead && b.phase === 'wind') {
       ctx.save();
       ctx.translate(b.x, b.y);

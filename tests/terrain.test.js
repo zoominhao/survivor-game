@@ -11,12 +11,14 @@ const scripts = ['config', 'utils', 'terrain', 'environment', 'weapons', 'core']
 
 function setup() {
   const input = { x: 0, y: 0 };
-  const context = vm.createContext({ Input: input, Sfx: { play() {} }, localStorage: { getItem: () => null } });
+  const banners = [];
+  const cues = [];
+  const context = vm.createContext({ Input: input, Sfx: { play: (...args) => cues.push(args) }, UI: { banner: text => banners.push(text) }, localStorage: { getItem: () => null } });
   for (const script of scripts) script.runInContext(context);
   const { Game, Terrain, Environment, Save, CFG } = vm.runInContext('({ Game, Terrain, Environment, Save, CFG })', context);
   Save.load();
   Game.start('ella');
-  return { Game, Terrain, Environment, input, radius: CFG.PLAYER_R };
+  return { Game, Terrain, Environment, input, banners, cues, radius: CFG.PLAYER_R };
 }
 
 test('区块移出缓存后重建一致，开局中心没有障碍', () => {
@@ -141,4 +143,25 @@ test('穿过芦苇会留下短暂摆动，静止时不会触发', () => {
   input.x = 0;
   for (let i = 0; i < 60; i++) Game.update(1 / 60);
   assert.equal(Game.environment.reeds.has(key), false);
+});
+
+test('灯具随场景切换但保留位置、点亮与回血消耗记录', () => {
+  const { Game, Environment, Terrain } = setup();
+  const lamp = Terrain.chunk(0, 0).props.find(o => o.kind === 'lantern' && o.x === 78);
+  const key = Environment.key(lamp), p = Game.player;
+  assert.equal(Environment.lightKind('lantern', 'bamboo'), 'paperLamp');
+  assert.equal(Environment.lightKind('brazier', 'rain'), 'lantern');
+  assert.equal(Environment.lightKind('lantern', 'snow'), 'brazier');
+  assert.ok(Environment.sceneAt(106).mix < 0.2);
+  Object.assign(p, { x: lamp.x, y: lamp.y, hp: 65 });
+  Game.time = 60; Environment.step(Game);
+  assert.equal(p.hp, 65);
+  assert.ok(Game.environment.lit.has(key));
+  Game.time = 111; Environment.step(Game);
+  assert.equal(p.hp, 77);
+  Game.time = 183; Environment.step(Game);
+  Game.time = 260; Environment.step(Game);
+  assert.equal(p.hp, 77);
+  assert.ok(Game.environment.healed.has(key) && Game.environment.lit.has(key));
+  assert.equal(lamp.kind, 'lantern');
 });
