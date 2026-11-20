@@ -68,11 +68,15 @@ const App = {
   init() {
     Save.load();
     Sfx.muted = Save.data.muted;
+    Sfx.hidden = document.hidden;
     Render.init();
     Input.init();
     UI.init();
     // 切到后台时自动暂停
-    document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
+    document.addEventListener('visibilitychange', () => {
+      Sfx.setHidden(document.hidden);
+      if (document.hidden) this.pause();
+    });
     this.last = performance.now();
     requestAnimationFrame(t => this.frame(t));
   },
@@ -149,6 +153,7 @@ const App = {
     } else if (Game.state === 'playing') {
       Game.update(dt);
     }
+    Sfx.syncMusic(Game.state, !!Game.boss && !Game.boss.dead);
     Render.draw(dt);
     UI.updateHud();
     requestAnimationFrame(t => this.frame(t));

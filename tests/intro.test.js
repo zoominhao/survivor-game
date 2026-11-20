@@ -12,7 +12,7 @@ const scripts = ['config', 'utils', 'terrain', 'weapons', 'core', 'main'].map(na
 function startIntro({ reducedMotion = false } = {}) {
   const document = { hidden: false, getElementById: () => ({ classList: { add() {} } }) };
   const ui = { showIntro(charId, duration) { this.intro = { charId, duration }; }, show(id) { this.overlay = id; }, updateHud() {} };
-  const sfx = { cues: [], play(name) { this.cues.push(name); } };
+  const sfx = { cues: [], play(name) { this.cues.push(name); }, syncMusic() {} };
   const context = vm.createContext({
     document, window: { addEventListener() {}, matchMedia: () => ({ matches: reducedMotion }) },
     localStorage: { getItem: () => JSON.stringify({ lastChar: 'echo' }) },

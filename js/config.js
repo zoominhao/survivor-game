@@ -144,18 +144,21 @@ const WEAPONS = {
   },
   candy: {
     name: '彩糖连发', color: '#efa8c5', colors: ['#efa8c5', '#f2c479', '#9fdac5'], kind: 'bolt', look: 'candy', max: 6, exclusive: 'echo',
+    sound: 'candy',
     desc: '朝附近夜兽快速连发彩色糖果。升级后可增加糖果数量和穿透。',
     base: { dmg: 7, cd: 1.4, count: 3, pierce: 1, speed: 565, size: 6, spread: 3 },
     ups: [{ count: 1 }, { dmg: 3 }, { pierce: 1 }, { count: 1, cd: -0.2 }, { dmg: 5, count: 1 }],
   },
   watermelon: {
     name: '西瓜炸弹', color: '#ef8a86', kind: 'lob', look: 'watermelon', max: 6, exclusive: 'echo',
+    sound: 'toss',
     desc: '把西瓜抛向附近夜兽，砸地时炸开，伤害落点周围的敌人。',
     base: { dmg: 26, cd: 2.8, count: 1, radius: 65, range: 380, delay: 0.48 },
     ups: [{ radius: 8 }, { dmg: 8 }, { cd: -0.45 }, { count: 1 }, { dmg: 10, radius: 10 }],
   },
   basketball: {
     name: '篮球投射', color: '#f2a55b', kind: 'bolt', look: 'basketball', max: 6, exclusive: 'echo',
+    sound: 'bounce',
     desc: '投出篮球，命中后弹向附近尚未被这颗球命中的夜兽。',
     base: { dmg: 12, cd: 1.95, count: 1, pierce: 1, speed: 480, size: 9, bounces: 1, bounceRange: 165 },
     ups: [{ dmg: 5 }, { bounces: 1 }, { cd: -0.3 }, { count: 1 }, { dmg: 7, bounces: 1 }],
@@ -176,12 +179,14 @@ const WEAPONS = {
 
   potato: {
     name: '土豆滚滚', color: '#dcb37b', kind: 'lance', look: 'potato', max: 6, exclusive: 'tuan',
+    sound: 'roll',
     desc: '朝最近的移动方向滚出土豆，把沿途多只夜兽推开。',
     base: { dmg: 10, cd: 1.7, count: 1, pierce: 3, speed: 440, size: 10 },
     ups: [{ dmg: 5 }, { pierce: 1, size: 2 }, { cd: -0.25 }, { count: 1 }, { dmg: 7, pierce: 1 }],
   },
   tomato: {
     name: '番茄飞溅', color: '#ee806b', kind: 'bolt', look: 'tomato', max: 6, exclusive: 'tuan',
+    sound: 'toss',
     desc: '朝附近夜兽投掷番茄。命中时溅开，留下持续伤害夜兽的番茄酱。',
     base: { dmg: 9, cd: 2.8, count: 1, pierce: 1, speed: 430, size: 8, blast: 43, sauce: 1.6, spread: 2 },
     ups: [{ dmg: 4 }, { blast: 8 }, { sauce: 0.8 }, { cd: -0.4 }, { dmg: 6, blast: 10 }],

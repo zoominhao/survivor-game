@@ -88,7 +88,7 @@ const WeaponFns = {
         mode: 'homing', tg, seek: 0.2, wid: w.id, look: 'mouse', color: WEAPONS[w.id].color, kb: 75,
       });
     }
-    Sfx.play('shoot');
+    Sfx.play('mouse');
   },
 
   // 星火弹 / 星爆 / 彩糖 / 番茄 / 篮球：朝附近敌人投射。
@@ -119,7 +119,7 @@ const WeaponFns = {
         blast: s.blast ? s.blast * st.area : 0, sauce: s.sauce || 0,
         bounces: s.bounces || 0, bounceRange: s.bounceRange ? s.bounceRange * st.area : 0,
       });
-      Sfx.play('shoot');
+      Sfx.play(d.sound || 'shoot');
     }
   },
 
@@ -144,7 +144,7 @@ const WeaponFns = {
         wid: w.id, look: d.look || 'lance', color: d.color, kb: 160,
       });
     }
-    Sfx.play('shoot');
+    Sfx.play(d.sound || 'shoot');
   },
 
   // 回旋飞刃 / 风暴之刃
@@ -275,6 +275,7 @@ const WeaponFns = {
         color: d.color,
       });
     }
+    if (d.sound) Sfx.play(d.sound);
   },
 
   // 陨星 / 天火:先在地面标记,延迟后落下爆炸

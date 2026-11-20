@@ -646,7 +646,7 @@ const Game = {
       this.ebullets.length = 0;
       this.boss = null;
     }
-    Sfx.play(win ? 'level' : 'boom');
+    Sfx.play(win ? 'victory' : 'defeat');
     UI.showResult();
   },
 
@@ -705,10 +705,13 @@ const Game = {
           if (b.blast) {
             this.aoe(b.x, b.y, b.blast, b.dmg * 0.6, b.wid, 80);
             this.fx.push({ type: 'boom', x: b.x, y: b.y, r: b.blast, life: 0.25, max: 0.25, c: b.color });
-            if (b.sauce) this.zones.push({
-              type: 'fire', look: 'tomato', x: b.x, y: b.y, r: b.blast, life: b.sauce, tk: 0.25,
-              dmg: b.dmg * 0.45, wid: b.wid, color: b.color,
-            });
+            if (b.sauce) {
+              this.zones.push({
+                type: 'fire', look: 'tomato', x: b.x, y: b.y, r: b.blast, life: b.sauce, tk: 0.25,
+                dmg: b.dmg * 0.45, wid: b.wid, color: b.color,
+              });
+              Sfx.play('splash');
+            }
           }
           if (b.bounceRange) {
             rebounded = true;
@@ -732,6 +735,7 @@ const Game = {
     b.speed = Math.hypot(b.vx, b.vy);
     b.vx = Math.cos(angle) * b.speed;
     b.vy = Math.sin(angle) * b.speed;
+    Sfx.play('bounce');
   },
 
   // ---------- 区域效果:落地冲击、火海、霜环、年糕陷阱 ----------
@@ -751,7 +755,7 @@ const Game = {
           this.burst(z.x, z.y, meteor ? '#ffb36b' : z.color, 8);
           if (z.type === 'watermelon') this.burst(z.x, z.y, '#80c48b', 6);
           this.shake = Math.max(this.shake, meteor ? 6 : 2);
-          Sfx.play('boom');
+          Sfx.play(meteor ? 'boom' : z.type === 'watermelon' ? 'splash' : 'land');
           if (z.burn) arr.push({ type: 'fire', x: z.x, y: z.y, r: z.r * 0.9, life: z.burn, tk: 0.3, dmg: z.dmg * 0.3, wid: z.wid });
         }
       } else if (z.type === 'ricecake') {
