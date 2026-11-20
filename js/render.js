@@ -204,7 +204,7 @@ const Render = {
   },
 
   buildSprites() {
-    for (const id in ENEMIES) this.sprites[id] = this.makeSprite(ENEMIES[id].r, SHAPES[id]);
+    for (const id in ENEMIES) this.sprites[id] = this.makeSprite(ENEMIES[id].r, SHAPES[id] || FolkEnemyArt[id]);
 
     // 地面贴图:256 世界单位的可平铺图块,以 2 倍分辨率绘制
     const T = 512, tile = document.createElement('canvas');
@@ -485,7 +485,8 @@ const Render = {
       if (e.dead || !vis(e.x, e.y, e.r + 20)) continue;
       const sp = this.sprites[e.type];
       const k = e.r / sp.r, h = sp.half * k;
-      const bob = e.frozen > 0 ? 0 : Math.sin(e.t * 7) * 1.5;
+      const hop = ENEMIES[e.type].hop;
+      const bob = e.frozen > 0 ? 0 : hop ? -g.hopLift(e, hop) * e.r * 0.58 : Math.sin(e.t * 7) * 1.5;
       // Boss 蓄力时抖动
       const jx = e.phase === 'wind' ? (Math.random() - 0.5) * 4 : 0;
       ctx.drawImage(sp.n, e.x - h + jx, e.y - h + bob, h * 2, h * 2);
@@ -927,6 +928,8 @@ const Render = {
     // 敌方子弹
     for (const b of g.ebullets) {
       if (!vis(b.x, b.y, 10)) continue;
+      if (b.look === 'weddingPaper') { FolkEnemyArt.weddingPaper(ctx, b); continue; }
+      if (b.look === 'rainDrop') { FolkEnemyArt.rainDrop(ctx, b); continue; }
       ctx.fillStyle = '#ff4d6d';
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
       ctx.fillStyle = '#ffd6de';

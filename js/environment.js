@@ -22,6 +22,15 @@ const Environment = {
     rain: { paperLamp: 'lantern', brazier: 'lantern' },
     snow: { paperLamp: 'brazier', lantern: 'brazier' },
   },
+  sceneEnemies: {
+    dusk: { paperChild: 1 },
+    night: { jiangshi: 3, paperChild: 1 },
+    bamboo: { paperChild: 2, jiangshi: 3 },
+    rain: { umbrellaGhost: 3, bride: 2 },
+    snow: { snowEnvoy: 1 },
+    dawn: { snowEnvoy: 2, jiangshi: 1 },
+  },
+
   sceneAt(time) {
     let index = this.route.length - 1;
     while (index > 0 && time < this.route[index][0]) index--;
@@ -32,6 +41,14 @@ const Environment = {
   },
 
   lightKind(kind, sceneId) { return this.sceneLights[sceneId]?.[kind] || kind; },
+
+  // 换景时逐渐替换新刷怪的组合，原本的怪潮密度和场上敌人不变。
+  enemyPoolAt(time, roll = Math.random()) {
+    if (time < 12 || roll >= (time < 60 ? 0.22 : 0.42)) return null;
+    const scene = this.sceneAt(time);
+    const localRoll = roll / (time < 60 ? 0.22 : 0.42);
+    return this.sceneEnemies[localRoll < scene.mix ? scene.id : scene.from];
+  },
 
   createRun() { return { lit: new Set(), healed: new Set(), reeds: new Map() }; },
   key(prop) { return `${prop.x}:${prop.y}`; },

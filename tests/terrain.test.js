@@ -165,3 +165,78 @@ test('灯具随场景切换但保留位置、点亮与回血消耗记录', () =>
   assert.ok(Game.environment.healed.has(key) && Game.environment.lit.has(key));
   assert.equal(lamp.kind, 'lantern');
 });
+
+test('定时出现僵尸合围和鬼新娘，僵尸按起跳节奏移动', () => {
+  const { Game, banners, cues } = setup();
+  Game.eliteT = Infinity; // 单独检查定时事件，不计随机刷出的精英。
+  Game.time = 70; Game.spawn(0);
+  assert.equal(Game.enemies.filter(e => e.type === 'jiangshi').length, 10);
+  Game.time = 168; Game.spawn(0);
+  assert.equal(Game.enemies.filter(e => e.type === 'bride').length, 1);
+  assert.ok(banners.includes('黄符僵尸围了上来') && banners.includes('红盖头下，喜帖无声'));
+  assert.deepEqual(cues.map(args => args[0]), ['rustle', 'corpseAmbush', 'frost', 'bridalBell']);
+  const zombie = Game.spawnEnemy('jiangshi', 90, 0);
+  zombie.t = 0; const before = zombie.x; Game.updateEnemies(1 / 60);
+  const landSpeed = before - zombie.x;
+  zombie.t = 0.44; const mid = zombie.x; Game.updateEnemies(1 / 60);
+  assert.ok(mid - zombie.x > landSpeed * 3);
+});
+
+test('鬼新娘能穿障并射出三张扇形喜帖，弹幕继续遵守上限', () => {
+  const { Game, Terrain, cues } = setup();
+  const rock = Terrain.chunk(0, 0).solid;
+  const bride = Game.spawnEnemy('bride', rock.x, rock.y);
+  assert.equal(bride.x, rock.x);
+  bride.shootT = 0; Game.updateEnemies(1 / 60);
+  assert.equal(Game.ebullets.length, 3);
+  assert.equal(cues[0][0], 'weddingPaper');
+  assert.ok(Game.ebullets.every(b => b.look === 'weddingPaper' && Math.abs(Math.hypot(b.vx, b.vy) - 128) < 0.001));
+  assert.equal(new Set(Game.ebullets.map(b => b.vx)).size, 3);
+  Game.ebullets = Array(79).fill(null);
+  bride.shootT = 0; Game.updateEnemies(1 / 60);
+  assert.equal(Game.ebullets.length, 80);
+});
+
+test('黄符僵尸落地声随距离和方位变化，远处或冻结时不响', () => {
+  const { Game, cues } = setup();
+  Game.spawnEnemy('jiangshi', -100, 0).t = 0.89;
+  Game.spawnEnemy('jiangshi', 190, 0).t = 0.89;
+  Game.spawnEnemy('jiangshi', 410, 85).t = 0.89;
+  const frozen = Game.spawnEnemy('jiangshi', 85, 0);
+  frozen.frozen = 1; frozen.t = 0.89;
+  Game.updateEnemies(1 / 60);
+  assert.equal(cues.length, 2);
+  assert.ok(cues.every(([name]) => name === 'corpseHop'));
+  assert.ok(cues[0][1] > cues[1][1]);
+  assert.ok(cues[0][2] < 0 && cues[1][2] > 0);
+});
+
+test('随场景和过渡进度替换特色刷怪池，开局仍保留普通影兽', () => {
+  const { Environment } = setup();
+  const keys = (t, roll = 0.01) => Object.keys(Environment.enemyPoolAt(t, roll) || {}).sort();
+  assert.deepEqual(keys(0), []);
+  assert.deepEqual(keys(20), ['paperChild']);
+  assert.deepEqual(keys(65), ['jiangshi', 'paperChild']);
+  assert.deepEqual(keys(105), ['jiangshi', 'paperChild']);
+  assert.deepEqual(keys(107.5, 0.13), ['bride', 'umbrellaGhost']);
+  assert.deepEqual(keys(107.5, 0.30), ['jiangshi', 'paperChild']);
+  assert.deepEqual(keys(111), ['bride', 'umbrellaGhost']);
+  assert.deepEqual(keys(184), ['snowEnvoy']);
+  assert.deepEqual(keys(184, 0.75), []);
+});
+
+test('纸扎童子摆动逼近，伞鬼从障碍里放出雨滴，白无常抗击退', () => {
+  const { Game, Terrain } = setup();
+  const child = Game.spawnEnemy('paperChild', 125, 0);
+  child.t = 0.22;
+  const rock = Terrain.chunk(0, 0).solid;
+  const ghost = Game.spawnEnemy('umbrellaGhost', rock.x, rock.y);
+  assert.equal(ghost.x, rock.x);
+  ghost.shootT = 0;
+  const envoy = Game.spawnEnemy('snowEnvoy', -100, 70);
+  Game.updateEnemies(1 / 60);
+  assert.ok(child.x < 125 && Math.abs(child.y) > 0.5);
+  assert.equal(Game.ebullets.length, 1);
+  assert.equal(Game.ebullets[0].look, 'rainDrop');
+  assert.ok(envoy.kbRes > 0.6);
+});

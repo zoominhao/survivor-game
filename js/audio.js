@@ -26,6 +26,11 @@ const SOUNDS = {
   intro: [0.42, ['triangle', 164, 82, 0.62, 0.24], ['sine', 293, 289, 0.65, 0.15, 0.16]],
   mango: [0.24, ['sine', 587, 590, 0.18, 0.17], ['sine', 784, 790, 0.24, 0.19, 0.075]],
   paper: [0.22, ['triangle', 700, 230, 0.13, 0.18], ['square', 930, 514, 0.055, 0.075, 0.019, 1150]],
+  corpseHop: [0.23, ['sine', 114, 52, 0.17, 0.235], ['triangle', 206, 97, 0.09, 0.10, 0.015, 420]],
+  corpseAmbush: [1.2, ['triangle', 124, 81, 0.6, 0.19, 0, 380], ['sine', 96, 58, 0.33, 0.17, 0.19]],
+  bridalBell: [1, ['sine', 625, 608, 0.78, 0.21], ['sine', 948, 930, 0.53, 0.12, 0.11], ['triangle', 319, 306, 0.37, 0.105, 0.23]],
+  weddingPaper: [0.26, ['sawtooth', 877, 235, 0.19, 0.135, 0, 1160], ['triangle', 1470, 650, 0.105, 0.105, 0.022, 1680]],
+  bridalFade: [0.38, ['sine', 782, 437, 0.3, 0.12], ['sine', 1145, 901, 0.24, 0.08, 0.055]],
   roar: [0.3, ['sawtooth', 163, 83, 0.28, 0.16, 0, 630], ['triangle', 282, 113, 0.21, 0.14, 0.026, 840]],
   lantern: [0.18, ['sine', 690, 704, 0.19, 0.10], ['triangle', 1020, 1030, 0.12, 0.07, 0.05]],
   rustle: [0.22, ['sawtooth', 617, 224, 0.1, 0.065, 0, 690]],
@@ -33,7 +38,7 @@ const SOUNDS = {
   defeat: [0.45, ['triangle', 330, 310, 0.31, 0.17], ['sine', 196, 145, 0.66, 0.23, 0.16]],
 };
 
-function audioTone(ctx, destination, at, wave, from, to, dur, volume, cutoff) {
+function audioTone(ctx, destination, at, wave, from, to, dur, volume, cutoff, pan = 0) {
   const osc = ctx.createOscillator(), env = ctx.createGain();
   osc.type = wave;
   osc.frequency.setValueAtTime(from, at);
@@ -46,8 +51,10 @@ function audioTone(ctx, destination, at, wave, from, to, dur, volume, cutoff) {
     filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = cutoff;
     osc.connect(filter); filter.connect(env);
   } else osc.connect(env);
-  env.connect(destination);
-  osc.onended = () => { osc.disconnect(); filter?.disconnect(); env.disconnect(); };
+  const stereo = pan ? ctx.createStereoPanner?.() : null;
+  if (stereo) { stereo.pan.value = pan; env.connect(stereo); stereo.connect(destination); }
+  else env.connect(destination);
+  osc.onended = () => { osc.disconnect(); filter?.disconnect(); env.disconnect(); stereo?.disconnect(); };
   osc.start(at);
   osc.stop(at + dur + 0.012);
 }
@@ -80,18 +87,18 @@ const Sfx = {
     this.ctx.resume().then(() => {
       const cue = this.pendingCue;
       this.resuming = false; this.pendingCue = null;
-      if (cue) this.play(cue);
+      if (cue) this.play(...cue);
     }, () => {
       // 无法解除浏览器挂起时，下一次用户手势可以重试。
       this.resuming = false; this.pendingCue = null;
     });
   },
 
-  play(name) {
+  play(name, gain = 1, pan = 0) {
     const cue = SOUNDS[name];
-    if (!cue || this.muted || this.hidden || !this.ctx) return;
+    if (!cue || gain <= 0 || this.muted || this.hidden || !this.ctx) return;
     if (this.ctx.state !== 'running') {
-      if (this.resuming) this.pendingCue = name;
+      if (this.resuming) this.pendingCue = [name, gain, pan];
       return;
     }
     const now = this.ctx.currentTime;
@@ -99,7 +106,7 @@ const Sfx = {
     this.last[name] = now;
     for (let i = 1; i < cue.length; i++) {
       const [wave, from, to, dur, volume, delay = 0, cutoff] = cue[i];
-      audioTone(this.ctx, this.master, now + delay, wave, from, to, dur, volume, cutoff);
+      audioTone(this.ctx, this.master, now + delay, wave, from, to, dur, volume * gain, cutoff, pan);
     }
   },
 

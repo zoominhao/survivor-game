@@ -23,9 +23,14 @@ class AudioContextStub {
     this.state = 'running';
     this.destination = {};
     this.starts = [];
+    this.panners = [];
   }
   createGain() { return { gain: new AudioParamStub(), connect() {}, disconnect() {} }; }
   createBiquadFilter() { return { frequency: new AudioParamStub(), connect() {}, disconnect() {} }; }
+  createStereoPanner() {
+    const node = { pan: new AudioParamStub(), connect() {}, disconnect() {} };
+    this.panners.push(node); return node;
+  }
   createOscillator() {
     return {
       frequency: new AudioParamStub(), connect() {}, disconnect() {}, stop() {},
@@ -118,4 +123,18 @@ test('从浏览器挂起状态解锁时补播最近的一个开场音效', async
   await Promise.resolve();
   assert.equal(Sfx.ctx.starts.length, 2);
   assert.equal(Sfx.pendingCue, null);
+});
+
+test('民俗音效能合成多层声音，落地声声道偏移且限制连发', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.play('corpseHop', 0.6, -0.65);
+  Sfx.play('corpseHop', 0.7, 0.6);
+  assert.equal(Sfx.ctx.starts.length, 2);
+  assert.deepEqual(Sfx.ctx.panners.map(p => p.pan.value), [-0.65, -0.65]);
+  Sfx.play('bridalBell');
+  Sfx.play('weddingPaper', 0.5, 0.7);
+  Sfx.play('bridalFade');
+  assert.equal(Sfx.ctx.starts.length, 9);
+  assert.deepEqual(Sfx.ctx.panners.map(p => p.pan.value), [-0.65, -0.65, 0.7, 0.7]);
 });

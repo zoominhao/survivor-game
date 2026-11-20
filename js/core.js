@@ -304,7 +304,7 @@ const Game = {
     const R = this.spawnR();
     while (this.spawnAcc >= 1) {
       this.spawnAcc--;
-      const type = U.weighted(wv.types);
+      const type = U.weighted(Environment.enemyPoolAt(t) || wv.types);
       const a = Math.random() * TAU;
       const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
       if (type === 'swarm') {
@@ -316,7 +316,7 @@ const Game = {
     // 定期出现的精英怪,击杀掉宝箱
     if (t >= this.eliteT) {
       this.eliteT += 45;
-      let type = U.weighted(wv.types);
+      let type = U.weighted(Environment.enemyPoolAt(t) || wv.types);
       if (type === 'swarm' || type === 'moth') type = 'shade';
       const a = Math.random() * TAU;
       this.spawnEnemy(type, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R, true);
@@ -331,6 +331,13 @@ const Game = {
           this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         }
         UI.banner(ev.msg || '夜兽正在合围!');
+        if (ev.enemy === 'jiangshi') Sfx.play('corpseAmbush');
+      } else if (ev.kind === 'arrival') {
+        const a = Math.random() * TAU, rr = R * 0.78;
+        this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
+        UI.banner(ev.msg);
+        if (ev.enemy === 'bride') Sfx.play('bridalBell');
+        else if (ev.sound) Sfx.play(ev.sound);
       } else if (ev.kind === 'boss') {
         const a = Math.random() * TAU;
         const e = this.spawnEnemy('boss', p.x + Math.cos(a) * R, p.y + Math.sin(a) * R);
@@ -387,7 +394,16 @@ const Game = {
       let sp = e.speed;
       if (e.frozen > 0) { e.frozen -= dt; sp = 0; }
       else if (e.slowT > 0) { e.slowT -= dt; sp *= 1 - e.slow; }
+      if (def.hop) {
+        sp *= 0.26 + 1.19 * this.hopLift(e, def.hop);
+        if (sp > 0 && e.t % def.hop < dt) this.playNearby('corpseHop', e, 235);
+      }
       let mx = dx / d, my = dy / d;
+      if (def.weave) {
+        const sway = Math.sin(e.t * 7) * def.weave;
+        const dir = Math.atan2(my, mx) + sway;
+        mx = Math.cos(dir); my = Math.sin(dir);
+      }
 
       if (def.ranged) {
         // 远程怪:保持距离、横向游走、定时吐刺
@@ -395,8 +411,7 @@ const Game = {
         else if (d < def.keep + 30) { const tx = -my * e.side; my = mx * e.side; mx = tx; }
         e.shootT -= dt;
         if (e.shootT <= 0 && d < def.keep + 140 && e.frozen <= 0 && this.ebullets.length < 80) {
-          e.shootT = 2.8;
-          this.ebullets.push({ x: e.x, y: e.y, vx: dx / d * 150, vy: dy / d * 150, r: 5, dmg: e.dmg, life: 4 });
+          this.fireEnemyVolley(e, def, Math.atan2(dy, dx));
         }
       } else if (e.boss) {
         // Boss:周期性蓄力冲锋,二阶以上冲锋时放一圈弹幕
@@ -452,6 +467,28 @@ const Game = {
 
       if (d < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e);
     }
+  },
+
+  hopLift(e, period) { return Math.sin(Math.PI * ((e.t % period) / period)); },
+
+  fireEnemyVolley(e, def, angle) {
+    e.shootT = def.shotCd ?? 2.8;
+    const fan = def.fan ?? 1, speed = def.shotSpeed ?? 150;
+    for (let i = 0; i < fan && this.ebullets.length < 80; i++) {
+      const a = angle + (i - (fan - 1) / 2) * (def.spread ?? 0);
+      this.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+        r: 5, dmg: e.dmg, life: 4, look: def.shotLook });
+    }
+    if (def.shotLook === 'weddingPaper') this.playNearby('weddingPaper', e, 400);
+    else if (def.shotLook === 'rainDrop') this.playNearby('frost', e, 350);
+  },
+
+  playNearby(cue, source, range) {
+    const dx = source.x - this.player.x, dy = source.y - this.player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist >= range) return;
+    const gain = 1 - dist / range;
+    Sfx.play(cue, gain, U.clamp(dx / 160, -0.8, 0.8));
   },
 
   // ---------- 查询与伤害 ----------
@@ -562,7 +599,8 @@ const Game = {
       UI.banner('夜魇已被驱散');
     }
     this.burst(e.x, e.y, ENEMIES[e.type].color, e.boss ? 30 : e.elite ? 12 : 4);
-    Sfx.play('kill');
+    if (e.type === 'bride') this.playNearby('bridalFade', e, 310);
+    else Sfx.play('kill');
   },
 
   dropGem(x, y, v) {
