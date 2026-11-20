@@ -381,6 +381,8 @@ const Render = {
         FoodArt.ricecake(ctx, z);
       } else if (z.type === 'fire' && z.look === 'tomato') {
         FoodArt.sauce(ctx, z);
+      } else if (z.type === 'fire' && z.look === 'bubbletea') {
+        FoodArt.teaSpill(ctx, z);
       } else if (z.type === 'fire') {
         const a = Math.min(1, z.life) * (0.26 + Math.sin(time * 18 + z.x) * 0.06);
         ctx.fillStyle = `rgba(255,120,40,${a})`;
@@ -879,7 +881,7 @@ const Render = {
         this.drawBasketball(ctx, b);
       } else if (b.look === 'latiao' || b.look === 'pony') {
         XiaoxiaoArt[b.look](ctx, b);
-      } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato') {
+      } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato' || b.look === 'bubbletea') {
         FoodArt[b.look](ctx, b);
       } else if (b.look === 'bolt') {
         this.drawGlow(ctx, b.color, b.x, b.y, b.r * 2.4);

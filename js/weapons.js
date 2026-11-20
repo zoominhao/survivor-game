@@ -132,7 +132,7 @@ const WeaponFns = {
         x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
         r: s.size * st.area, dmg: s.dmg * st.might, pierce: s.pierce, life: 1.4,
         wid: w.id, look: d.look || 'bolt', color: d.colors ? d.colors[shot % d.colors.length] : d.color, kb: 120,
-        blast: s.blast ? s.blast * st.area : 0, sauce: s.sauce || 0,
+        blast: s.blast ? s.blast * st.area : 0, sauce: s.sauce || 0, spillSlow: s.sauce ? s.slow : 0,
         bounces: s.bounces || 0, bounceRange: s.bounceRange ? s.bounceRange * st.area : 0,
       });
       Sfx.play(d.sound || 'shoot');

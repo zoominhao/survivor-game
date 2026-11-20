@@ -750,8 +750,8 @@ const Game = {
             this.fx.push({ type: 'boom', x: b.x, y: b.y, r: b.blast, life: 0.25, max: 0.25, c: b.color });
             if (b.sauce) {
               this.zones.push({
-                type: 'fire', look: 'tomato', x: b.x, y: b.y, r: b.blast, life: b.sauce, tk: 0.25,
-                dmg: b.dmg * 0.45, wid: b.wid, color: b.color,
+                type: 'fire', look: b.look, x: b.x, y: b.y, r: b.blast, life: b.sauce, tk: 0.25,
+                dmg: b.dmg * 0.45, wid: b.wid, color: b.color, slow: b.spillSlow,
               });
               Sfx.play('splash');
             }
@@ -805,7 +805,13 @@ const Game = {
         keep = this.updateRicecake(z, dt);
       } else if (z.type === 'fire') {
         z.life -= dt; z.tk -= dt;
-        if (z.tk <= 0) { z.tk = 0.5; this.aoe(z.x, z.y, z.r, z.dmg, z.wid, 0); }
+        if (z.tk <= 0) {
+          z.tk = 0.5;
+          this.eachEnemyNear(z.x, z.y, z.r, e => {
+            this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0);
+            if (z.slow && !e.dead) this.slowEnemy(e, z.slow, 0.65);
+          });
+        }
         keep = z.life > 0;
       } else if (z.type === 'ring') {
         z.r += z.spd * dt;

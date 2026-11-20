@@ -163,6 +163,12 @@ const WEAPONS = {
     base: { dmg: 12, cd: 1.95, count: 1, pierce: 1, speed: 480, size: 9, bounces: 1, bounceRange: 165 },
     ups: [{ dmg: 5 }, { bounces: 1 }, { cd: -0.3 }, { count: 1 }, { dmg: 7, bounces: 1 }],
   },
+  bubbletea: {
+    name: '珍珠奶茶', color: '#efc18b', kind: 'bolt', look: 'bubbletea', max: 6, exclusive: 'echo', sound: 'toss',
+    desc: '朝夜兽扔出一杯奶茶。撞翻后洒出一地珍珠，对踩进来的夜兽持续造成伤害和减速。',
+    base: { dmg: 12, cd: 3.6, count: 1, pierce: 1, speed: 385, size: 9, blast: 51, sauce: 2.5, slow: 0.38 },
+    ups: [{ blast: 9 }, { dmg: 4 }, { sauce: 0.7 }, { cd: -0.55 }, { dmg: 6, blast: 10 }],
+  },
 
   monkey: {
     name: '灵猴踏枝', color: '#f4b99b', kind: 'lob', look: 'monkey', max: 6, exclusive: 'tuan',

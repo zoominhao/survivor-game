@@ -116,7 +116,7 @@ test('其他角色不能在升级中抽到果果专属技能，环绕萤火仍�
   assert.ok(choices.some(choice => choice.id === 'orbit'));
 });
 
-const echoExtras = ['ricecake', 'icecream', 'candy', 'watermelon', 'basketball'];
+const echoExtras = ['ricecake', 'icecream', 'candy', 'watermelon', 'basketball', 'bubbletea'];
 
 test('开心升级优先获得未习得的专属武器，其他角色抽不到这些武器', () => {
   const { Game } = start('echo');
@@ -128,6 +128,24 @@ test('开心升级优先获得未习得的专属武器，其他角色抽不到�
   const second = Game.buildChoices(3)[0];
   assert.ok(echoExtras.includes(second.id) && second.lv === 1 && second.id !== first.id);
   assert.equal(start('tuan').Game.buildChoices(100).some(c => echoExtras.includes(c.id)), false);
+});
+
+test('珍珠奶茶命中后留下减速区，后来踩进来的敌人也会受伤', () => {
+  const Game = foodRun('echo', 'bubbletea');
+  const target = stationaryEnemy(Game, 126, 0);
+  for (let i = 0; i < 28; i++) Game.update(1 / 60);
+  assert.ok(target.hp < target.maxHp);
+  const tea = Game.zones.find(z => z.look === 'bubbletea');
+  assert.ok(tea && tea.life > 2);
+  const late = stationaryEnemy(Game, tea.x, tea.y + 30);
+  const far = stationaryEnemy(Game, tea.x, tea.y + 146);
+  for (let i = 0; i < 40; i++) Game.update(1 / 60);
+  assert.ok(late.hp < late.maxHp && late.slowT > 0);
+  assert.equal(late.slow, 0.38);
+  assert.equal(far.hp, far.maxHp);
+  for (let i = 0; i < 104; i++) Game.update(1 / 60);
+  assert.equal(Game.zones.some(z => z.look === 'bubbletea'), false);
+  assert.match(Game.describe({ kind: 'weapon', id: 'bubbletea', lv: 4 }).desc, /持续 \+0\.7 秒/);
 });
 
 function foodRun(charId, id) {

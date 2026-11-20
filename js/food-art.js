@@ -115,6 +115,36 @@ const FoodArt = {
     ctx.restore();
   },
 
+  bubbletea(ctx, b) {
+    ctx.save(); ctx.globalCompositeOperation = 'source-over';
+    ctx.translate(b.x, b.y); ctx.scale(b.r / 9, b.r / 9);
+    ctx.rotate(Math.atan2(b.vy, b.vx) * 0.18 + Math.sin(b.age * 25) * 0.32);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = '#e99cac'; ctx.beginPath(); ctx.moveTo(2, -5); ctx.lineTo(5.5, -13); ctx.stroke();
+    ctx.fillStyle = '#edc38e'; ctx.strokeStyle = '#77523b';
+    ctx.beginPath(); ctx.moveTo(-8, -5); ctx.lineTo(8, -5); ctx.lineTo(5, 8); ctx.lineTo(-5, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff0d4'; ctx.beginPath(); ctx.roundRect(-9, -7, 18, 3, 1.2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#604139';
+    for (const [x, y] of [[-3, 1], [2, 2], [-1, 5.5], [3.3, 5.2]]) {
+      ctx.beginPath(); ctx.arc(x, y, 1.15, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  },
+
+  teaSpill(ctx, z) {
+    ctx.save(); ctx.translate(z.x, z.y); ctx.scale(z.r, z.r);
+    const alpha = Math.min(1, z.life * 4);
+    ctx.fillStyle = '#b88350'; ctx.strokeStyle = z.color; ctx.lineWidth = 1.3 / z.r;
+    ctx.globalAlpha = alpha * 0.42;
+    ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha = alpha * 0.8; ctx.fillStyle = '#453331';
+    for (const [x, y, r] of [[-0.63, -0.12, 0.10], [-0.37, 0.41, 0.12], [0.2, 0.64, 0.095],
+      [0.56, 0.33, 0.11], [0.48, -0.33, 0.12], [-0.11, -0.58, 0.097], [0.1, -0.1, 0.11]]) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+  },
+
   watermelon(ctx, z) {
     const k = U.clamp(1 - z.t / z.max, 0, 1);
     const lift = Math.sin(Math.PI * k);
