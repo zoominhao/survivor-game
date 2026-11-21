@@ -19,11 +19,23 @@ class AudioContextStub {
     this.currentTime = 0;
     this.state = 'running';
     this.destination = {};
+    this.sampleRate = 44100;
     this.starts = [];
     this.panners = [];
+    this.noiseSources = [];
   }
   createGain() { return { gain: new AudioParamStub(), connect() {}, disconnect() {} }; }
-  createBiquadFilter() { return { frequency: new AudioParamStub(), connect() {}, disconnect() {} }; }
+  createDynamicsCompressor() { return { threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, connect() {} }; }
+  createBiquadFilter() { return { frequency: new AudioParamStub(), Q: new AudioParamStub(), connect() {}, disconnect() {} }; }
+  createBuffer(channels, length) {
+    const samples = new Float32Array(length);
+    return { getChannelData: () => samples };
+  }
+  createBufferSource() {
+    const node = { connect() {}, disconnect() {}, start: at => this.starts.push(at), stop(at) { this.endsAt = at; } };
+    this.noiseSources.push(node);
+    return node;
+  }
   createStereoPanner() {
     const node = { pan: new AudioParamStub(), connect() {}, disconnect() {} };
     this.panners.push(node); return node;
@@ -192,20 +204,43 @@ test('民俗音效能合成多层声音，落地声声道偏移且限制连发',
   assert.deepEqual(Sfx.ctx.panners.map(p => p.pan.value), [-0.65, -0.65, 0.7, 0.7]);
 });
 
-test('小怪与 Boss 的重要登场声压低配乐和常规音效，但不重启曲目', () => {
+test('登场声立即压低配乐和常规音效，尾声结束后回升，不重启曲目', () => {
   const { Sfx } = setup();
   Sfx.unlock();
   for (const [name, isBoss] of [['paperChildArrival', false], ['boss', true]]) {
     Sfx.syncMusic('playing', isBoss);
     const bus = Sfx.music.bus, full = Sfx.music.volume, count = Sfx.ctx.starts.length;
+    const now = Sfx.ctx.currentTime;
     Sfx.play(name);
     assert.ok(Sfx.ctx.starts.length > count);
-    Sfx.syncMusic('playing', isBoss);
-    assert.ok(Sfx.music.volume < full * 0.3);
-    assert.ok(Sfx.routineGain.gain.events.some(([value, time]) => value < 0.5 && time === Sfx.ctx.currentTime));
-    Sfx.ctx.currentTime = Sfx.arrivalUntil + 0.05;
+    assert.ok(Sfx.arrivalUntil >= Sfx.ctx.noiseSources.at(-1).endsAt - 0.012);
+    for (const [duck, maximum] of [[Sfx.musicDuck, 0.2], [Sfx.routineGain, 0.27]]) {
+      const [drop, restore] = duck.gain.events.slice(-2);
+      assert.ok(drop[0] <= maximum);
+      assert.equal(drop[1], now);
+      assert.deepEqual(restore, [1, Sfx.arrivalUntil]);
+    }
     Sfx.syncMusic('playing', isBoss);
     assert.equal(Sfx.music.bus, bus);
     assert.equal(Sfx.music.volume, full);
+    Sfx.ctx.currentTime = Sfx.arrivalUntil + 0.05;
   }
+});
+
+test('试听与鬼怪共用噪声素材，重叠登场不会让混音提早回升', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.play('boss');
+  const until = Sfx.arrivalUntil;
+  const first = Sfx.ctx.noiseSources[0];
+  const samples = first.buffer.getChannelData(0);
+  assert.ok(samples.some(v => v > 0.5) && samples.some(v => v < -0.5));
+  assert.equal(first.loop, true);
+  Sfx.play('sampleArrival');
+  assert.equal(Sfx.ctx.noiseSources.at(-1).buffer, first.buffer);
+  assert.equal(Sfx.arrivalUntil, until);
+  Sfx.setMuted(true);
+  assert.equal(Sfx.arrivalUntil, -Infinity);
+  assert.deepEqual(Sfx.musicDuck.gain.events.at(-1), [1, 0]);
+  assert.deepEqual(Sfx.routineGain.gain.events.at(-1), [1, 0]);
 });

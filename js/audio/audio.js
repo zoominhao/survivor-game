@@ -51,30 +51,48 @@ const SOUNDS = {
   defeat: [0.45, ['triangle', 330, 310, 0.31, 0.17], ['sine', 196, 145, 0.66, 0.23, 0.16]],
 };
 
-function audioTone(ctx, destination, at, wave, from, to, dur, volume, cutoff, pan = 0) {
-  const osc = ctx.createOscillator(), env = ctx.createGain();
+function audioTone(ctx, destination, at, wave, from, to, dur, volume, cutoff, pan = 0, attack) {
+  const osc = ctx.createOscillator();
   osc.type = wave;
   osc.frequency.setValueAtTime(from, at);
   osc.frequency.exponentialRampToValueAtTime(to, at + dur);
-  env.gain.setValueAtTime(0.0001, at);
-  env.gain.linearRampToValueAtTime(volume, at + Math.min(0.009, dur * 0.22));
-  env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
   let filter;
   if (cutoff) {
     filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = cutoff;
-    osc.connect(filter); filter.connect(env);
-  } else osc.connect(env);
+  }
+  playAudioVoice(ctx, destination, osc, filter, at, dur, volume, pan, attack);
+}
+
+function playAudioVoice(ctx, destination, source, filter, at, dur, volume, pan, attack = Math.min(0.009, dur * 0.22)) {
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, at);
+  env.gain.linearRampToValueAtTime(volume, at + Math.min(attack, dur * 0.8));
+  env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  if (filter) { source.connect(filter); filter.connect(env); }
+  else source.connect(env);
   const stereo = pan ? ctx.createStereoPanner?.() : null;
   if (stereo) { stereo.pan.value = pan; env.connect(stereo); stereo.connect(destination); }
   else env.connect(destination);
-  osc.onended = () => { osc.disconnect(); filter?.disconnect(); env.disconnect(); stereo?.disconnect(); };
-  osc.start(at);
-  osc.stop(at + dur + 0.012);
+  source.onended = () => { source.disconnect(); filter?.disconnect(); env.disconnect(); stereo?.disconnect(); };
+  source.start(at);
+  source.stop(at + dur + 0.012);
 }
 
 const AUDIO_LEVELS = { music: 80, effects: 100 };
 const AUDIO_SAVE_KEYS = { music: 'musicVolume', effects: 'effectsVolume' };
 const normalizeVolume = (value, fallback) => Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : fallback;
+
+function connectAudioOutput(ctx, master) {
+  // 只收住叠音时的峰值，正常战斗音量仍由各自的滑杆控制。
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -5;
+  limiter.knee.value = 3;
+  limiter.ratio.value = 12;
+  limiter.attack.value = 0.002;
+  limiter.release.value = 0.13;
+  master.connect(limiter);
+  limiter.connect(ctx.destination);
+}
 
 const Sfx = {
   ctx: null,
@@ -101,11 +119,12 @@ const Sfx = {
         this.ctx = new AC();
         this.master = this.ctx.createGain();
         this.master.gain.value = this.muted || this.hidden ? 0 : 0.56;
-        this.master.connect(this.ctx.destination);
+        connectAudioOutput(this.ctx, this.master);
         this.musicGain = this.makeGain(this.master, this.levels.music / 100);
+        this.musicDuck = this.makeGain(this.musicGain, 1);
         this.effectsGain = this.makeGain(this.master, this.levels.effects / 100);
         this.routineGain = this.makeGain(this.effectsGain, 1);
-        this.music = new NightMusic(this.ctx, this.musicGain);
+        this.music = new NightMusic(this.ctx, this.musicDuck);
       } catch (e) { this.ctx = null; return; }
     }
     this.resumeAudio();
@@ -144,20 +163,25 @@ const Sfx = {
     const now = this.ctx.currentTime;
     if (now - (this.last[name] ?? -Infinity) < cue[0]) return;
     this.last[name] = now;
-    const out = arrival ? this.effectsGain : this.routineGain;
-    if (arrival) this.focusArrival(now);
+    if (arrival) {
+      this.focusArrival(now, now + playArrival(this.ctx, this.effectsGain, now, cue, gain, pan));
+      return;
+    }
     for (let i = 1; i < cue.length; i++) {
       const [wave, from, to, dur, volume, delay = 0, cutoff] = cue[i];
-      audioTone(this.ctx, out, now + delay, wave, from, to, dur, volume * gain, cutoff, pan);
+      audioTone(this.ctx, this.routineGain, now + delay, wave, from, to, dur, volume * gain, cutoff, pan);
     }
   },
 
-  focusArrival(now) {
-    this.arrivalUntil = Math.max(this.arrivalUntil, now + 1.45);
-    const gain = this.routineGain.gain;
-    gain.cancelScheduledValues(now);
-    gain.setTargetAtTime(0.38, now, 0.025);
-    gain.setTargetAtTime(1, this.arrivalUntil, 0.16);
+  focusArrival(now, until) {
+    // 音频时钟直接压低两路声音，不等下一帧，也不随配乐切轨重置。
+    this.arrivalUntil = Math.max(this.arrivalUntil, until);
+    for (const [bus, level] of [[this.musicDuck, 0.14], [this.routineGain, 0.24]]) {
+      const gain = bus.gain;
+      gain.cancelScheduledValues(now);
+      gain.setTargetAtTime(level, now, 0.012);
+      gain.setTargetAtTime(1, this.arrivalUntil, 0.16);
+    }
   },
 
   syncMusic(state, bossActive) {
@@ -165,7 +189,7 @@ const Sfx = {
     const quiet = state === 'levelup' || state === 'chest' || state === 'decision';
     const track = !this.levels.music || this.muted || this.hidden || this.ctx.state !== 'running' ? null :
       state === 'menu' ? 'menu' : state === 'playing' || quiet ? (bossActive ? 'boss' : 'battle') : null;
-    this.music.sync(track, this.ctx.currentTime < this.arrivalUntil ? 0.22 : quiet ? 0.5 : 1);
+    this.music.sync(track, quiet ? 0.5 : 1);
   },
 
   applyMix() {
@@ -181,8 +205,10 @@ const Sfx = {
     if (silent || !this.levels.effects) {
       this.pendingCue = null;
       this.arrivalUntil = -Infinity;
-      this.routineGain.gain.cancelScheduledValues(now);
-      this.routineGain.gain.setTargetAtTime(1, now, 0.025);
+      for (const bus of [this.musicDuck, this.routineGain]) {
+        bus.gain.cancelScheduledValues(now);
+        bus.gain.setTargetAtTime(1, now, 0.025);
+      }
     }
   },
 
