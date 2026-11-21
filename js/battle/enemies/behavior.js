@@ -15,7 +15,7 @@ const BattleEnemies = {
     };
     const minute = Math.min(WAVE_RATES.length - 1, Math.floor(t / 60));
     const rate = WAVE_RATES[minute] * (this.coop ? COOP_DIFFICULTY.spawnRate : 1);
-    const scene = Environment.forBattle(this), landscape = Environment.landscape(scene);
+    const landscape = Environment.forBattle(this).id;
     const count = this.enemies.length;
     if (count < this.enemyLimit()) {
       this.spawnAcc += rate * dt;
@@ -25,7 +25,7 @@ const BattleEnemies = {
     while (this.spawnAcc >= 1 && this.enemies.length < this.enemyLimit()) {
       this.spawnAcc--;
       const p = anchor();
-      const type = U.weighted(Environment.enemyPoolAt(t, undefined, scene));
+      const type = U.weighted(Environment.enemyPoolAt(t, landscape));
       const a = Math.random() * TAU;
       const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
       if (type === 'swarm') {
@@ -41,7 +41,7 @@ const BattleEnemies = {
     if (t >= this.eliteT) {
       const p = anchor();
       this.eliteT += 45;
-      const pool = Environment.enemyPoolAt(t, undefined, scene);
+      const pool = Environment.enemyPoolAt(t, landscape);
       let type = U.weighted(pool);
       if (type === 'swarm' || type === 'moth') type = Object.keys(pool).find(id => id !== 'swarm' && id !== 'moth');
       const a = Math.random() * TAU;
@@ -50,9 +50,9 @@ const BattleEnemies = {
     // 定时事件
     while (this.evIdx < EVENTS.length && t >= EVENTS[this.evIdx].t) {
       const event = EVENTS[this.evIdx++];
-      const ev = event.opening ? OPENING_ROUTES[this.openingScene]?.arrival ?? event : event;
+      const ev = event.opening ? STAGES[this.stage]?.arrival ?? event : event;
       const p = anchor();
-      if (ev.kind !== 'boss' && (ev.scene !== landscape || ev.alternateFork && this.fork)) continue;
+      if (ev.kind !== 'boss' && ((ev.scene && ev.scene !== landscape) || ev.alternateFork && this.fork)) continue;
       if (ev.kind === 'ring') {
         this.spawnRing(ev, p);
       } else if (ev.kind === 'arrival') {
@@ -63,7 +63,7 @@ const BattleEnemies = {
         this.deferVoice(ENEMIES[ev.enemy].voice);
         if (ev.sound) this.play(ev.sound);
       } else if (ev.kind === 'boss') {
-        this.pendingBosses.push(ev);
+        this.pendingBosses.push({ ...ev, scene: landscape });
       }
     }
     // 上一位还没击败时排队，但其他定时怪潮照常发生。

@@ -17,7 +17,7 @@ const WorldInteractions = {
   // 交互由走位触发，手机不用增加按钮；点亮、治疗分别记录，满血不会浪费治疗。
   step(g) {
     const run = g.environment;
-    const landscape = Environment.landscape(Environment.forBattle(g));
+    const landscape = Environment.forBattle(g).id;
     for (const [key, end] of run.reeds) if (end <= g.time) run.reeds.delete(key);
     const reach = 42;
     for (const p of g.players) {
@@ -43,8 +43,7 @@ const WorldInteractions = {
     let affected = 0;
     if (prop.kind === 'wardBell' || prop.kind === 'paperWard') {
       const bell = prop.kind === 'wardBell';
-      const radius = !bell && RouteFork.active(g, 'bamboo') ? def.radius * ROUTE_BRANCHES.bamboo.landmarkBoost : def.radius;
-      g.eachEnemyNear(prop.x, prop.y, radius, e => {
+      g.eachEnemyNear(prop.x, prop.y, def.radius, e => {
         if (bell) {
           const dx = e.x - prop.x, dy = e.y - prop.y, d = Math.hypot(dx, dy) || 1;
           const push = (1 - e.kbRes) * 385;
@@ -55,9 +54,8 @@ const WorldInteractions = {
       });
       if (!affected) return; // 没有怪时不会浪费冷却。
     } else if (prop.kind === 'starSigil') {
-      const radius = RouteFork.active(g, 'rain') ? def.radius * ROUTE_BRANCHES.rain.landmarkBoost : def.radius;
       for (const gem of g.gems) {
-        if (gem.mag || (gem.x - prop.x) ** 2 + (gem.y - prop.y) ** 2 > radius ** 2) continue;
+        if (gem.mag || (gem.x - prop.x) ** 2 + (gem.y - prop.y) ** 2 > def.radius ** 2) continue;
         gem.mag = true;
         affected++;
       }

@@ -1,15 +1,15 @@
 'use strict';
 
 const CONTRACTS = {
-  rainLights: { name: '雨庭添灯', group: 'map', icon: 'rainRoute', goal: 3, unit: '盏', coins: 60, seals: 1,
+  rainLights: { name: '雨庭添灯', group: 'map', stage: 'rain', icon: 'rainRoute', goal: 3, unit: '盏', coins: 60, seals: 1,
     desc: '点亮雨落石庭的 3 盏不同喜灯。重访雨庭时保留进度。' },
-  snowVigil: { name: '雪岭禁暖', group: 'map', icon: 'winter', goal: 30, unit: '秒', coins: 75, seals: 1,
+  snowVigil: { name: '雪岭禁暖', group: 'map', stage: 'snow', icon: 'winter', goal: 30, unit: '秒', coins: 75, seals: 1,
     desc: '在霜封山径连续坚持 30 秒。离开雪岭或用取暖龛回血会重新计时。' },
-  bambooWards: { name: '竹径镇纸', group: 'map', icon: 'exampaper', goal: 2, unit: '处', coins: 70, seals: 1,
+  bambooWards: { name: '竹径镇纸', group: 'map', stage: 'bamboo', icon: 'exampaper', goal: 2, unit: '处', coins: 70, seals: 1,
     desc: '在风过竹径引动两处不同的镇纸符。附近有夜兽才会触发。' },
-  pineBell: { name: '松林暮钟', group: 'map', icon: 'moon', goal: 4, unit: '只', coins: 65, seals: 1,
+  pineBell: { name: '松林暮钟', group: 'map', stage: 'night', icon: 'moon', goal: 4, unit: '只', coins: 65, seals: 1,
     desc: '一次敲响镇魂钟，至少震到 4 只夜兽。不同次敲钟不累加。' },
-  rainSigil: { name: '引星归灯', group: 'map', icon: 'starlance', goal: 6, unit: '颗', coins: 80, seals: 1,
+  rainSigil: { name: '引星归灯', group: 'map', stage: 'rain', icon: 'starlance', goal: 6, unit: '颗', coins: 80, seals: 1,
     desc: '在雨庭用一次引星符阵吸引至少 6 颗经验宝石。已经飞向你的不算。' },
   eliteHunt: { name: '精英夜猎', group: 'fight', icon: 'kills', goal: 3, unit: '只', coins: 85, seals: 1,
     desc: '击败 3 只带精英标记的夜兽。不计 Boss，也不要求拾取宝箱。' },
@@ -33,7 +33,9 @@ function contractProgress(c) {
 const BattleContracts = {
   startContract(data) {
     const id = data.selectedContract;
-    return !this.coop && contractAvailable(data, id) ? { id, progress: 0, done: false } : null;
+    if (this.coop || !contractAvailable(data, id)) return null;
+    const required = CONTRACTS[id].stage;
+    return !required || required === this.stage ? { id, progress: 0, done: false } : null;
   },
 
   advanceContract(amount) {

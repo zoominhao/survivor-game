@@ -38,14 +38,15 @@ const BattleActives = {
 
   castWard(p, skill) {
     const near = (e, radius) => (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= radius ** 2;
+    const radius = skill.radius * (RouteFork.active(this, 'bamboo') ? ROUTE_BRANCHES.bamboo.radiusBoost : 1);
     const bullets = this.ebullets;
     let kept = 0;
-    for (const b of bullets) if (!near(b, skill.radius + b.r)) bullets[kept++] = b;
+    for (const b of bullets) if (!near(b, radius + b.r)) bullets[kept++] = b;
     bullets.length = kept;
     for (const e of this.enemies) {
-      if (!e.dead && near(e, skill.radius + e.r)) this.slowEnemy(e, skill.slow, skill.duration);
+      if (!e.dead && near(e, radius + e.r)) this.slowEnemy(e, skill.slow, skill.duration);
     }
-    this.fx.push({ type: 'activeWard', x: p.x, y: p.y, r: skill.radius, life: 0.48, max: 0.48, c: skill.color });
+    this.fx.push({ type: 'activeWard', x: p.x, y: p.y, r: radius, life: 0.48, max: 0.48, c: skill.color });
     this.play('activeWard');
   },
 };

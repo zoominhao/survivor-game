@@ -7,12 +7,15 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
     ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle, ...BattleCoop, ...BattleContracts, ...CoopSupport,
     ...RouteFork.battle, ...BattleActives,
     save, emit, play, uid: 0,
-    state: 'menu', view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
+    state: 'menu', duration: CFG.RUN_TIME, view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
 
     // ---------- 开局 ----------
-    start(charId, partnerChar = null, { robot = false } = {}) {
+    start(charId, partnerChar = null, { robot = false, peerStages = [] } = {}) {
       this.time = 0;
       this.coop = !!partnerChar;
+      const plannedDuration = this.coop ? null : this.practiceNextDuration;
+      this.duration = plannedDuration ?? CFG.RUN_TIME;
+      if (!this.coop) this.practiceNextDuration = null;
       this.robot = this.coop && robot;
       this.bond = this.coop ? CoopBonds.forPair(charId, partnerChar) : null;
       this.bondActive = false;
@@ -21,13 +24,15 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.robotBrain = this.robot ? RobotPartner.start(partnerChar) : null;
       this.signals = this.coop ? [null, null] : null;
       this.rescue = this.coop ? { used: false, progress: 0 } : null;
-      this.assisted = !this.coop && this.practiceRoster && this.practiceChar === charId;
+      const trialStage = !this.coop && this.canPracticeStage(this.practiceStage) ? this.practiceStage : null;
+      this.assisted = !!(plannedDuration || trialStage) || !this.coop && this.practiceRoster && this.practiceChar === charId;
       this.practiceInvincible = false;
       this.environment = WorldInteractions.createRun();
       const data = this.save.data;
+      const selected = Environment.stagePool(data);
+      this.stage = trialStage ?? Environment.pickStage(this.coop && !this.robot ? Environment.sharedStages(selected, peerStages) : selected);
+      this.landscape = this.stage;
       this.contract = this.startContract(data);
-      this.openingScene = !this.coop && Environment.canOpen(data, data.startScene) ? data.startScene : 'dusk';
-      this.sceneId = this.landscape = this.openingScene;
       this.fork = null;
       this.spawnAcc = 0;
       this.evIdx = 0;
@@ -51,7 +56,6 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.bossDecision = null;
       this.pendingBosses = [];
       this.bossClearAt = -Infinity;
-      this.lastBossArena = null;
       this.choices = [];
       this.chest = null;
       this.result = null;
@@ -59,7 +63,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.player = this.makePlayer(charId, 0);
       this.partner = partnerChar ? this.makePlayer(partnerChar, 1, 34) : null;
       this.players = this.partner ? [this.player, this.partner] : [this.player];
-      if (this.coop || this.openingScene !== 'dusk') this.enterLandscape(this.openingScene);
+      this.enterLandscape(this.stage);
       this.stepBond();
       this.state = 'playing';
     },
@@ -68,15 +72,9 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
     update(dt, input = {}, partnerInput = {}) {
       if (this.state !== 'playing') return;
       this.time += dt;
-      if (this.time >= CFG.RUN_TIME) { this.finish(true); return; }
-
-      const scene = Environment.forBattle(this), landscape = Environment.landscape(scene);
-      if (this.landscape !== landscape) this.enterLandscape(landscape);
-      if (this.sceneId !== scene.id) {
-        this.sceneId = scene.id;
-        const setting = Environment.scenes[scene.id];
-        if (!this.boss?.arena) this.emit('banner', setting.name);
-        if (setting.sound) this.play(setting.sound, 0.78);
+      if (this.time >= this.duration) { this.finish(true); return; }
+      if (this.stage === 'storm' && Environment.stormCycle(this.time) > Environment.stormCycle(this.time - dt)) {
+        this.play('stormThunder', 0.68);
       }
 
       // 玩家移动
@@ -117,7 +115,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
 
     enterLandscape(landscape) {
       this.landscape = landscape;
-      // 地貌淡变到中点时切换碰撞，只移开被新障碍覆盖的对象。
+      // 开局使用所选地图的碰撞，清理可能覆盖出生点的障碍。
       const unstick = (body, radius) => Terrain.move(body, 0, 0, radius, 0, landscape);
       for (const p of this.players) unstick(p, CFG.PLAYER_R);
       for (const e of this.enemies) {
@@ -131,7 +129,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       if (this.state === 'victory' || this.state === 'gameover') return;
       const p = this.player, d = this.save.data;
       const ranked = !this.coop && !this.assisted;
-      const time = Math.min(CFG.RUN_TIME, this.time);
+      const time = Math.min(this.duration, this.time);
       const newBest = ranked && this.time > d.best;
       const contract = this.settleContract(ranked);
       const earned = ranked ? Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0) + (contract?.coins ?? 0) : 0;

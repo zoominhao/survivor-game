@@ -24,8 +24,9 @@ const EnvironmentArt = {
       const x = 20 + Terrain.hash(i, 3, 1) * 216, y = 20 + Terrain.hash(i, 4, 2) * 216;
       c.beginPath(); c.ellipse(x, y, 8 + i % 11, 3 + i % 5, -0.3, 0, TAU); c.fill();
     }
-    if (id === 'rain') this.paving(c);
-    else this.scuffs(c, id === 'snow');
+    const weather = Environment.scenes[id].weather;
+    if (weather === 'rain' || weather === 'storm') this.paving(c);
+    else this.scuffs(c, weather === 'snow' || weather === 'blizzard');
     return this.groundTiles[id] = ctx.createPattern(cv, 'repeat');
   },
 
@@ -53,51 +54,36 @@ const EnvironmentArt = {
     }
   },
 
-  drawField(ctx, render, g, left, top, right, bottom, scene) {
-    const { id, from, mix } = scene;
-    ctx.fillStyle = this.ground(ctx, mix < 1 ? from : id);
+  drawField(ctx, render, g, left, top, right, bottom, map) {
+    ctx.fillStyle = this.ground(ctx, map);
     ctx.fillRect(left, top, right - left, bottom - top);
-    if (mix > 0 && mix < 1) {
-      ctx.globalAlpha = mix;
-      ctx.fillStyle = this.ground(ctx, id);
-      ctx.fillRect(left, top, right - left, bottom - top);
-      ctx.globalAlpha = 1;
-    }
-    const landscape = Environment.landscape(scene);
     const reduced = render.reduceMotion?.matches, time = g.time;
     const lights = [];
     let hint = null, hintDist = 122;
     // 包括画面外一段距离，边缘的光池不会随着物件出入画面突然消失。
-    const drawMap = (map, weight) => {
-      if (weight <= 0) return;
-      ctx.globalAlpha = weight;
-      Terrain.forEachProp(left - 185, top - 185, right + 185, bottom + 185, prop => {
-        const key = WorldInteractions.key(prop, map);
-        const light = Environment.lights[prop.kind];
-        const lit = !!light && g.environment.lit.has(key);
-        const landmark = WorldInteractions.landmarks[prop.kind];
-        const remaining = landmark ? Math.max(0, (g.environment.landmarkReady.get(key) ?? 0) - time) : 0;
-        if (lit) lights.push({ x: prop.x, y: prop.y - light.height, light, weight });
-        else if (map === landscape && (light || landmark) && g.state === 'playing') {
-          const d = Math.hypot(g.player.x - prop.x, g.player.y - prop.y);
-          if (d < hintDist && (!remaining || d < 52)) {
-            const text = light ? `靠近点亮${light.name}` : !remaining ? landmark.prompt :
-              Number.isFinite(remaining) ? `${landmark.status} ${Math.ceil(remaining)}秒` : landmark.status;
-            hint = { prop, text, used: !!remaining }; hintDist = d;
-          }
+    Terrain.forEachProp(left - 185, top - 185, right + 185, bottom + 185, prop => {
+      const key = WorldInteractions.key(prop, map);
+      const light = Environment.lights[prop.kind];
+      const lit = !!light && g.environment.lit.has(key);
+      const landmark = WorldInteractions.landmarks[prop.kind];
+      const remaining = landmark ? Math.max(0, (g.environment.landmarkReady.get(key) ?? 0) - time) : 0;
+      if (lit) lights.push({ x: prop.x, y: prop.y - light.height, light, weight: 1 });
+      else if ((light || landmark) && g.state === 'playing') {
+        const d = Math.hypot(g.player.x - prop.x, g.player.y - prop.y);
+        if (d < hintDist && (!remaining || d < 52)) {
+          const text = light ? `靠近点亮${light.name}` : !remaining ? landmark.prompt :
+            Number.isFinite(remaining) ? `${landmark.status} ${Math.ceil(remaining)}秒` : landmark.status;
+          hint = { prop, text, used: !!remaining }; hintDist = d;
         }
-        if (prop.x < left - 94 || prop.x > right + 94 || prop.y < top - 94 || prop.y > bottom + 94) return;
-        let lean = 0;
-        if (!reduced && (prop.kind === 'bamboo' || prop.kind === 'reeds')) {
-          const rustle = Math.max(0, (g.environment.reeds.get(key) || 0) - time);
-          lean = 0.067 * Math.sin(time * 5 + prop.y * 0.02) + rustle * 0.35 * Math.sin(time * 27);
-        }
-        TerrainArt.draw(ctx, prop, lean, lit || (!!landmark && remaining === 0));
-      }, map);
-    };
-    drawMap(from, 1 - mix);
-    drawMap(id, mix);
-    ctx.globalAlpha = 1;
+      }
+      if (prop.x < left - 94 || prop.x > right + 94 || prop.y < top - 94 || prop.y > bottom + 94) return;
+      let lean = 0;
+      if (!reduced && (prop.kind === 'bamboo' || prop.kind === 'reeds')) {
+        const rustle = Math.max(0, (g.environment.reeds.get(key) || 0) - time);
+        lean = 0.067 * Math.sin(time * 5 + prop.y * 0.02) + rustle * 0.35 * Math.sin(time * 27);
+      }
+      TerrainArt.draw(ctx, prop, lean, lit || (!!landmark && remaining === 0));
+    }, map);
     return { lights, hint };
   },
 
@@ -169,31 +155,21 @@ const EnvironmentArt = {
     ctx.restore();
   },
 
-  drawWeather(ctx, w, h, scale, time, scene, reduced) {
-    const before = Environment.scenes[scene.from], after = Environment.scenes[scene.id];
-    const fadeOut = 1 - scene.mix;
-    if (before.weather === after.weather) this.particles(ctx, w, h, scale, time, after.weather, 1, reduced);
-    else {
-      this.particles(ctx, w, h, scale, time, before.weather, fadeOut, reduced);
-      this.particles(ctx, w, h, scale, time, after.weather, scene.mix, reduced);
-    }
-  },
-
-  drawTransition(ctx, w, h, scene, reduced) {
-    const k = scene.mix;
-    if (reduced || k <= 0 || k >= 1 || scene.id === 'dawn') return;
-    // 薄雾只从画面上下掠过，主角与弹幕仍保持清晰。
-    const fog = ctx.createLinearGradient(0, 0, w * 0.32, h);
-    fog.addColorStop(0, '#bad4c08c'); fog.addColorStop(0.32, '#a7c0be00');
-    fog.addColorStop(0.71, '#a7c0be00'); fog.addColorStop(1, '#bad4c08c');
-    ctx.save(); ctx.globalAlpha = Math.sin(k * Math.PI) * 0.48;
-    ctx.translate(w * (k - 0.5) * 0.12, 0);
-    ctx.fillStyle = fog; ctx.fillRect(-w * 0.1, 0, w * 1.2, h); ctx.restore();
-  },
-
   particles(ctx, w, h, scale, time, kind, weight, reduced) {
     if (kind === 'clear' || weight <= 0 || reduced) return;
-    if (kind === 'mist') {
+    if (kind === 'storm') {
+      const strength = Environment.stormFlash(time);
+      if (strength > 0) {
+        ctx.save(); ctx.globalAlpha = strength * weight * 0.21;
+        ctx.fillStyle = '#b7d0ff'; ctx.fillRect(0, 0, w, h);
+        const x = w * (0.16 + Terrain.hash(Environment.stormCycle(time), 6, 32) * 0.67);
+        ctx.globalAlpha = strength * weight * 0.85;
+        ctx.strokeStyle = '#dceaff'; ctx.lineWidth = Math.max(1, scale * 1.4);
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x - w * 0.07, h * 0.16);
+        ctx.lineTo(x - w * 0.02, h * 0.14); ctx.lineTo(x - w * 0.095, h * 0.31); ctx.stroke(); ctx.restore();
+      }
+    }
+    if (kind === 'mist' || kind === 'thickMist') {
       if (!this.mistSprite) {
         const tile = document.createElement('canvas');
         tile.width = tile.height = 128;
@@ -202,7 +178,7 @@ const EnvironmentArt = {
         c.fillStyle = fog; c.fillRect(0, 0, 128, 128);
         this.mistSprite = tile;
       }
-      ctx.save(); ctx.globalAlpha = weight * 0.12;
+      ctx.save(); ctx.globalAlpha = weight * (kind === 'thickMist' ? 0.21 : 0.12);
       for (let i = 0; i < 5; i++) {
         const x = (Terrain.hash(i, 4, 5) * (w + 260) + time * (6 + i)) % (w + 260) - 130;
         const y = h * (0.15 + i * 0.17);
@@ -211,29 +187,30 @@ const EnvironmentArt = {
       ctx.restore();
       return;
     }
-    const count = kind === 'rain' ? 100 : kind === 'snow' ? 78 : 35;
+    const rain = kind === 'rain' || kind === 'storm', snow = kind === 'snow' || kind === 'blizzard';
+    const count = kind === 'storm' ? 126 : rain ? 100 : kind === 'blizzard' ? 105 : snow ? 78 : 35;
     const wrap = (v, size) => (v % size + size) % size;
-    ctx.save(); ctx.globalAlpha = weight * (kind === 'rain' ? 0.40 : 0.69);
-    ctx.strokeStyle = kind === 'rain' ? '#a6cade' : '#b6ce86';
-    ctx.fillStyle = kind === 'snow' ? '#e5f4ed' : '#b6ce86';
+    ctx.save(); ctx.globalAlpha = weight * (rain ? 0.40 : 0.69);
+    ctx.strokeStyle = rain ? '#a6cade' : '#b6ce86';
+    ctx.fillStyle = snow ? '#e5f4ed' : '#b6ce86';
     ctx.lineWidth = Math.max(1, scale * 0.82);
     ctx.beginPath();
     for (let i = 0; i < count; i++) {
       const speed = 0.48 + Terrain.hash(i, 4, 2) * 0.9;
       const x0 = Terrain.hash(i, 4, 3) * w, y0 = Terrain.hash(i, 4, 4) * h;
-      const vx = kind === 'wind' ? 142 : kind === 'rain' ? 82 : 29;
-      const vy = kind === 'wind' ? 12 : kind === 'rain' ? 520 : 47;
-      const x = wrap(x0 + time * vx * scale * speed + (kind === 'rain' ? 0 : Math.sin(i + time * 2.4) * scale * 12), w);
+      const vx = kind === 'storm' ? 190 : kind === 'wind' || kind === 'blizzard' ? 142 : rain ? 82 : 29;
+      const vy = rain ? 520 : kind === 'wind' ? 12 : 47;
+      const x = wrap(x0 + time * vx * scale * speed + (rain ? 0 : Math.sin(i + time * 2.4) * scale * 12), w);
       const y = wrap(y0 + time * vy * scale * speed, h);
-      if (kind === 'snow') {
+      if (snow) {
         const r = (0.85 + speed * 1.25) * scale;
         ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, TAU);
       } else {
-        const dx = (kind === 'rain' ? 3.5 : 12) * scale * speed;
-        ctx.moveTo(x, y); ctx.lineTo(x + dx, y + (kind === 'rain' ? 19 : 3) * scale * speed);
+        const dx = (kind === 'storm' ? 8 : rain ? 3.5 : 12) * scale * speed;
+        ctx.moveTo(x, y); ctx.lineTo(x + dx, y + (rain ? 19 : 3) * scale * speed);
       }
     }
-    if (kind === 'snow') ctx.fill(); else ctx.stroke();
+    if (snow) ctx.fill(); else ctx.stroke();
     ctx.restore();
   },
 };

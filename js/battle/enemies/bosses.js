@@ -15,7 +15,7 @@ const BossBattle = {
   summonBoss(kind, tier, x, y, sceneId, plan = 'normal') {
     const def = BOSS_TYPES[kind];
     const tactic = BOSS_TACTICS[kind];
-    const arena = sceneId ? { id: sceneId, from: Environment.landscape(Environment.forBattle(this)) } : null;
+    const arena = sceneId ? { id: this.stage, from: this.stage } : null;
     const boss = this.spawnEnemy('boss', x, y);
     const hp = BOSS_HP[tier] * (this.coop ? COOP_DIFFICULTY.bossHp : 1);
     Object.assign(boss, {
@@ -83,7 +83,6 @@ const BossBattle = {
     this.bossesDefeated++;
     this.contractBoss(boss);
     for (let i = 0; i < 12; i++) this.dropGem(boss.x + U.rand(-50, 50), boss.y + U.rand(-50, 50), 8);
-    this.lastBossArena = boss.arena ? Environment.landscape(Environment.forBattle(this)) : null;
     if (this.boss === boss) this.boss = null;
     this.bossClearAt = this.time;
 

@@ -17,7 +17,7 @@ function setup(seed = {}) {
 }
 
 test('委托可不接、改选、取消，开局锁定当前选择，旧档不会自动报名', () => {
-  const { Save, g } = setup({ coins: 28 });
+  const { Save, g } = setup({ coins: 28, routes: { snow: true }, stageSelection: ['snow'] });
   assert.equal(Save.data.selectedContract, null);
   g.start('ella');
   assert.equal(g.contract, null);
@@ -34,15 +34,15 @@ test('委托可不接、改选、取消，开局锁定当前选择，旧档不�
   assert.equal(g.contract, null);
 });
 
-test('雨庭按不同喜灯计数，重访不清零，阵亡结算仍给一次奖励', () => {
-  const { Save, g, world, CONTRACTS, cues, writes } = setup({ selectedContract: 'rainLights', coins: 7, seals: 2 });
+test('雨庭按不同喜灯计数，阵亡结算仍给一次奖励', () => {
+  const { Save, g, world, CONTRACTS, cues, writes } = setup({ selectedContract: 'rainLights', coins: 7, seals: 2,
+    routes: { rain: true }, stageSelection: ['rain'] });
   const visit = x => world.visitLight(g, { kind: 'weddingLamp', x, y: 0 }, `rain:${x}:0`);
   const reward = CONTRACTS.rainLights;
   g.start('ella');
   world.visitLight(g, { kind: 'brazier', x: 0, y: 5 }, 'snow:0:5');
   visit(0); visit(0);
   assert.equal(g.contract.progress, 1);
-  g.enterLandscape('snow'); g.enterLandscape('rain');
   visit(0); visit(220);
   assert.equal(g.contract.progress, 2);
   visit(390); visit(630);
@@ -68,7 +68,7 @@ test('雨庭按不同喜灯计数，重访不清零，阵亡结算仍给一次�
 });
 
 test('雪岭连续计时，只有实际取暖或离开才重置，进度不会在暂停中走动', () => {
-  const { g, world } = setup({ selectedContract: 'snowVigil' });
+  const { g, world } = setup({ selectedContract: 'snowVigil', routes: { snow: true }, stageSelection: ['snow'] });
   const shrine = { kind: 'warmingShrine', x: 30, y: 3 };
   g.start('zhu');
   g.time = 194;
@@ -122,7 +122,7 @@ test('揭符破魇只认夜魇的悬赏打法，未完成可重试，奖励叠�
 });
 
 test('练习局和双人局不发委托奖励，也不消费首次结算资格', () => {
-  const { Save, g, writes } = setup({ selectedContract: 'rainLights', coins: 10 });
+  const { Save, g, writes } = setup({ selectedContract: 'rainLights', coins: 10, routes: { rain: true }, stageSelection: ['rain'] });
   g.start('ella');
   g.contractLit('weddingLamp'); g.contractLit('weddingLamp'); g.contractLit('weddingLamp');
   g.state = 'practice';
@@ -141,7 +141,7 @@ test('练习局和双人局不发委托奖励，也不消费首次结算资格',
 });
 
 test('两处镇纸符才算完成；空符、同一处冷却后重用都不算', () => {
-  const { g, world } = setup({ selectedContract: 'bambooWards' });
+  const { g, world } = setup({ selectedContract: 'bambooWards', routes: { bamboo: true }, stageSelection: ['bamboo'] });
   g.start('ella');
   g.time = 70; g.enterLandscape('bamboo');
   const ward = { kind: 'paperWard', x: 10, y: 0 };
@@ -158,7 +158,7 @@ test('两处镇纸符才算完成；空符、同一处冷却后重用都不算',
 });
 
 test('镇魂钟和引星符阵保留单次最高值，不累加较小的多次触发', () => {
-  const bell = setup({ selectedContract: 'pineBell' });
+  const bell = setup({ selectedContract: 'pineBell', routes: { night: true }, stageSelection: ['night'] });
   bell.g.start('ella');
   const ring = count => {
     bell.g.grid.clear(); bell.g.time += 37;
@@ -169,7 +169,7 @@ test('镇魂钟和引星符阵保留单次最高值，不累加较小的多次�
   assert.equal(bell.g.contract.progress, 3);
   ring(4); assert.ok(bell.g.contract.done);
 
-  const sigil = setup({ selectedContract: 'rainSigil' });
+  const sigil = setup({ selectedContract: 'rainSigil', routes: { rain: true }, stageSelection: ['rain'] });
   sigil.g.start('ella');
   const draw = count => {
     sigil.g.time += 25;

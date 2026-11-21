@@ -31,22 +31,57 @@ const RouteTrainingUI = {
 
   drawRouteShop(message) {
     const d = Save.data, list = this.$('routeList');
+    const scrollTop = list.scrollTop;
+    const pool = Environment.stagePool(d), all = this.$('btnStageAll');
+    all.setAttribute('aria-pressed', String(d.stageSelection === null));
+    this.$('stagePoolCount').textContent = `${pool.length} / ${Environment.ownedStages(d).length} 张`;
+    this.$('stagePoolGuide').textContent = Game.practiceStages ? '点锁定地图旁的「试玩」，下局单人会固定进入该图，不改变正式随机池。' :
+      '每局从勾选的地图抽一张，整局不换图。锁定的地图购买后才能使用。';
     list.replaceChildren();
-    for (const [id, item] of Object.entries(OPENING_ROUTES)) {
+    for (const [id, item] of Object.entries(STAGES)) {
       const name = Environment.scenes[id].name, owned = Environment.canOpen(d, id);
-      const selected = id === d.startScene, shortage = Math.max(0, item.cost - (Number.isFinite(d.coins) ? d.coins : 0));
+      const selected = pool.includes(id), shortage = Math.max(0, item.cost - (Number.isFinite(d.coins) ? d.coins : 0));
       const { button, info } = this.growthRow(list, id, item.icon, name, item.desc);
-      button.disabled = selected || (!owned && shortage > 0);
-      button.innerHTML = selected ? '已选' : owned ? '使用' : `${Icons.html('coin')} ${item.cost}`;
-      button.setAttribute('aria-label', selected ? `已选${name}` : owned ? `使用${name}` : `购买并使用${name}，${item.cost} 金币`);
-      if (!owned && shortage) this.growthShortage(info, `还差 ${shortage} 金币`);
+      const label = owned ? `将${name}纳入随机池` : `购买${name}，${item.cost} 金币`;
+      button.setAttribute('aria-label', label);
+      button.title = label;
+      if (owned) {
+        button.classList.add('stage-toggle');
+        button.setAttribute('aria-pressed', String(selected));
+        button.disabled = selected && pool.length === 1;
+        button.innerHTML = Icons.html(selected ? 'checked' : 'unchecked');
+      } else {
+        button.disabled = shortage > 0;
+        button.innerHTML = `${Icons.html('lock')} ${item.cost}`;
+        if (shortage) this.growthShortage(info, `还差 ${shortage} 金币`);
+      }
       button.addEventListener('click', () => {
-        if (!(owned ? Save.selectRoute(id) : Save.buyRoute(id))) return;
+        const changed = owned ? Save.setStageSelection(selected ? pool.filter(stage => stage !== id) : [...pool, id]) : Save.buyRoute(id);
+        if (!changed) return;
+        if (Game.practiceStage === id && !Game.canPracticeStage(id)) Game.selectPracticeStage(null);
         Sfx.play(owned ? 'click' : 'coin');
-        this.refreshGrowthAction('routes', list, button, 'btnShopRoutes', !owned ? `已解锁「${name}」` : '');
+        this.refreshGrowthAction('routes', list, button, 'btnShopRoutes', !owned ? `已解锁「${name}」${d.stageSelection ? '，勾选后才会抽到' : '，已加入随机池'}` : '');
       });
+      if (Game.canPracticeStage(id)) {
+        const actions = document.createElement('div'), trial = document.createElement('button');
+        const active = Game.practiceStage === id;
+        actions.className = 'stage-trial-actions';
+        trial.type = 'button'; trial.dataset.growthId = `trial-${id}`;
+        trial.setAttribute('aria-pressed', String(active));
+        trial.setAttribute('aria-label', `试玩${name}`);
+        trial.textContent = active ? '取消试玩' : '试玩';
+        trial.addEventListener('click', () => {
+          if (!Game.selectPracticeStage(active ? null : id)) return;
+          Sfx.play('click');
+          this.refreshGrowthAction('routes', list, trial, 'btnShopRoutes');
+        });
+        button.before(actions);
+        actions.append(button, trial);
+      }
     }
-    this.$('routeShopStatus').textContent = `${message ? message + ' · ' : ''}当前出发：${Environment.scenes[d.startScene].name}`;
+    list.scrollTop = scrollTop;
+    this.$('routeShopStatus').textContent = message || (Game.canPracticeStage(Game.practiceStage) ?
+      `下局试玩「${Environment.scenes[Game.practiceStage].name}」 · 不计战绩` : d.stageSelection ? '自选随机池' : '从全部已拥有场景随机');
   },
 
   drawTrainingShop(message) {

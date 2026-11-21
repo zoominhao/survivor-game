@@ -86,8 +86,8 @@ const LanState = (() => {
   function packFrame(g) {
     const b = g.boss, e = g.environment;
     return {
-      clock: pack(g, 'time bossClearAt lastBossArena shake'), players: g.players.map(p => packPlayer(p, g.pendingFor(p))),
-      fork: g.fork && pack(g.fork, 'id from since'),
+      clock: pack(g, 'time bossClearAt stage shake'), players: g.players.map(p => packPlayer(p, g.pendingFor(p))),
+      fork: g.fork && pack(g.fork, 'id since'),
       boss: b && [pack(b, bossFields), b.arena && [b.arena.id, b.arena.from], b.seals?.map(s => pack(s, 'x y r'))],
       enemies: g.enemies.filter(e => !e.dead && e !== b).map(e => [typeKeys.indexOf(e.type), ...pack(e, enemyFields)]),
       projs: bound(g.projs, 400).map(p => pack(p, projs)), bullets: bound(g.ebullets, 120).map(p => pack(p, bullets)),
@@ -104,13 +104,13 @@ const LanState = (() => {
   function readFrame(s) {
     if (!s || !Array.isArray(s.players) || s.players.length !== 2) return null;
     const players = s.players.map(unpackPlayer);
-    const clock = unpack(s.clock, 'time bossClearAt lastBossArena shake', { lastBossArena: v => own(Environment.scenes, v) });
-    if (!players.every(Boolean) || !clock || !number(clock.time, 0, CFG.RUN_TIME + 1)) return null;
+    const clock = unpack(s.clock, 'time bossClearAt stage shake', { stage: v => Environment.isStage(v) });
+    if (!players.every(Boolean) || !clock?.stage || !number(clock.time, 0, CFG.RUN_TIME + 1)) return null;
     const [partner, player] = players;
-    const frame = { ...clock, player, partner, players, boss: null, bossClearAt: clock.bossClearAt ?? -Infinity, lastBossArena: clock.lastBossArena ?? null };
+    const frame = { ...clock, player, partner, players, boss: null, landscape: clock.stage, bossClearAt: clock.bossClearAt ?? -Infinity };
     const fork = s.fork;
-    frame.fork = Array.isArray(fork) && own(ROUTE_BRANCHES, fork[0]) && own(Environment.scenes, fork[1]) &&
-      number(fork[2], FORK_WINDOW.start, Math.min(FORK_WINDOW.last, clock.time)) ? { id: fork[0], from: fork[1], since: fork[2] } : null;
+    frame.fork = Array.isArray(fork) && own(ROUTE_BRANCHES, fork[0]) &&
+      number(fork[1], FORK_WINDOW.start, Math.min(FORK_WINDOW.last, clock.time)) ? { id: fork[0], since: fork[1] } : null;
     frame.bond = CoopBonds.forPair(player.char, partner.char);
     frame.bondActive = s.bondActive === true && players.every(p => p.hp > 0);
     frame.rescue = Array.isArray(s.rescue) && typeof s.rescue[0] === 'boolean' && number(s.rescue[1], 0, RESCUE_SECONDS) ?
@@ -128,7 +128,7 @@ const LanState = (() => {
       const b = unpack(s.boss[0], bossFields);
       const arena = s.boss[1];
       if (b?.kind && b.r > 0 && number(b.maxHp, 1) && number(b.arrivedAt, 0) && number(b.t)) {
-        if (Array.isArray(arena) && arena.length === 2 && arena.every(k => own(Environment.scenes, k))) b.arena = { id: arena[0], from: arena[1] };
+        if (Array.isArray(arena) && arena.length === 2 && arena.every(k => k === frame.stage)) b.arena = { id: frame.stage, from: frame.stage };
         b.seals = mapRows(s.boss[2], 3, row => unpack(row, 'x y r'));
         frame.boss = { ...b, type: 'boss', boss: true };
         frame.enemies.push(frame.boss);

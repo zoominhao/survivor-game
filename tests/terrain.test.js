@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 const { battleScript, loadGame } = require('./fixtures/load-game');
 
-function setup() {
+function setup(stage = 'dusk') {
   const input = { x: 0, y: 0 };
   const banners = [];
   const cues = [];
@@ -14,9 +14,14 @@ function setup() {
   const { createBattle, Terrain, Environment, WorldInteractions, Save, CFG } = vm.runInContext(
     '({ createBattle, Terrain, Environment, WorldInteractions, Save, CFG })', context);
   Save.load();
+  const startStage = id => {
+    Save.data.routes[id] = true;
+    Save.data.stageSelection = [id];
+    Game.start('ella');
+  };
   const Game = createBattle({ save: Save, play: (...args) => cues.push(args), emit: (event, text) => { if (event === 'banner') banners.push(text); } });
-  Game.start('ella');
-  return { Game, Terrain, Environment, WorldInteractions, input, banners, cues, radius: CFG.PLAYER_R };
+  startStage(stage);
+  return { Game, Terrain, Environment, WorldInteractions, startStage, input, banners, cues, radius: CFG.PLAYER_R };
 }
 
 test('区块移出缓存后重建一致，开局中心没有障碍', () => {
@@ -76,15 +81,13 @@ test('石灯不会挡人，黑无常和投射物可以穿过山石', () => {
   assert.ok(Game.projs[0].x > rock.x + rock.r);
 });
 
-test('战场由暮色入夜并经过风、雨、雪，最后逐步天亮', () => {
-  const { Environment } = setup();
-  const at = t => Environment.sceneAt(t);
-  assert.deepEqual([0, 32, 61, 111, 183, 899].map(t => at(t).id), ['dusk', 'night', 'bamboo', 'rain', 'snow', 'dawn']);
-  assert.equal(at(105).from, 'bamboo');
-  assert.equal(at(105).mix, 0);
-  assert.equal(at(107.5).mix, 0.5);
-  assert.equal(at(816).mix, 0.5);
-  assert.equal(at(900).mix, 1);
+test('黎明只改变光照，地形整局不切换', () => {
+  const { Environment, Game } = setup('blizzard');
+  assert.deepEqual([0, 810, 840, 900].map(t => Environment.dawnlight(t)), [0, 0, 0.5, 1]);
+  for (const time of [0, 180, 480, 840, 899]) {
+    Game.time = time;
+    assert.equal(Environment.forBattle(Game).id, 'blizzard');
+  }
 });
 
 test('走近点灯，满血不浪费治疗，每局每盏灯只恢复一次', () => {
@@ -106,16 +109,15 @@ test('走近点灯，满血不浪费治疗，每局每盏灯只恢复一次', ()
 });
 
 test('各图在起点附近布置本地灯具，默认熄灭且可以安全靠近', () => {
-  const { Game, Terrain, Environment, WorldInteractions, radius } = setup();
-  for (const [time, scene, kind] of [[0, 'dusk', 'lantern'], [32, 'night', 'ghostLamp'], [61, 'bamboo', 'paperLamp'],
-    [111, 'rain', 'weddingLamp'], [183, 'snow', 'brazier'], [830, 'dawn', 'dawnLamp']]) {
+  const { Game, Terrain, Environment, WorldInteractions, startStage, radius } = setup();
+  for (const [scene, { lamp: kind }] of Object.entries(Environment.scenes)) {
+    startStage(scene);
     const targets = [];
     Terrain.forEachProp(-140, -140, 140, 140, prop => {
       if (Object.hasOwn(Environment.lights, prop.kind)) targets.push(prop);
     }, scene);
     assert.ok(targets.length >= 3);
     assert.ok(targets.every(prop => prop.kind === kind && !Terrain.obstacleAt(prop.x, prop.y, radius, scene)));
-    Game.time = time;
     const prop = targets[0], p = Game.player, key = WorldInteractions.key(prop, scene);
     assert.ok(!Game.environment.lit.has(key));
     Object.assign(p, { x: prop.x, y: prop.y, hp: 75 });
@@ -129,8 +131,7 @@ test('各图在起点附近布置本地灯具，默认熄灭且可以安全靠�
 });
 
 test('穿过芦苇会留下短暂摆动，静止时不会触发', () => {
-  const { Game, Terrain, WorldInteractions, input } = setup();
-  Game.time = 61;
+  const { Game, Terrain, WorldInteractions, input } = setup('bamboo');
   const reed = Terrain.chunk(0, 0, 'bamboo').props.find(p => p.kind === 'reeds');
   const key = WorldInteractions.key(reed, 'bamboo');
   Object.assign(Game.player, { x: reed.x, y: reed.y });
@@ -144,33 +145,34 @@ test('穿过芦苇会留下短暂摆动，静止时不会触发', () => {
   assert.equal(Game.environment.reeds.has(key), false);
 });
 
-test('同坐标的不同地图灯具分别点亮，回到松林不会重置也不会重播点灯声', () => {
-  const { Game, Terrain, WorldInteractions, cues } = setup();
+test('同坐标的不同地图灯具有独立标记，留在同一张地图不会重复点灯', () => {
+  const { Game, Terrain, WorldInteractions, startStage, cues } = setup('night');
   const lamp = Terrain.chunk(0, 0, 'night').props.find(o => o.kind === 'ghostLamp' && o.x === 78);
   const nightKey = WorldInteractions.key(lamp, 'night'), bambooKey = WorldInteractions.key(lamp, 'bamboo');
   Object.assign(Game.player, { x: lamp.x, y: lamp.y });
-  Game.time = 32; WorldInteractions.step(Game);
+  WorldInteractions.step(Game);
   assert.ok(Game.environment.lit.has(nightKey) && !Game.environment.lit.has(bambooKey));
-  Game.time = 61; WorldInteractions.step(Game);
-  assert.ok(Game.environment.lit.has(bambooKey));
   Game.time = 234; WorldInteractions.step(Game);
+  assert.equal(cues.filter(([name]) => name === 'lantern').length, 1);
+  startStage('bamboo');
+  Object.assign(Game.player, { x: lamp.x, y: lamp.y });
+  WorldInteractions.step(Game);
+  assert.ok(Game.environment.lit.has(bambooKey) && !Game.environment.lit.has(nightKey));
   assert.equal(cues.filter(([name]) => name === 'lantern').length, 2);
 });
 
-test('地图地形布局独立，淡变时切换碰撞且不会把玩家、鬼怪或宝箱卡进新障碍', () => {
+test('地图地形布局独立，对受阻的角色、夜兽和宝箱保留避障处理', () => {
   const { Game, Terrain, radius } = setup();
   const chunk = Terrain.chunk(2, 2, 'bamboo');
   assert.notDeepEqual(chunk.solid, Terrain.chunk(2, 2, 'night').solid);
   const { x, y } = chunk.solid;
-  Game.time = 57.49;
-  Game.enterLandscape('night');
   const enemy = Game.spawnEnemy('shade', x + 80, y);
   const ghost = Game.spawnEnemy('wraith', x, y);
   ghost.speed = 0;
   const chest = { type: 'chest', x: x - 1, y };
   for (const body of [Game.player, enemy]) Object.assign(body, { x, y });
   Game.pickups.push(chest);
-  Game.update(0.02);
+  Game.enterLandscape('bamboo');
   assert.equal(Game.landscape, 'bamboo');
   assert.equal(Terrain.obstacleAt(Game.player.x, Game.player.y, radius, 'bamboo'), null);
   assert.equal(Terrain.obstacleAt(enemy.x, enemy.y, enemy.r, 'bamboo'), null);
@@ -179,16 +181,15 @@ test('地图地形布局独立，淡变时切换碰撞且不会把玩家、鬼�
 });
 
 test('定时出现僵尸合围和鬼新娘，僵尸按起跳节奏移动', () => {
-  const { Game, banners, cues } = setup();
+  const { Game, banners, cues, startStage } = setup('bamboo');
   Game.eliteT = Infinity; // 单独检查定时事件，不计随机刷出的精英。
-  Game.time = 16; Game.spawn(0);
   Game.time = 70; Game.spawn(0);
-  assert.equal(Game.enemies.filter(e => e.type === 'jiangshi').length, 10);
-  Game.time = 119; Game.spawn(0);
+  assert.equal(Game.enemies.filter(e => e.type === 'jiangshi').length, 11);
+  startStage('rain'); Game.eliteT = Infinity;
   Game.time = 168; Game.spawn(0);
   assert.equal(Game.enemies.filter(e => e.type === 'bride').length, 1);
   assert.ok(banners.includes('黄符僵尸围了上来') && banners.some(text => text.includes('我冤呐')));
-  assert.deepEqual(cues.map(args => args[0]), ['paperChildArrival', 'corpseAmbush', 'umbrellaOpen', 'siegeArrival', 'brideArrival']);
+  assert.deepEqual(cues.map(args => args[0]), ['corpseAmbush', 'corpseAmbush', 'umbrellaOpen', 'umbrellaOpen', 'siegeArrival', 'brideArrival']);
   const zombie = Game.spawnEnemy('jiangshi', 90, 0);
   zombie.t = 0; const before = zombie.x; Game.updateEnemies(1 / 60);
   const landSpeed = before - zombie.x;
@@ -223,12 +224,11 @@ test('画皮妖改射碎面，仍保持原有的射程节奏与弹速', () => {
 });
 
 test('定时合围同时使用民俗怪物的造型和提示名称', () => {
-  for (const [time, id, count, notice] of [
-    [150, 'swarm', 26, '灯笼小鬼正在合围！'], [390, 'moth', 34, '招魂纸鸢正在合围！'],
-    [630, 'wraith', 30, '黑无常正在合围！'], [840, 'brute', 36, '镇墓石兽合围，最后一分钟'],
+  for (const [stage, time, id, count, notice] of [
+    ['rain', 150, 'swarm', 26, '灯笼小鬼正在合围！'], ['dusk', 390, 'moth', 34, '招魂纸鸢正在合围！'],
+    ['night', 630, 'wraith', 30, '黑无常正在合围！'], ['dusk', 840, 'brute', 36, '镇墓石兽合围，天色将明'],
   ]) {
-    // 直接把时钟推进到各地图的合围，不夹带 Boss 的锁图状态。
-    const { Game, banners } = setup();
+    const { Game, banners } = setup(stage);
     Game.eliteT = Infinity;
     Game.bossClearAt = time; // 保留本次合围，跳过提前累计的 Boss 登场。
     Game.time = time; Game.spawn(0);
@@ -275,18 +275,17 @@ test('鬼怪靠近时才喊叫，同种与不同种的叫声都限频，不把�
   assert.equal(calls()[1][0], 'brideAccuse');
 });
 
-test('随场景和过渡进度替换特色刷怪池，开局使用默认怪潮', () => {
+test('每张地图有自己的刷怪池，开局与后期随时间切换但不换图', () => {
   const { Environment } = setup();
-  const pool = (t, roll = 0.01) => Environment.enemyPoolAt(t, roll);
+  const pool = (t, stage) => Environment.enemyPoolAt(t, stage);
   assert.equal(pool(0), Environment.scenes.dusk.opening);
   assert.equal(pool(20), Environment.scenes.dusk.enemies);
-  assert.equal(pool(65), Environment.scenes.bamboo.enemies);
-  assert.equal(pool(105), Environment.scenes.bamboo.enemies);
-  assert.equal(pool(107.5, 0.25), Environment.scenes.rain.enemies);
-  assert.equal(pool(107.5, 0.75), Environment.scenes.bamboo.enemies);
-  assert.equal(pool(184), Environment.scenes.snow.enemies);
-  assert.equal(pool(490), Environment.scenes.snow.late);
-  assert.equal(pool(704), Environment.scenes.rain.late);
+  assert.equal(pool(704), Environment.scenes.dusk.late);
+  for (const stage of ['storm', 'blizzard', 'burial']) {
+    assert.equal(pool(0, stage), Environment.scenes[stage].opening);
+    assert.equal(pool(184, stage), Environment.scenes[stage].enemies);
+    assert.equal(pool(704, stage), Environment.scenes[stage].late);
+  }
 });
 
 test('纸扎童子摆动逼近，伞鬼从障碍里放出雨滴，白无常抗击退', () => {
@@ -306,7 +305,7 @@ test('纸扎童子摆动逼近，伞鬼从障碍里放出雨滴，白无常抗�
 });
 
 test('镇魂钟只在附近有敌人时触发，冷却后才能再次击退', () => {
-  const { Game, Terrain, WorldInteractions, cues } = setup();
+  const { Game, Terrain, WorldInteractions, cues } = setup('night');
   Game.time = 32; Game.update(0);
   const bell = Terrain.chunk(0, 0, 'night').props.find(o => o.kind === 'wardBell');
   Object.assign(Game.player, { x: bell.x, y: bell.y });
@@ -323,13 +322,13 @@ test('镇魂钟只在附近有敌人时触发，冷却后才能再次击退', ()
   Game.update(1 / 60);
   assert.equal(cues.filter(c => c[0] === 'wardBell').length, 1);
   assert.ok(Game.environment.landmarkReady.get(key) > Game.time);
-  Game.time = 234; // 回访时已自然冷却。
+  Game.time = 234; // 已自然冷却。
   WorldInteractions.step(Game);
   assert.equal(cues.filter(c => c[0] === 'wardBell').length, 2);
 });
 
 test('引星符阵只吸引范围内的经验，空触发不进入冷却', () => {
-  const { Game, Terrain, WorldInteractions } = setup();
+  const { Game, Terrain, WorldInteractions } = setup('rain');
   Game.time = 111; Game.update(0);
   const sigil = Terrain.chunk(0, 0, 'rain').props.find(o => o.kind === 'starSigil');
   Object.assign(Game.player, { x: sigil.x, y: sigil.y });
@@ -345,7 +344,7 @@ test('引星符阵只吸引范围内的经验，空触发不进入冷却', () =>
 });
 
 test('竹径镇纸符只减速不击退，空触发不消耗；雪岭暖龛有伤才用且只用一次', () => {
-  const { Game, Terrain, WorldInteractions } = setup();
+  const { Game, Terrain, WorldInteractions, startStage } = setup('bamboo');
   Game.time = 61;
   const ward = Terrain.chunk(0, 0, 'bamboo').props.find(o => o.kind === 'paperWard');
   const wardKey = WorldInteractions.key(ward, 'bamboo');
@@ -358,7 +357,7 @@ test('竹径镇纸符只减速不击退，空触发不消耗；雪岭暖龛有�
   assert.deepEqual([enemy.kx, enemy.ky], [0, 0]);
   assert.ok(Game.environment.landmarkReady.has(wardKey));
 
-  Game.time = 185;
+  startStage('snow'); Game.time = 185;
   const shrine = Terrain.chunk(0, 0, 'snow').props.find(o => o.kind === 'warmingShrine');
   const shrineKey = WorldInteractions.key(shrine, 'snow'), p = Game.player;
   Object.assign(p, { x: shrine.x, y: shrine.y });
@@ -371,7 +370,7 @@ test('竹径镇纸符只减速不击退，空触发不消耗；雪岭暖龛有�
   assert.equal(Game.environment.landmarkReady.get(shrineKey), Infinity);
 });
 
-test('补给木匣只发放一次奖励，换景不会刷新，新开局会重置', () => {
+test('补给木匣整局只发放一次奖励，新开局会重置', () => {
   const { Game, Terrain, WorldInteractions } = setup();
   const box = Terrain.chunk(0, -1).props.find(o => o.kind === 'supplyBox');
   const key = WorldInteractions.key(box);
@@ -388,7 +387,7 @@ test('补给木匣只发放一次奖励，换景不会刷新，新开局会重�
 });
 
 test('破晓香台有敌人靠近才会触发短暂无敌，而且只可使用一次', () => {
-  const { Game, Terrain, WorldInteractions } = setup();
+  const { Game, Terrain, WorldInteractions } = setup('dawn');
   Game.time = 830;
   const altar = Terrain.chunk(0, 0, 'dawn').props.find(o => o.kind === 'dawnAltar');
   const key = WorldInteractions.key(altar, 'dawn');
@@ -403,14 +402,17 @@ test('破晓香台有敌人靠近才会触发短暂无敌，而且只可使用�
   assert.equal(Game.player.iframe, 0);
 });
 
-test('竹径、雨庭、雪岭的环境提示音只在踏入场景时响一次', () => {
-  const { Game, cues } = setup();
-  for (const time of [55, 105, 177]) {
+test('荒祠雷声只在雷电时间点触发，其他地图不会响', () => {
+  const { Game, cues, startStage, Environment } = setup('storm');
+  Game.spawn = () => {}; // 不计开局事件中的那一声雷。
+  for (const time of [7, 25]) {
     Game.time = time - 0.01;
     Game.update(1 / 60); Game.update(1 / 60);
   }
-  assert.deepEqual(cues.filter(([name]) => name.endsWith('Pass')).map(([name]) => name),
-    ['bambooPass', 'rainPass', 'snowPass']);
+  assert.equal(Environment.stormFlash(7), 1);
+  assert.equal(Environment.stormFlash(8), 0);
+  startStage('rain'); Game.time = 6.99; Game.update(0.02);
+  assert.equal(cues.filter(([name]) => name === 'stormThunder').length, 2);
 });
 
 test('纸童与白无常发出方位声，伞鬼射雨滴时不复用普通霜环音', () => {
@@ -483,16 +485,16 @@ test('夜魇倒下收齐全图宝石并回血，宝箱和选卡让出短暂的�
 
 test('三位 Boss 按分钟顺序登场，上一位未击败时后一位排队', () => {
   const { Game, Environment, banners, cues } = setup();
-  const activeMap = () => Environment.landscape(Environment.forBattle(Game));
+  const activeMap = () => Environment.forBattle(Game).id;
   Game.eliteT = Infinity;
   Game.time = 240; Game.spawn(0);
   assert.equal(Game.state, 'decision');
   Game.chooseBossPlan('normal');
   assert.equal(Game.boss.kind, 'nightmare');
-  assert.equal(activeMap(), 'night');
+  assert.equal(activeMap(), 'dusk');
   Game.time = 480; Game.spawn(0);
   assert.equal(Game.boss.kind, 'nightmare');
-  assert.equal(activeMap(), 'night');
+  assert.equal(activeMap(), 'dusk');
   assert.equal(Game.pendingBosses.length, 1);
   Game.killEnemy(Game.boss);
   Game.spawn(0);
@@ -501,23 +503,23 @@ test('三位 Boss 按分钟顺序登场，上一位未击败时后一位排队',
   assert.equal(Game.state, 'decision');
   Game.chooseBossPlan('normal');
   assert.equal(Game.boss.name, '棺山尸王');
-  assert.equal(Game.boss.arena.id, 'snow');
+  assert.equal(Game.boss.arena.id, 'dusk');
   Game.time = 488;
-  assert.equal(activeMap(), 'snow');
+  assert.equal(activeMap(), 'dusk');
   Game.killEnemy(Game.boss);
   Game.time = 720; Game.spawn(0);
   Game.chooseBossPlan('normal');
   assert.equal(Game.boss.name, '冥轿鬼后');
-  assert.equal(activeMap(), 'rain');
+  assert.equal(activeMap(), 'dusk');
   assert.equal(Game.boss.hp, 16000);
   assert.ok(banners.includes('棺山尸王降临') && banners.includes('冥轿鬼后降临'));
   assert.ok(cues.some(c => c[0] === 'coffinKingArrival') && cues.some(c => c[0] === 'bridalQueenArrival'));
   Game.time = 823;
-  assert.equal(activeMap(), 'rain');
+  assert.equal(activeMap(), 'dusk');
   Game.killEnemy(Game.boss);
-  assert.equal(activeMap(), 'rain');
+  assert.equal(activeMap(), 'dusk');
   Game.time = 829;
-  assert.equal(activeMap(), 'dawn');
+  assert.equal(activeMap(), 'dusk');
 });
 
 test('棺山尸王的震圈锁定位置，离开圈后不会受伤', () => {

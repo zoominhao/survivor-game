@@ -30,6 +30,7 @@ const UtilityUI = {
       slider.addEventListener('change', () => change(true));
     }
     this.$('watchClock').addEventListener('click', () => App.tapPractice());
+    this.$('menuWatchSeal').addEventListener('click', () => { Sfx.unlock(); App.tapPractice(); });
     for (const button of this.$('practice').querySelectorAll('[data-practice]')) {
       button.addEventListener('click', () => {
         if (!Game.usePractice(button.dataset.practice)) return;
@@ -37,6 +38,15 @@ const UtilityUI = {
         this.refreshPractice();
       });
     }
+    const minutes = this.$('practiceMinutes');
+    minutes.min = PRACTICE_MINUTES.min;
+    minutes.max = PRACTICE_MINUTES.max;
+    this.$('practiceDurationForm').addEventListener('submit', event => {
+      event.preventDefault();
+      if (!Game.setPracticeDuration(minutes.valueAsNumber)) return;
+      Sfx.play('click');
+      this.refreshPracticeDuration();
+    });
     this.refreshAudio();
   },
 
@@ -63,18 +73,36 @@ const UtilityUI = {
   },
 
   refreshPractice() {
-    const p = Game.player, panel = this.$('practice');
+    const inRun = Game.state === 'practice', p = Game.player, panel = this.$('practice');
     this.refreshSoundTests();
-    this.$('practiceLife').textContent = `生命 ${Math.ceil(p.hp)}/${p.st.maxHp}`;
-    this.$('practiceCoins').textContent = `金币 ${Math.floor(p.coins)}`;
-    this.$('practiceLevel').textContent = `修为 ${p.level}`;
-    this.$('practiceGuard').textContent = `无敌${Game.practiceInvincible ? '开启' : '关闭'}`;
+    this.$('practiceLiveStats').classList.toggle('hidden', !inRun);
+    this.$('practiceLiveActions').classList.toggle('hidden', !inRun);
+    if (inRun) {
+      this.$('practiceLife').textContent = `生命 ${Math.ceil(p.hp)}/${p.st.maxHp}`;
+      this.$('practiceCoins').textContent = `金币 ${Math.floor(p.coins)}`;
+      this.$('practiceLevel').textContent = `修为 ${p.level}`;
+      this.$('practiceGuard').textContent = `无敌${Game.practiceInvincible ? '开启' : '关闭'}`;
+    }
     this.$('practiceRosterStatus').textContent = Game.practiceRoster ? '已开启试玩，返回名册选角' : '全角色试玩关闭';
+    this.$('practiceStageStatus').textContent = Game.practiceStages ? '全场景试玩已开启，返回场景库选图' : '';
     panel.querySelector('[data-practice="invincible"]').setAttribute('aria-pressed', String(Game.practiceInvincible));
     this.$('btnPracticeRoster').setAttribute('aria-pressed', String(Game.practiceRoster));
+    this.$('btnPracticeStages').setAttribute('aria-pressed', String(Game.practiceStages));
+    this.refreshPracticeDuration();
     const heal = panel.querySelector('[data-practice="heal"]');
     const hadFocus = document.activeElement === heal;
-    heal.disabled = p.hp >= p.st.maxHp;
+    heal.disabled = !inRun || p.hp >= p.st.maxHp;
     if (heal.disabled && hadFocus) this.$('btnClosePractice').focus();
+  },
+
+  refreshPracticeDuration() {
+    const setup = Game.state === 'practiceSetup';
+    const minutes = (setup ? Game.practiceNextDuration ?? CFG.RUN_TIME : Game.duration) / 60;
+    this.$('practiceTimeLabel').textContent = setup ? '下局单人时长' : '本局总时长';
+    this.$('practiceMinutes').value = minutes;
+    this.$('practiceTimeNote').textContent = setup ? (Game.practiceNextDuration ? `下局单人 ${minutes} 分钟 · 仅生效一次，不计战绩。` :
+      `下一局使用默认时长。可设 ${PRACTICE_MINUTES.min}–${PRACTICE_MINUTES.max} 分钟。`) :
+      Game.duration <= Game.time ? '已达到新时长，返回战斗即结算练习局。' :
+      `本局 ${minutes} 分钟 · 允许 ${PRACTICE_MINUTES.min}–${PRACTICE_MINUTES.max} 分钟，重开恢复默认。`;
   },
 };

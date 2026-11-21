@@ -26,10 +26,10 @@ const BattlePanelsUI = {
   },
 
   showRouteFork() {
-    this.$('decisionTitle').textContent = '灯尽逢岔路';
-    this.$('decisionScene').textContent = '支路持续到 7:25，随后会合到雪岭。';
+    this.$('decisionTitle').textContent = '夜巡变阵';
+    this.$('decisionScene').textContent = '不换地图，选一种应对下一波夜兽的战术。加成持续到 7:25。';
     this.$('decisionWallet').classList.add('hidden');
-    this.$('btnNormalFight').textContent = '走竹径 · Esc';
+    this.$('btnNormalFight').textContent = '布符镇守 · Esc';
     const cards = Object.entries(ROUTE_BRANCHES).map(([plan, route]) => ({ ...route, plan,
       cls: plan === 'bamboo' ? 'passive' : 'evo', desc: route.notes }));
     this.drawDecision(cards, plan => Game.chooseFork(plan));

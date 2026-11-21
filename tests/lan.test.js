@@ -62,14 +62,17 @@ test('压缩码保留原连接参数，区分邀请和应答，聊天链接可�
 test('房间只接受有效角色和版本，队友准备与取消都由房主确认', () => {
   const { LanRoom, LAN_ROOM_VERSION } = setup();
   const toGuest = [], toHost = [];
-  const state = (role, char, output) => ({ ...LanRoom, role, char, phase: 'connected', fallbackAt: 45000,
+  const state = (role, char, output) => ({ ...LanRoom, role, char, localStages: ['dusk', 'storm'], phase: 'connected', fallbackAt: 45000,
     guestReady: false, link: { send(data) { output.push(data); return true; } }, statusText(text) { this.status = text; } });
   const host = state('host', 'ella', toGuest), guest = state('guest', 'zhu', toHost);
   host.receiveRoom({ t: 'hello', version: 1, char: 'zhu' });
   assert.equal(host.otherChar, undefined);
   host.receiveRoom({ t: 'ready', ready: true });
   assert.equal(host.guestReady, false);
-  host.receiveRoom({ t: 'hello', version: LAN_ROOM_VERSION, char: 'zhu' });
+  host.receiveRoom({ t: 'hello', version: LAN_ROOM_VERSION, char: 'zhu', stages: ['constructor'] });
+  assert.equal(host.otherChar, undefined);
+  host.receiveRoom({ t: 'hello', version: LAN_ROOM_VERSION, char: 'zhu', stages: ['storm'] });
+  assert.deepEqual(host.peerStages, ['storm']);
   assert.equal(host.fallbackAt, 0);
   guest.receiveRoom(toGuest.shift());
   assert.equal(guest.otherChar, 'ella');
@@ -132,17 +135,23 @@ test('一人倒下不结束，击败 Boss 后可以回场，两人都倒下才�
   assert.equal(g.state, 'gameover');
 });
 
-test('双人保留三位 Boss 的主场与战前抉择，撑完十五分钟正常结算', () => {
+test('双人在同一张已启用地图连续迎战三位 Boss，撑完十五分钟正常结算', () => {
   const { game: g, CFG, LanState } = setup();
-  for (const [time, kind, scene] of [[240, 'nightmare', 'night'], [480, 'coffinKing', 'snow'], [720, 'bridalQueen', 'rain']]) {
+  g.save.data.routes = { storm: true };
+  g.start('ella', 'echo', { peerStages: ['storm'] });
+  for (const [time, kind] of [[240, 'nightmare'], [480, 'coffinKing'], [720, 'bridalQueen']]) {
     g.time = time - 0.01;
     g.update(0.02);
     assert.equal(g.state, 'decision');
     assert.ok(g.chooseBossPlan('normal'));
     assert.equal(g.boss.kind, kind);
-    assert.equal(g.boss.arena.id, scene);
+    assert.equal(g.boss.arena.id, 'storm');
     const snapshot = LanState.readFrame(JSON.parse(JSON.stringify(LanState.packFrame(g))));
-    assert.equal(snapshot.boss.arena.id, scene);
+    assert.equal(snapshot.stage, 'storm');
+    assert.equal(snapshot.boss.arena.id, 'storm');
+    const invalid = LanState.packFrame(g);
+    invalid.clock[2] = 'constructor';
+    assert.equal(LanState.readFrame(invalid), null);
     g.killEnemy(g.boss, g.partner);
   }
   g.time = CFG.RUN_TIME - 0.01;

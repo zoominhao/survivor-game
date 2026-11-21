@@ -7,7 +7,7 @@ const { battleScript, loadGame } = require('./fixtures/load-game');
 
 function startIntro({ reducedMotion = false } = {}) {
   const document = { hidden: false, getElementById: () => ({ classList: { add() {} } }) };
-  const ui = { showIntro(charId, duration) { this.intro = { charId, duration }; }, show(id) { this.overlay = id; }, updateHud() {} };
+  const ui = { showIntro(charId, duration) { this.intro = { charId, duration }; }, show(id) { this.overlay = id; }, updateHud() {}, banner() {} };
   const sfx = { cues: [], play(name) { this.cues.push(name); }, syncMusic() {} };
   const context = vm.createContext({
     document, window: { addEventListener() {}, matchMedia: () => ({ matches: reducedMotion }) },

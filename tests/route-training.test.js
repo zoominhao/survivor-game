@@ -15,19 +15,28 @@ function setup(initial = {}) {
   return { Save, Environment, game: createBattle({ save: Save, play: cue => cues.push(cue) }), cues };
 }
 
-test('免费路线仍会到雪山，购买的是可切换的开局路线，不会重复扣款', () => {
-  const { Save, Environment, game: g, cues } = setup({ coins: 175, seals: 3, lastChar: 'zhu' });
-  assert.equal(Save.data.startScene, 'dusk');
-  assert.equal(Environment.scenes.snow.weather, 'snow');
-  assert.equal(Environment.landscape(Environment.sceneAt(182)), 'snow');
-  assert.ok(!Save.selectRoute('snow'));
+test('只有已购地图可用；购买不重复扣款，默认随机，单选可固定整局', () => {
+  const { Save, Environment, game: g, cues } = setup({ coins: 175, seals: 3, lastChar: 'zhu', startScene: 'snow' });
+  assert.deepEqual(Array.from(Environment.stagePool(Save.data)), ['dusk']);
+  assert.ok(!Save.setStageSelection(['snow']));
+  assert.ok(!Save.setStageSelection([]));
+  g.start('zhu');
+  for (const time of [26, 105, 177, 480, 899]) {
+    g.time = time;
+    assert.equal(Environment.forBattle(g).id, 'dusk');
+  }
   assert.ok(!Save.buyRoute('constructor'));
   assert.ok(Save.buyRoute('snow'));
   assert.ok(!Save.buyRoute('snow'));
   assert.equal(Save.data.coins, 15);
   assert.equal(Save.data.seals, 3);
+  const all = Environment.stagePool(Save.data);
+  assert.deepEqual(Array.from(all), ['dusk', 'snow']);
+  assert.equal(Environment.pickStage(all, () => 0.05), 'dusk');
+  assert.equal(Environment.pickStage(all, () => 0.95), 'snow');
+  assert.ok(Save.setStageSelection(['snow']));
   Save.load();
-  assert.equal(Save.data.startScene, 'snow');
+  assert.deepEqual(Array.from(Save.data.stageSelection), ['snow']);
   assert.equal(Save.data.lastChar, 'zhu');
   g.start('zhu');
   assert.equal(g.landscape, 'snow');
@@ -36,19 +45,33 @@ test('免费路线仍会到雪山，购买的是可切换的开局路线，不�
   g.spawn(0);
   assert.ok(g.enemies.some(e => e.type === 'snowEnvoy'));
   assert.ok(cues.includes('envoyCall'));
-  g.time = 59.99;
-  assert.equal(Environment.forBattle(g).id, 'snow');
   g.time = 65;
-  assert.equal(Environment.landscape(Environment.forBattle(g)), 'bamboo');
-  g.time = 480;
-  g.summonBoss('coffinKing', 1, 300, 0, 'snow');
   assert.equal(Environment.forBattle(g).id, 'snow');
-  g.start('zhu', 'ella');
-  assert.equal(g.openingScene, 'dusk');
-  assert.equal(Save.data.startScene, 'snow');
-  assert.ok(Save.selectRoute('dusk'));
-  assert.ok(Save.selectRoute('snow'));
+  g.summonBoss('nightmare', 0, 300, 0, 'night');
+  assert.equal(Environment.forBattle(g).id, 'snow');
+  g.start('zhu', 'ella', { peerStages: ['dusk', 'storm'] });
+  assert.equal(g.stage, 'dusk');
+  g.start('zhu', 'ella', { peerStages: ['snow'] });
+  assert.equal(g.stage, 'snow');
+  g.start('zhu', 'ella', { robot: true });
+  assert.equal(g.stage, 'snow');
+  assert.ok(Save.setStageSelection(null));
+  assert.equal(Save.data.stageSelection, null);
   assert.equal(Save.data.coins, 15);
+});
+
+test('旧版已购场景迁移进默认随机池，购买新图不会改变已自选的池', () => {
+  const { Save, Environment, game: g } = setup({ coins: 450, startScene: 'night', routes: { night: true, rain: true } });
+  assert.deepEqual(Array.from(Environment.stagePool(Save.data)), ['dusk', 'night', 'rain']);
+  assert.ok(!Save.setStageSelection(['night', 'night']));
+  assert.ok(Save.setStageSelection(['night', 'rain']));
+  assert.ok(Save.buyRoute('storm'));
+  assert.deepEqual(Array.from(Environment.stagePool(Save.data)), ['night', 'rain']);
+  assert.ok(Save.setStageSelection(['storm']));
+  Save.load();
+  g.start('ella');
+  assert.equal(g.stage, 'storm');
+  assert.equal(Environment.scenes[g.stage].weather, 'storm');
 });
 
 test('守夜印只用于已解锁英雄的个人修炼，可预览并叠加到单人初始属性', () => {
@@ -109,7 +132,7 @@ test('旧存档和异常字段回到安全默认值，不赠送未购买的场�
   const { Save, game: g } = setup({ coins: 20, seals: -7, startScene: 'snow', routes: { snow: 1 },
     training: { zhu: { vital: 8, might: '1', swift: 1, haste: 1 }, other: { vital: 1 } } });
   assert.equal(Save.data.seals, 0);
-  assert.equal(Save.data.startScene, 'dusk');
+  assert.equal(Save.data.stageSelection, null);
   assert.deepEqual(Object.keys(Save.data.training), ['zhu']);
   assert.deepEqual(Object.keys(Save.data.training.zhu), ['swift']);
   assert.equal(Save.data.coins, 20);

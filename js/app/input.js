@@ -9,7 +9,7 @@ const Input = {
   init() {
     window.addEventListener('keydown', e => {
       Sfx.unlock();
-      if (e.target instanceof HTMLTextAreaElement) {
+      if (e.target instanceof HTMLTextAreaElement || (e.target instanceof HTMLInputElement && e.target.type === 'number')) {
         if (e.code === 'Escape' && !e.repeat) App.onKey(e.code, e.shiftKey);
         return;
       }

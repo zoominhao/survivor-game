@@ -36,7 +36,12 @@ const MenuUI = {
     this.$('menuCoins').textContent = d.coins;
     this.$('menuBest').textContent = d.best ? U.fmtTime(d.best) : '--:--';
     this.$('menuWins').textContent = d.wins;
-    this.$('menuRoute').textContent = `单人出发：${Environment.scenes[d.startScene].name}`;
+    const pool = Environment.stagePool(d);
+    const practiceTime = this.$('menuPracticeTime');
+    practiceTime.classList.toggle('hidden', !Game.practiceNextDuration);
+    practiceTime.textContent = Game.practiceNextDuration ? `下局单人练习：${Game.practiceNextDuration / 60} 分钟` : '';
+    this.$('menuRoute').textContent = Game.canPracticeStage(Game.practiceStage) ? `场景试玩：${Environment.scenes[Game.practiceStage].name}` :
+      pool.length === 1 ? `巡夜场景：${Environment.scenes[pool[0]].name}` : `巡夜场景：从 ${pool.length} 张随机`;
     this.refreshContractMenu();
     this.$('charNotice').textContent = Game.practiceRoster ? '标有「试玩」的角色仅限单人，不计战绩和奖励。' : '';
     const list = this.$('charList');

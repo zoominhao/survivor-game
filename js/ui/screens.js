@@ -19,6 +19,9 @@ const UI = {
     on('btnShopMeta', () => this.showShop('meta'));
     on('btnShopSkills', () => this.showShop('skills'));
     on('btnShopRoutes', () => this.showShop('routes'));
+    on('btnStageAll', () => {
+      if (Save.setStageSelection(null)) this.showShop('routes');
+    });
     on('btnShopTraining', () => this.showShop('training'));
     on('btnShopBack', () => this.showMenu());
     on('btnContracts', () => this.showContracts());
@@ -52,7 +55,7 @@ const UI = {
     }
     if (id === 'decision' && id !== previous) this.decisionFocus = this.$('hud').contains(document.activeElement) ? document.activeElement : null;
     for (const o of document.querySelectorAll('.overlay')) o.classList.toggle('hidden', o.id !== id);
-    const inRun = !!Game.player && Game.state !== 'menu' && Game.state !== 'intro';
+    const inRun = !!Game.player && !['menu', 'intro', 'practiceSetup'].includes(Game.state);
     const hud = this.$('hud');
     hud.classList.toggle('hidden', !inRun);
     hud.inert = !inRun || !!id;

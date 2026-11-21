@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css?v=handscroll1">
-  <link rel="stylesheet" href="css/screens.css?v=handscroll3">
+  <link rel="stylesheet" href="css/screens.css?v=practice-menu1">
   <link rel="stylesheet" href="css/responsive.css?v=handscroll2">
 </head>
 <body>
@@ -68,9 +68,9 @@
           <span class="chapter">荒原夜巡录</span>
           <div class="cover-wordmark">
             <h1 id="gameTitle">长夜守望</h1>
-            <img class="cover-seal" src="art/watch-seal.svg" alt="" width="38" height="38">
+            <button id="menuWatchSeal" class="cover-seal" type="button" aria-label="守夜印" aria-keyshortcuts="Shift+G"><img src="art/watch-seal.svg" alt="" width="38" height="38"></button>
           </div>
-          <p>提灯入荒原，守过十五分钟，直到天明。</p>
+          <p>提灯入荒原，守过长夜，等一线天光。</p>
         </div>
       </header>
       <div class="watch-roster">
@@ -100,7 +100,7 @@
           </div>
         </div>
         <div class="roster-note">
-          <span id="menuRoute"></span><span id="contractMenuState">未接委托</span>
+          <span id="menuRoute"></span><span id="contractMenuState">未接委托</span><span id="menuPracticeTime" class="hidden"></span>
         </div>
         <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
         <p id="charNotice" class="char-notice" role="status"></p>
@@ -154,6 +154,7 @@
         <div><dt>队友</dt><dd><span id="lanRoomGuest"></span><small id="lanRoomReady"></small></dd></div>
       </dl>
       <p id="lanBond" class="control-note"></p>
+      <p id="lanStages" class="control-note"></p>
       <p id="lanCountdown" class="control-note hidden"></p>
       <div class="row">
         <button id="btnLanAccept" class="primary hidden" type="button" disabled>生成应答二维码</button>
@@ -234,7 +235,11 @@
         <p id="skillShopStatus" class="control-note shop-status" role="status"></p>
       </div>
       <div id="routeShopPanel" class="hidden">
-        <p class="control-note">金币永久解锁单人开局路线。前 1 分钟从选中的场景出发，之后接回常规巡夜。普通路线仍可免费走过所有场景。</p>
+        <div class="stage-pool" role="group" aria-label="场景随机池">
+          <span><span data-icon="mapScroll"></span> 随机池 <b id="stagePoolCount"></b></span>
+          <button id="btnStageAll" type="button" aria-pressed="true">全部已拥有</button>
+        </div>
+        <p id="stagePoolGuide" class="control-note">每局从勾选的地图抽一张，整局不换图。锁定的地图购买后才能使用。</p>
         <div id="routeList" class="shop-stack"></div>
         <p id="routeShopStatus" class="control-note shop-status" role="status"></p>
       </div>
@@ -337,17 +342,29 @@
       <h2 id="practiceTitle">作弊面板</h2>
       <p id="practiceNote" class="sub">使用作弊后不计战绩和奖励。仅试听不会影响本局。</p>
       <p id="practiceStatus" class="control-note" role="status">
-        <span id="practiceLife"></span> <span id="practiceCoins"></span>
-        <span id="practiceLevel"></span> <span id="practiceGuard"></span>
-        <span id="practiceRosterStatus"></span>
+        <span id="practiceLiveStats"><span id="practiceLife"></span> <span id="practiceCoins"></span>
+        <span id="practiceLevel"></span> <span id="practiceGuard"></span></span>
+        <span id="practiceRosterStatus"></span> <span id="practiceStageStatus"></span>
       </p>
-      <div class="practice-actions">
+      <div id="practiceLiveActions" class="practice-actions">
         <button type="button" data-practice="invincible" aria-pressed="false">无敌</button>
         <button type="button" data-practice="heal">回满生命</button>
         <button type="button" data-practice="coins">本局 +100 金币</button>
         <button type="button" data-practice="xp">+50 基础经验</button>
-        <button id="btnPracticeRoster" type="button" data-practice="roster" aria-pressed="false">试玩全部角色</button>
       </div>
+      <div class="practice-actions practice-previews">
+        <button id="btnPracticeRoster" type="button" data-practice="roster" aria-pressed="false">试玩全部角色</button>
+        <button id="btnPracticeStages" type="button" data-practice="stages" aria-pressed="false">试玩全部场景</button>
+      </div>
+      <form id="practiceDurationForm" class="practice-duration">
+        <label for="practiceMinutes"><span data-icon="haste"></span> <span id="practiceTimeLabel">本局总时长</span></label>
+        <div class="practice-time-entry">
+          <input id="practiceMinutes" type="number" inputmode="numeric" step="1" required aria-describedby="practiceTimeNote">
+          <span>分钟</span>
+          <button type="submit">应用</button>
+        </div>
+        <p id="practiceTimeNote" class="control-note" role="status"></p>
+      </form>
       <fieldset class="mix-previews">
         <legend>声音测试</legend>
         <div class="preview-row effects-previews" role="group" aria-label="鬼怪音效">
@@ -389,51 +406,51 @@
   <script src="js/battle/rules.js?v=routes1"></script>
   <script src="js/battle/combat/equipment.js?v=evo1"></script>
   <script src="js/battle/characters/roster.js?v=folk2"></script>
-  <script src="js/battle/world/route-fork.js"></script>
-  <script src="js/battle/world/environment.js?v=fork1"></script>
-  <script src="js/battle/enemies/catalog.js?v=fork1"></script>
+  <script src="js/battle/world/route-fork.js?v=stages1"></script>
+  <script src="js/battle/world/environment.js?v=practice2"></script>
+  <script src="js/battle/enemies/catalog.js?v=stages1"></script>
   <script src="js/battle/combat/grid.js?v=late1"></script>
   <script src="js/battle/world/terrain.js"></script>
-  <script src="js/battle/world/interactions.js?v=fork1"></script>
+  <script src="js/battle/world/interactions.js?v=stages1"></script>
   <script src="js/battle/combat/ai-strike.js?v=folk1"></script>
   <script src="js/battle/combat/folk-loadouts.js?v=links1"></script>
   <script src="js/battle/combat/folk-synergy.js"></script>
   <script src="js/battle/combat/weapons.js?v=evo1"></script>
   <script src="js/battle/coop-bonds.js?v=links1"></script>
   <script src="js/battle/characters/progression.js?v=bonds1"></script>
-  <script src="js/battle/enemies/behavior.js?v=late1"></script>
+  <script src="js/battle/enemies/behavior.js?v=stages1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
   <script src="js/battle/enemies/boss-decisions.js?v=lan1"></script>
-  <script src="js/battle/enemies/bosses.js?v=bonds1"></script>
+  <script src="js/battle/enemies/bosses.js?v=stages1"></script>
   <script src="js/battle/combat/damage.js?v=actives2"></script>
   <script src="js/battle/combat/projectiles.js?v=links1"></script>
   <script src="js/battle/combat/drops.js?v=actives2"></script>
   <script src="js/battle/combat/effects.js"></script>
-  <script src="js/battle/practice.js?v=practice-roster1"></script>
+  <script src="js/battle/practice.js?v=practice-menu1"></script>
   <script src="js/battle/coop-support.js?v=emotes1"></script>
   <script src="js/battle/robot-threats.js?v=folk1"></script>
   <script src="js/battle/robot-partner.js?v=folk1"></script>
   <script src="js/battle/upgrade-advice.js?v=folk1"></script>
-  <script src="js/battle/combat/active-skills.js?v=actives2"></script>
+  <script src="js/battle/combat/active-skills.js?v=stages1"></script>
   <script src="js/battle/coop.js?v=actives2"></script>
-  <script src="js/battle/contracts.js?v=ambience1"></script>
-  <script src="js/battle/battle.js?v=actives1"></script>
+  <script src="js/battle/contracts.js?v=stages1"></script>
+  <script src="js/battle/battle.js?v=practice-menu1"></script>
 
-  <script src="js/platform/save.js?v=folk2"></script>
+  <script src="js/platform/save.js?v=stages1"></script>
   <script src="js/audio/horror-data.js?v=night-audio1"></script>
   <script src="js/audio/horror-samples.js?v=night-audio1"></script>
   <script src="js/audio/music.js?v=night-audio1"></script>
   <script src="js/audio/voice-data.js"></script>
   <script src="js/audio/voices.js"></script>
   <script src="js/audio/arrivals.js?v=night-audio1"></script>
-  <script src="js/audio/audio.js?v=night-audio1"></script>
+  <script src="js/audio/audio.js?v=stages1"></script>
   <script src="js/render/characters/hand-light.js"></script>
   <script src="js/render/characters/echo-figure.js?v=outfits1"></script>
   <script src="js/render/characters/xiaoxiao-art.js?v=outfits1"></script>
   <script src="js/render/characters/zhu-figure.js?v=shortcrop1"></script>
   <script src="js/render/characters/trail-figures.js"></script>
   <script src="js/render/characters/folk-figures.js"></script>
-  <script src="js/render/characters/wardrobe.js?v=folk1"></script>
+  <script src="js/render/characters/wardrobe.js?v=stages1"></script>
   <script src="js/render/characters/draw.js?v=folk1"></script>
   <script src="js/render/combat/food-art.js"></script>
   <script src="js/render/combat/zhu-skills.js?v=outfits1"></script>
@@ -442,34 +459,34 @@
   <script src="js/render/combat/draw.js?v=actives2"></script>
   <script src="js/render/world/map-props-art.js"></script>
   <script src="js/render/world/terrain-art.js"></script>
-  <script src="js/render/world/environment-art.js?v=outfits1"></script>
+  <script src="js/render/world/environment-art.js?v=stages1"></script>
   <script src="js/render/enemies/night-parade-art.js"></script>
   <script src="js/render/enemies/folk-enemy-art.js"></script>
   <script src="js/render/enemies/nightmare-art.js"></script>
   <script src="js/render/enemies/boss-art.js"></script>
   <script src="js/render/enemies/draw.js"></script>
   <script src="js/render/coop-signals.js?v=emotes1"></script>
-  <script src="js/render/renderer.js?v=late1"></script>
-  <script src="js/ui/icons.js?v=handscroll3"></script>
-  <script src="js/ui/route-training.js"></script>
-  <script src="js/ui/menu.js?v=handscroll2"></script>
-  <script src="js/ui/battle-panels.js?v=fork1"></script>
-  <script src="js/ui/hud.js?v=handscroll1"></script>
-  <script src="js/ui/utilities.js?v=handscroll2"></script>
+  <script src="js/render/renderer.js?v=practice-menu1"></script>
+  <script src="js/ui/icons.js?v=stages1"></script>
+  <script src="js/ui/route-training.js?v=practice2"></script>
+  <script src="js/ui/menu.js?v=practice-menu1"></script>
+  <script src="js/ui/battle-panels.js?v=stages1"></script>
+  <script src="js/ui/hud.js?v=practice2"></script>
+  <script src="js/ui/utilities.js?v=practice-menu1"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
-  <script src="js/ui/lan.js?v=leave-confirm1"></script>
+  <script src="js/ui/lan.js?v=stages1"></script>
   <script src="js/ui/coop-support.js?v=emotes1"></script>
-  <script src="js/ui/contracts.js?v=ambience1"></script>
-  <script src="js/ui/screens.js?v=actives1"></script>
+  <script src="js/ui/contracts.js?v=stages1"></script>
+  <script src="js/ui/screens.js?v=practice-menu1"></script>
   <script src="js/vendor/qrcode-generator-2.0.4.min.js"></script>
   <script src="js/vendor/jsqr-1.4.0.min.js"></script>
   <script src="js/net/lan-code.js?v=lan-qr2"></script>
   <script src="js/net/lan-qr.js"></script>
   <script src="js/net/lan-link.js?v=invite2"></script>
-  <script src="js/net/lan-state.js?v=actives2"></script>
-  <script src="js/app/input.js?v=lan1"></script>
-  <script src="js/app/lan-room.js?v=actives1"></script>
-  <script src="js/app/lan.js?v=actives1"></script>
-  <script src="js/app/main.js?v=emotes1"></script>
+  <script src="js/net/lan-state.js?v=stages1"></script>
+  <script src="js/app/input.js?v=practice2"></script>
+  <script src="js/app/lan-room.js?v=stages1"></script>
+  <script src="js/app/lan.js?v=stages1"></script>
+  <script src="js/app/main.js?v=practice-menu1"></script>
 </body>
 </html>

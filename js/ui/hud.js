@@ -58,7 +58,7 @@ const HudUI = {
     if (!p || g.state === 'menu') return;
     this.set('xpfill', 'width', (Math.min(1, p.xp / p.xpNeed) * 100).toFixed(1) + '%');
     this.set('lvl', 'text', '修为 ' + p.level);
-    this.set('timer', 'text', U.fmtTime(Math.ceil(CFG.RUN_TIME - g.time)));
+    this.set('timer', 'text', U.fmtTime(Math.ceil(g.duration - g.time)));
     this.set('kills', 'text', String(p.kills));
     this.set('coins', 'text', String(Math.floor(p.coins)));
     this.set('practiceFlag', 'hidden', !g.assisted);

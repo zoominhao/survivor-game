@@ -13,6 +13,7 @@ const Lan = {
   open(message = '') {
     this.close();
     this.char = Save.data.lastChar;
+    this.localStages = Environment.stagePool(Save.data);
     this.phase = 'pick';
     this.status = message || `已选 ${CHARS[this.char].name}。同一 Wi-Fi 的好友可扫码加入；没人时可由机器人补位。`;
     UI.show('lan');
@@ -146,7 +147,7 @@ const Lan = {
   connected() {
     this.phase = 'connected';
     this.statusText('已连线，正在同步房间…');
-    if (this.role === 'guest') this.link.send({ t: 'hello', version: LAN_ROOM_VERSION, char: this.char }, true);
+    if (this.role === 'guest') this.link.send({ t: 'hello', version: LAN_ROOM_VERSION, char: this.char, stages: this.localStages }, true);
   },
 
   lost() {
@@ -188,17 +189,18 @@ const Lan = {
 
   begin(partner, robot) {
     const view = Game.view;
-    const save = { data: Save.defaults() };
+    const save = { data: { ...Save.defaults(), routes: Save.data.routes, stageSelection: this.localStages } };
     Game = createBattle({ save, emit: (e, v) => this.battleEvent(e, v), play: (...a) => this.sound(a) });
     Game.view = view;
     this.running = true;
     this.fallbackAt = 0;
     this.phase = 'playing';
-    Game.start(this.char, partner, { robot });
+    Game.start(this.char, partner, { robot, peerStages: this.peerStages });
     UI.cache = {};
     Input.keys.clear();
     Input.endJoy();
     UI.show(null);
+    this.battleEvent('banner', Environment.scenes[Game.stage].name);
     this.sendFrame();
   },
 
@@ -263,7 +265,8 @@ const Lan = {
     if (!['playing', 'levelup', 'decision', 'route', 'paused', 'audio', 'victory', 'gameover'].includes(panel) ||
         !LanState.integer(turn, this.turn, 20000)) return;
     const f = LanState.readFrame(data.frame);
-    if (!f || f.player.char !== this.char || (this.running && f.time < Game.time)) return;
+    if (!f || f.player.char !== this.char || (this.running && (f.time < Game.time || f.stage !== Game.stage)) ||
+        !Environment.sharedStages(this.localStages, this.peerStages).includes(f.stage)) return;
     const choices = panel === 'levelup' && slot === 1 ? LanState.choices(data.choices) : [];
     if (panel === 'levelup' && slot === 1 && (!choices.length || !LanState.integer(data.pending, 1, f.player.level))) return;
     if (!this.running) {
@@ -320,7 +323,7 @@ const Lan = {
     else if (Game.result) UI.showResult();
     else if (state === 'levelup') UI.showLanWait('等候房主选卡', '房主正在选择升级，本局暂时暂停。');
     else if (state === 'decision') UI.showLanWait('守夜抉择', '等房主决定如何迎战 Boss。');
-    else if (state === 'route') UI.showLanWait('灯尽逢岔路', '等房主选择竹径或雨庭。');
+    else if (state === 'route') UI.showLanWait('夜巡变阵', '等房主选择镇守或诱敌。');
     else UI.showLanWait('巡夜暂停', '房主暂停了战斗，等待继续。');
   },
 

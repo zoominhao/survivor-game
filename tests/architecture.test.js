@@ -57,7 +57,7 @@ test('地图的灯、机关、地貌与定时遭遇都绑定在正确场景', ()
     assert.ok(Object.hasOwn(WorldInteractions.landmarks, map.landmark));
     for (const prop of [map.lamp, map.landmark, map.decor, ...map.solids]) assert.equal(typeof TerrainArt[prop], 'function', prop);
   }
-  for (const event of EVENTS) assert.equal(Environment.landscape(Environment.sceneAt(event.t)), event.scene);
+  for (const event of EVENTS) if (event.scene) assert.ok(Environment.isStage(event.scene));
 });
 
 test('无浏览器的战斗可以升级、开箱和结算，两个本局状态互不影响', () => {

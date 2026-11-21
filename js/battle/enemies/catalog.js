@@ -38,9 +38,12 @@ const EVENTS = [
   { t: 150, scene: 'rain', kind: 'ring', enemy: 'swarm', n: 26 },
   { t: 168, scene: 'rain', kind: 'arrival', enemy: 'bride', msg: '雨里的红盖头下传来一声：「我冤呐！」', sound: 'brideArrival' },
   { t: 193, scene: 'snow', kind: 'arrival', enemy: 'snowEnvoy', msg: '雪地现出一道白影', sound: 'envoyCall' },
-  { t: 390, scene: 'bamboo', kind: 'ring', enemy: 'moth', n: 34, alternateFork: true },
+  { t: 132, scene: 'storm', kind: 'ring', enemy: 'spitter', n: 12, msg: '雷下照见十二张碎面', sound: 'stormThunder' },
+  { t: 180, scene: 'blizzard', kind: 'ring', enemy: 'snowEnvoy', n: 12, msg: '铁链声从风雪四面传来', sound: 'envoyCall' },
+  { t: 136, scene: 'burial', kind: 'ring', enemy: 'jiangshi', n: 18, msg: '义庄的纸灯逐盏熄灭', sound: 'corpseAmbush' },
+  { t: 390, kind: 'ring', enemy: 'moth', n: 34, alternateFork: true },
   { t: 630, scene: 'night', kind: 'ring', enemy: 'wraith', n: 30 },
-  { t: 840, scene: 'dawn', kind: 'ring', enemy: 'brute', n: 36, msg: '镇墓石兽合围，最后一分钟' },
+  { t: 840, kind: 'ring', enemy: 'brute', n: 36, msg: '镇墓石兽合围，天色将明' },
   ...Object.entries(Environment.scenes).filter(([, map]) => map.boss)
     .map(([scene, map]) => ({ kind: 'boss', scene, ...map.boss })),
 ].sort((a, b) => a.t - b.t);

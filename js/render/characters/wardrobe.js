@@ -34,6 +34,9 @@ const Wardrobe = {
     rain: { layer: 'rain', color: '#3c6477', edge: '#a9deea' },
     snow: { layer: 'snow', color: '#879ea6', edge: '#ebf3e0' },
     dawn: { layer: 'dawn', color: '#bf7d4b', edge: '#ffe2a0' },
+    storm: { layer: 'rain', color: '#4d617d', edge: '#c2daff' },
+    blizzard: { layer: 'snow', color: '#657f95', edge: '#e0f0ff' },
+    burial: { layer: 'moon', color: '#5b7668', edge: '#d3e5c7' },
   },
 
   style(look, tier = 0, landscape = 'dusk') {

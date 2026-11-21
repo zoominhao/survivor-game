@@ -69,11 +69,9 @@ const App = {
     if (Game.state !== 'intro' || document.hidden) return;
     Game.state = 'playing';
     UI.show(null);
-    if (Game.openingScene !== 'dusk') {
-      const scene = Environment.scenes[Game.openingScene];
-      UI.banner(scene.name);
-      if (scene.sound) Sfx.play(scene.sound, 0.78);
-    }
+    const scene = Environment.scenes[Game.stage];
+    UI.banner(scene.name);
+    if (scene.sound) Sfx.play(scene.sound, 0.78);
   },
 
   pause() {
@@ -109,11 +107,12 @@ const App = {
     const state = Game.state;
     if (id !== 'audio' && id !== 'practice') return;
     if (id === 'practice' && Lan.running) return;
-    if (this.utilityReturn || !(['playing', 'paused'].includes(state) || (id === 'audio' && state === 'menu'))) return;
+    if (this.utilityReturn || !(['playing', 'paused'].includes(state) || state === 'menu' && (id === 'audio' || UI.overlayId === 'menu'))) return;
     this.utilityReturn = { id, state, focus: document.activeElement, guestPause: Lan.guestPause };
     this.tapCount = 0; this.tapsSince = -Infinity;
-    // 主菜单本身不推进战斗，保留状态可继续播放菜单音乐。
-    if (state !== 'menu' && !Lan.guest) Game.state = id;
+    // 局外练习不持有可修改的本局；声音设置继续播放菜单音乐。
+    if (state === 'menu' && id === 'practice') Game.state = 'practiceSetup';
+    else if (state !== 'menu' && !Lan.guest) Game.state = id;
     Input.endJoy();
     if (id === 'audio') UI.refreshAudio(); else UI.refreshPractice();
     UI.show(id);
@@ -121,7 +120,7 @@ const App = {
 
   closeUtility() {
     if (!this.utilityReturn) return;
-    const { state, focus, guestPause } = this.utilityReturn;
+    const { id, state, focus, guestPause } = this.utilityReturn;
     this.utilityReturn = null;
     if (Lan.guest) {
       if (guestPause && Game.state === 'playing') UI.showPause();
@@ -131,12 +130,13 @@ const App = {
     }
     Game.state = state;
     if (state === 'paused') UI.showPause();
+    else if (state === 'menu' && id === 'practice') UI.showMenu();
     else UI.show(state === 'menu' ? 'menu' : null);
     if (focus?.getClientRects().length) focus.focus({ preventScroll: true });
   },
 
   tapPractice(now = performance.now()) {
-    if (Game.state !== 'playing' || this.utilityReturn || Lan.running) return;
+    if (this.utilityReturn || Lan.running || !(Game.state === 'playing' && !UI.overlayId || Game.state === 'menu' && UI.overlayId === 'menu')) return;
     if (now - this.tapsSince > 2500) { this.tapCount = 0; this.tapsSince = now; }
     if (++this.tapCount === 5) this.openUtility('practice');
   },
@@ -224,9 +224,11 @@ const App = {
       Game.update(dt, Input);
     }
     const boss = Game.boss;
-    const landscape = Game.player && Game.state !== 'menu' ? Environment.landscape(Environment.forBattle(Game)) : null;
+    const stage = Game.player && Game.state !== 'menu' ? Game.stage : null;
+    const landscape = Environment.scenes[stage]?.music ?? stage;
     const bossTheme = boss && !boss.dead ? boss.kind ?? 'boss' : null;
-    Sfx.syncMusic(Game.state === 'audio' ? 'playing' : Game.state, bossTheme, landscape);
+    const musicState = Game.state === 'audio' ? 'playing' : Game.state === 'practiceSetup' ? 'practice' : Game.state;
+    Sfx.syncMusic(musicState, bossTheme, landscape);
     Render.draw(dt, Game);
     UI.updateHud();
     requestAnimationFrame(t => this.frame(t));

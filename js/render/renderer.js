@@ -106,7 +106,7 @@ const Render = {
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
 
-    if (!g.player || g.state === 'menu') {
+    if (!g.player || g.state === 'menu' || g.state === 'practiceSetup') {
       // 主菜单背景:缓慢漂移的夜色荒原
       this.menuT += dt;
       ctx.setTransform(s, 0, 0, s, -this.menuT * 12 * s, -this.menuT * 5 * s);
@@ -130,13 +130,13 @@ const Render = {
     const L = camera.x - hw, T = camera.y - hh, Rt = camera.x + hw, B = camera.y + hh;
     const vis = (x, y, pad) => x > L - pad && x < Rt + pad && y > T - pad && y < B + pad;
 
-    const scene = Environment.forBattle(g);
-    const outfitMap = Environment.landscape(scene);
-    const before = Environment.scenes[scene.from], current = Environment.scenes[scene.id];
-    const shade = `rgb(${before.shade.map((value, i) => Math.round(value + (current.shade[i] - value) * scene.mix)).join(',')})`;
+    const outfitMap = Environment.forBattle(g).id;
+    const current = Environment.scenes[outfitMap];
+    const shade = `rgb(${current.shade.join(',')})`;
     const afterglow = EnvironmentArt.afterglow(time - g.bossClearAt, BOSS_AFTERGLOW);
-    const darkness = (before.darkness + (current.darkness - before.darkness) * scene.mix) * (1 - afterglow * 0.80);
-    const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
+    const dawn = Environment.dawnlight(time, g.duration);
+    const darkness = current.darkness * (1 - afterglow * 0.80) * (1 - dawn * 0.76);
+    const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, outfitMap);
     const pose = this.playerPose(camera, time);
     const beams = g.state === 'intro' ? [] : g.players.filter(member => member.hp > 0 && characterBeams[member.char] && vis(member.x, member.y, 350))
       .map(member => ({ member, pose: member === camera ? pose : this.playerPose(member, time), draw: characterBeams[member.char] }));
@@ -186,14 +186,13 @@ const Render = {
 
     // 屏幕空间：黎明暖色及轻量天气粒子，使用战斗时钟以支持暂停。
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (scene.id === 'dawn') {
-      ctx.globalAlpha = scene.mix * 0.22;
+    if (dawn > 0) {
+      ctx.globalAlpha = dawn * 0.18;
       ctx.fillStyle = '#ffb347';
       ctx.fillRect(0, 0, W, H);
     }
     ctx.globalAlpha = 1;
-    EnvironmentArt.drawTransition(ctx, W, H, scene, this.reduceMotion?.matches);
-    EnvironmentArt.drawWeather(ctx, W, H, s, time, scene, this.reduceMotion?.matches);
+    EnvironmentArt.particles(ctx, W, H, s, time, current.weather, 1, reduced);
     if (boss && Number.isFinite(boss.arrivedAt)) NightmareArt.arrival(ctx, W, H, (time - boss.arrivedAt) / BOSS_ARRIVAL, reduced);
     // 低血量红色警示
     const hpK = p.hp / p.st.maxHp;

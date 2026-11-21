@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 const { battleScript, loadGame } = require('./fixtures/load-game');
 
-function start() {
+function start(inRun = true) {
   const scope = vm.createContext({});
   loadGame(scope, battleScript);
   const { createBattle, metaKeys } = vm.runInContext('({ createBattle, metaKeys: Object.keys(META) })', scope);
@@ -13,7 +13,7 @@ function start() {
     meta: Object.fromEntries(metaKeys.map(key => [key, 0])) };
   const save = { data, writes: 0, write() { this.writes++; } };
   const game = createBattle({ save });
-  game.start('ella');
+  if (inRun) game.start('ella');
   return { game, save };
 }
 
@@ -114,4 +114,107 @@ test('保留试玩开关不影响已拥有角色的正式对局，也不能从�
   assert.equal(game.assisted, false);
   game.finish(false);
   assert.equal(save.writes, 1);
+});
+
+test('自定守夜时长只影响本局，缩短和延长都不写正式战绩', () => {
+  const { game, save } = start();
+  const initial = JSON.stringify(save.data);
+  assert.equal(game.setPracticeDuration(1), false);
+  game.state = 'practice';
+  for (const invalid of [0, 31, NaN, '5', 1.5]) assert.equal(game.setPracticeDuration(invalid), false);
+  assert.ok(game.setPracticeDuration(15));
+  assert.equal(game.assisted, false);
+  assert.ok(game.setPracticeDuration(1));
+  game.time = 83;
+  game.state = 'playing';
+  game.update(0.01);
+  assert.equal(game.state, 'victory');
+  assert.equal(game.result.time, 60);
+  assert.equal(game.result.earned, 0);
+  assert.equal(game.result.earnedSeals, 0);
+
+  game.start('ella');
+  assert.equal(game.duration, 900);
+  game.state = 'practice';
+  assert.ok(game.setPracticeDuration(30));
+  game.state = 'playing';
+  game.spawn = () => {};
+  game.time = 900;
+  game.update(0);
+  assert.equal(game.state, 'playing');
+  game.time = 1800;
+  game.update(0);
+  assert.equal(game.state, 'victory');
+  assert.equal(save.writes, 0);
+  assert.equal(JSON.stringify(save.data), initial);
+});
+
+test('未购场景试玩与正式随机池隔离，关闭开关或双人开局都不用试玩地图', () => {
+  const { game, save } = start();
+  Object.assign(save.data, { routes: { snow: true }, stageSelection: ['snow'] });
+  const initial = JSON.stringify(save.data);
+  assert.equal(game.usePractice('stages'), false);
+  game.state = 'practice';
+  assert.ok(game.usePractice('stages'));
+  assert.equal(game.selectPracticeStage('storm'), false);
+  game.state = 'menu';
+  assert.equal(game.selectPracticeStage('constructor'), false);
+  assert.equal(game.selectPracticeStage('snow'), false);
+  assert.ok(game.selectPracticeStage('storm'));
+  game.start('ella');
+  assert.equal(game.stage, 'storm');
+  assert.equal(game.assisted, true);
+  game.finish(true);
+  assert.equal(game.result.earned, 0);
+
+  game.start('ella', 'zhu', { robot: true });
+  assert.equal(game.stage, 'snow');
+  assert.equal(game.duration, 900);
+  game.state = 'practice';
+  assert.equal(game.usePractice('stages'), false);
+  assert.equal(game.setPracticeDuration(1), false);
+  game.start('ella');
+  game.state = 'practice';
+  assert.ok(game.usePractice('stages'));
+  assert.equal(game.practiceStage, null);
+  game.start('ella');
+  assert.equal(game.stage, 'snow');
+  assert.equal(game.assisted, false);
+  assert.equal(save.writes, 0);
+  assert.equal(JSON.stringify(save.data), initial);
+});
+
+test('局外无角色时可开放试玩、预约下局单人时长，双人不应用也不消耗预约', () => {
+  const { game, save } = start(false);
+  const initial = JSON.stringify(save.data);
+  assert.equal(game.player, null);
+  assert.equal(game.setPracticeDuration(5), false);
+  game.state = 'practiceSetup';
+  for (const action of ['heal', 'invincible', 'coins', 'xp']) assert.equal(game.usePractice(action), false);
+  assert.ok(game.usePractice('roster'));
+  assert.ok(game.usePractice('stages'));
+  assert.ok(game.setPracticeDuration(5));
+  assert.equal(game.practiceNextDuration, 300);
+  assert.ok(game.setPracticeDuration(15));
+  assert.equal(game.practiceNextDuration, null);
+  assert.ok(game.setPracticeDuration(5));
+  game.state = 'menu';
+  assert.ok(game.selectPracticeStage('storm'));
+  game.start('ella', 'zhu', { robot: true });
+  assert.equal(game.duration, 900);
+  assert.equal(game.stage, 'dusk');
+  assert.equal(game.practiceNextDuration, 300);
+  game.start('ella');
+  assert.equal(game.duration, 300);
+  assert.equal(game.stage, 'storm');
+  assert.equal(game.practiceNextDuration, null);
+  assert.ok(game.assisted);
+  game.finish(true);
+  assert.equal(JSON.stringify(save.data), initial);
+  assert.equal(save.writes, 0);
+  game.state = 'menu';
+  assert.ok(game.selectPracticeStage(null));
+  game.start('ella');
+  assert.equal(game.duration, 900);
+  assert.equal(game.assisted, false);
 });

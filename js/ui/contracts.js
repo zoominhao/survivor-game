@@ -3,7 +3,9 @@
 const ContractUI = {
   refreshContractMenu() {
     const id = Save.data.selectedContract;
-    this.$('contractMenuState').textContent = id ? `委托：${CONTRACTS[id].name}` : '未接委托';
+    const def = CONTRACTS[id];
+    const stage = def?.stage;
+    this.$('contractMenuState').textContent = def ? `委托：${def.name}${stage && !Environment.stagePool(Save.data).includes(stage) ? '（待启用场景）' : ''}` : '未接委托';
     this.$('btnContracts').dataset.picked = String(!!id);
   },
 
@@ -23,7 +25,11 @@ const ContractUI = {
       rewards.className = 'contract-reward';
       rewards.textContent = `奖励 ${def.coins} 金币 · ${def.seals} 枚守夜印`;
       info.appendChild(rewards);
-      button.disabled = picked || claimed;
+      const stage = def.stage;
+      const locked = stage && !Environment.canOpen(data, stage);
+      if (locked) this.growthShortage(info, `需解锁「${Environment.scenes[stage].name}」`);
+      else if (stage && !Environment.stagePool(data).includes(stage)) this.growthShortage(info, '在场景商店把此地图加入随机池后才能遇到。');
+      button.disabled = picked || claimed || !!locked;
       button.textContent = claimed ? '已结算' : picked ? '已接' : '接下';
       button.setAttribute('aria-label', `${button.textContent}「${def.name}」`);
       button.addEventListener('click', () => this.selectContract(id));

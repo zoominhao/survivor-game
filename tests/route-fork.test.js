@@ -19,19 +19,15 @@ function setup(mate) {
   return { g, Environment, WorldInteractions, LanState, events };
 }
 
-test('六分钟的岔路暂停一次；雨庭换遭遇和经验加成，七分二十五平滑接回雪岭', () => {
-  const { g, Environment, WorldInteractions, events } = setup();
+test('六分钟变阵只选一次；引星增加经验并引来伞鬼，不切换地图', () => {
+  const { g, Environment, events } = setup();
   assert.equal(g.state, 'route');
   assert.equal(g.chooseFork('constructor'), false);
   assert.equal(g.chooseFork('rain'), true);
   assert.equal(g.chooseFork('bamboo'), false);
-  assert.equal(g.fork.from, 'rain');
-  assert.equal(g.landscape, 'rain');
+  assert.equal(g.landscape, 'dusk');
   g.gainXp(2);
   assert.equal(g.player.xp, 2.3);
-  g.gems.push({ x: 320, y: 0, v: 1 });
-  WorldInteractions.visitLandmark(g, { kind: 'starSigil', x: 0, y: 0 }, 'rain:0:0');
-  assert.equal(g.gems[0].mag, true);
   g.time = 375;
   g.update(0);
   assert.equal(g.enemies.filter(e => e.type === 'umbrellaGhost').length, 16);
@@ -39,36 +35,33 @@ test('六分钟的岔路暂停一次；雨庭换遭遇和经验加成，七分�
   assert.equal(g.enemies.filter(e => e.type === 'umbrellaGhost').length, 16);
   assert.equal(events.filter(([name]) => name === 'route').length, 1);
   g.time = 445.5;
-  let scene = Environment.forBattle(g);
-  assert.equal(scene.from, 'rain'); assert.equal(scene.id, 'snow');
+  assert.equal(Environment.forBattle(g).id, 'dusk');
   g.gainXp(1);
   assert.equal(g.player.xp, 3.3);
   g.time = 451;
-  scene = Environment.forBattle(g);
-  assert.equal(Environment.landscape(scene), 'snow');
+  assert.equal(Environment.forBattle(g).id, 'dusk');
   g.start('ella');
   assert.equal(g.fork, null);
 });
 
-test('竹径镇纸覆盖更远，伏兵替代原定怪潮，房主路线能在来客快照安全还原', () => {
-  const { g, Environment, WorldInteractions, LanState } = setup('zhu');
+test('布符镇守扩大镇夜符；伏兵替代原定怪潮，来客快照保留当前地图', () => {
+  const { g, Environment, LanState } = setup('zhu');
   assert.equal(g.chooseFork('bamboo'), true);
   g.time = 375;
   g.update(0);
-  assert.equal(g.landscape, 'bamboo');
+  assert.equal(g.landscape, 'dusk');
   assert.equal(g.enemies.filter(e => e.type === 'jiangshi').length, 26);
-  const foe = g.spawnEnemy('brute', 200, 0);
-  Object.assign(foe, { x: 200, y: 0 });
-  g.grid.insert(foe);
-  WorldInteractions.visitLandmark(g, { kind: 'paperWard', x: 0, y: 0 }, 'bamboo:0:0');
-  assert.ok(foe.slow > 0);
+  const p = g.player;
+  g.ebullets.push({ x: p.x + 156, y: p.y, r: 5 });
+  assert.ok(g.useActive(0, 'ward'));
+  assert.equal(g.ebullets.length, 0);
   g.time = 390;
   g.update(0);
   assert.ok(g.enemies.every(e => e.type !== 'moth'));
   const packet = JSON.parse(JSON.stringify(LanState.packFrame(g)));
   const guest = LanState.readFrame(packet);
   assert.equal(guest.fork.id, 'bamboo');
-  assert.equal(Environment.landscape(Environment.forBattle(guest)), 'bamboo');
+  assert.equal(Environment.forBattle(guest).id, 'dusk');
   packet.fork[0] = 'constructor';
   assert.equal(LanState.readFrame(packet).fork, null);
 });

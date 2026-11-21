@@ -7,7 +7,7 @@ const Save = {
   defaults() {
     const meta = {};
     for (const k in META) meta[k] = 0;
-    return { coins: 0, seals: 0, meta, chars: { ella: true }, skills: {}, routes: {}, training: {}, startScene: 'dusk',
+    return { coins: 0, seals: 0, meta, chars: { ella: true }, skills: {}, routes: {}, training: {}, stageSelection: null,
       selectedContract: null, claimedContracts: {},
       lastChar: 'ella', best: 0, kills: 0, runs: 0, wins: 0, muted: false };
   },
@@ -24,7 +24,10 @@ const Save = {
           if (item.unlockCost && raw.skills?.[id] === true) d.skills[id] = true;
         }
         d.seals = Number.isSafeInteger(raw.seals) && raw.seals >= 0 ? raw.seals : 0;
-        d.routes = Object.fromEntries(Object.keys(OPENING_ROUTES).filter(id => raw.routes?.[id] === true).map(id => [id, true]));
+        d.routes = Object.fromEntries(Object.keys(STAGES).filter(id => STAGES[id].cost && raw.routes?.[id] === true).map(id => [id, true]));
+        const selected = Array.isArray(raw.stageSelection) ? Environment.stagePool(d) : [];
+        d.stageSelection = selected.length && selected.length < Environment.ownedStages(d).length ? selected : null;
+        delete d.startScene; // 旧版购买继续有效，但不把旧的开局偏好迁移成固定地图。
         d.claimedContracts = Object.fromEntries(Object.keys(CONTRACTS).filter(id => raw.claimedContracts?.[id] === true).map(id => [id, true]));
         d.training = {};
         for (const char in CHARS) {
@@ -39,7 +42,6 @@ const Save = {
     // 免费角色始终视为已解锁(包括后续版本新增的)
     for (const id in CHARS) if (!CHARS[id].cost) d.chars[id] = true;
     if (!Object.hasOwn(CHARS, d.lastChar) || !d.chars[d.lastChar]) d.lastChar = 'ella';
-    if (!Environment.canOpen(d, d.startScene)) d.startScene = 'dusk';
     if (!contractAvailable(d, d.selectedContract)) d.selectedContract = null;
     this.data = d;
   },
@@ -64,17 +66,20 @@ const Save = {
   },
   buyRoute(id) {
     const d = this.data;
-    const cost = typeof id === 'string' && Object.hasOwn(OPENING_ROUTES, id) ? OPENING_ROUTES[id].cost : null;
+    const cost = Environment.isStage(id) ? STAGES[id].cost : null;
     if (!d || !cost || Environment.canOpen(d, id) || !Number.isFinite(d.coins) || d.coins < cost) return false;
     d.coins -= cost;
     d.routes[id] = true;
-    d.startScene = id;
     this.write();
     return true;
   },
-  selectRoute(id) {
-    if (!this.data || !Environment.canOpen(this.data, id) || this.data.startScene === id) return false;
-    this.data.startScene = id;
+  setStageSelection(ids) {
+    const d = this.data;
+    if (!d) return false;
+    const owned = Environment.ownedStages(d);
+    if (ids !== null && (!Array.isArray(ids) || !ids.length || ids.length > owned.length ||
+        new Set(ids).size !== ids.length || !ids.every(id => owned.includes(id)))) return false;
+    d.stageSelection = !ids || ids.length === owned.length ? null : owned.filter(id => ids.includes(id));
     this.write();
     return true;
   },
