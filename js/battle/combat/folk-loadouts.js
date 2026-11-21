@@ -69,6 +69,8 @@ const FolkLoadouts = {
     w.timer = s.cd * p.st.cd;
     const edges = third ? [[first, second], [second, third], [third, first]] : [[second || p, first]];
     const width = s.width * p.st.area, hit = new Set();
+    const thread = g.combo?.id === 'thread' ? { dmg: s.dmg * p.st.might * 0.8 + 18, owner: p, wid: w.id } : null;
+    const life = thread ? 0.95 : 0.45;
     for (const [a, b] of edges) {
       eachFolkLineEnemy(g, a, b, width, e => {
         if (hit.has(e.id)) return;
@@ -77,7 +79,7 @@ const FolkLoadouts = {
         if (!e.dead) g.slowEnemy(e, s.slow, s.chill);
       });
       g.fx.push({ type: 'scarletThread', x: a.x, y: a.y, x2: b.x, y2: b.y,
-        r: width, life: 0.45, max: 0.45, c: WEAPONS[w.id].color });
+        r: width, life, max: life, c: WEAPONS[w.id].color, thread });
     }
     g.play('threadPluck');
   },

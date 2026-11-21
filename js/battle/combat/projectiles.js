@@ -177,6 +177,7 @@ const BattleProjectiles = {
         keep = z.life > 0;
         if (!keep) {
           this.aoe(z.x, z.y, z.trigger, z.dmg, z.wid, z.kb, z.owner);
+          FolkSynergy.mistMask(this, z);
           this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.trigger, life: 0.32, max: 0.32, c: z.color });
           this.play('boom');
         }
@@ -194,6 +195,7 @@ const BattleProjectiles = {
           z.hit.add(e.id);
           const sign = z.recall ? -1 : 1;
           this.damageEnemy(e, z.dmg, z.wid, sign * (e.x - z.x), sign * (e.y - z.y), z.kb ?? 60, z.owner);
+          FolkSynergy.markClack(this, e, z);
           if (z.freeze && !e.boss) e.frozen = z.freeze;
           if (z.slow) this.slowEnemy(e, z.slow, z.freeze + 2);
         });

@@ -15,6 +15,8 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.robot = this.coop && robot;
       this.bond = this.coop ? CoopBonds.forPair(charId, partnerChar) : null;
       this.bondActive = false;
+      this.combo = this.coop ? CoopBonds.linkFor(charId, partnerChar) : null;
+      this.comboReady = 0;
       this.robotBrain = this.robot ? RobotPartner.start(partnerChar) : null;
       this.signals = this.coop ? [null, null] : null;
       this.rescue = this.coop ? { used: false, progress: 0 } : null;

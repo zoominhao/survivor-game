@@ -35,7 +35,8 @@ const LanUI = {
     const host = Lan.role === 'host', start = this.$('btnLanStart'), ready = this.$('btnLanReady');
     show('lanRoom', inRoom);
     const bond = inRoom ? CoopBonds.forPair(Lan.char, Lan.otherChar) : null;
-    this.$('lanBond').textContent = bond ? `合契：${bond.name} · ${bond.label}（靠近时生效）` :
+    const link = inRoom ? CoopBonds.linkFor(Lan.char, Lan.otherChar) : null;
+    this.$('lanBond').textContent = bond ? `合契：${bond.name} · ${bond.label}（靠近时生效）${link ? `；${link.name}：${link.label}。` : ''}` :
       `你的定位：${CoopBonds.roleName(Lan.char)} · 结伴靠近可获得合契，双人怪潮更强。`;
     show('btnLanStart', inRoom && host);
     show('btnLanReady', inRoom && !host);

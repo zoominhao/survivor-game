@@ -18,10 +18,15 @@ const CoopBonds = (() => {
     'aid/art': { name: '借光引路', stat: 'speed', factor: 1.1, label: '移速 +10%' },
     'aid/aid': { name: '同灯回春', stat: 'regen', add: 0.8, label: '每秒回复 0.8 生命' },
   };
+  const links = {
+    'su/wen': { id: 'thread', name: '梆响断线', label: '更夫把夜兽震进红线时，引爆红线' },
+    'shao/yan': { id: 'mist', name: '借面回春', label: '傩面在青芍的药雾中爆开时，额外治疗队友' },
+  };
 
   const role = id => Object.hasOwn(roles, id) ? roles[id] : 'aid';
   return {
     roleName: id => roleNames[role(id)],
     forPair: (a, b) => bonds[[role(a), role(b)].sort().join('/')],
+    linkFor: (a, b) => links[[a, b].sort().join('/')],
   };
 })();

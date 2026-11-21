@@ -239,3 +239,40 @@ test('逆潮留痕影响后来才踏入的怪，三才红阵不重复命中，�
   g.updateZones(one.life + 0.01);
   assert.equal(g.zones.length, 1);
 });
+
+test('机器人绣娘和更夫可用实际震退引爆红线，冷却内不会多次引爆', () => {
+  const { Game: g } = setup();
+  g.start('wen', 'su', { robot: true });
+  const [a, b] = [dummy(g, 100, -45), dummy(g, 100, 45)];
+  Object.assign(a, { x: 100, y: -45 }); Object.assign(b, { x: 100, y: 45 });
+  g.grid.insert(a); g.grid.insert(b);
+  g.stepLoadout(g.partner, 0.02);
+  const line = g.fx.find(f => f.thread);
+  assert.ok(line);
+  const e = dummy(g, 62, 0, 'shade');
+  Object.assign(e, { x: 62, y: 0 });
+  g.grid.insert(e);
+  g.stepLoadout(g.player, 0.02);
+  for (let i = 0; i < 25; i++) g.update(1 / 60);
+  assert.ok(line.thread.used && g.comboReady > g.time);
+  assert.equal(g.texts.filter(f => f.s === '梆响断线').length, 1);
+  assert.ok(g.partner.dmgBy.scarletThread > 60);
+});
+
+test('傩面要在队友药雾内爆开才额外回血，分开不触发，进化技能可联动', () => {
+  const { Game: g } = setup('shao', 'yan');
+  const [p, q] = g.players;
+  p.hp = q.hp = 50;
+  g.zones.push({ type: 'fire', look: 'herbalFog', wid: 'driftingMist', owner: p, x: p.x, y: p.y, r: 110, life: 4, tk: 4 });
+  const mask = { type: 'decoy', wid: 'twinMasks', owner: q, x: p.x + 30, y: p.y, life: 0.01, trigger: 60, color: '#ffd6a3' };
+  q.x = p.x + 200;
+  g.stepBond();
+  g.zones.push({ ...mask }); g.updateZones(0.02);
+  assert.equal(p.hp, 50);
+  q.x = p.x + 40; q.y = p.y;
+  g.stepBond();
+  g.zones.push({ ...mask }, { ...mask }); g.updateZones(0.02);
+  assert.equal(p.hp, 55);
+  assert.equal(q.hp, 50 + q.st.maxHp * 0.05);
+  assert.equal(g.texts.filter(f => f.s === '借面回春').length, 1);
+});

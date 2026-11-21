@@ -157,6 +157,7 @@ const BattleEnemies = {
         else if (e.kind === 'bridalQueen' && d < 150) { mx = -mx; my = -my; }
       }
 
+      const prevX = e.x, prevY = e.y;
       const moveX = (mx * sp + e.kx) * dt, moveY = (my * sp + e.ky) * dt;
       if (avoidsTerrain && (moveX || moveY)) Terrain.move(e, moveX, moveY, e.r, e.side, this.landscape);
       else { e.x += moveX; e.y += moveY; }
@@ -186,6 +187,8 @@ const BattleEnemies = {
         if (e.x !== x || e.y !== y) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
       }
 
+      if (e.clackPushUntil > this.time) FolkSynergy.crossedThread(this, e, prevX, prevY);
+      if (e.dead) continue;
       if (playerDistance < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, p);
       if (this.coop) for (const other of this.players) {
         if (other !== p && Math.hypot(other.x - e.x, other.y - e.y) < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, other);
