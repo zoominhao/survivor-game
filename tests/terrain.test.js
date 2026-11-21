@@ -11,8 +11,8 @@ function setup(stage = 'dusk') {
   const cues = [];
   const context = vm.createContext({ localStorage: { getItem: () => null } });
   loadGame(context, file => battleScript(file) || file.endsWith('/save.js'));
-  const { createBattle, Terrain, Environment, WorldInteractions, Save, CFG } = vm.runInContext(
-    '({ createBattle, Terrain, Environment, WorldInteractions, Save, CFG })', context);
+  const { createBattle, Terrain, Environment, STAGES, WorldInteractions, Save, CFG } = vm.runInContext(
+    '({ createBattle, Terrain, Environment, STAGES, WorldInteractions, Save, CFG })', context);
   Save.load();
   const startStage = id => {
     Save.data.routes[id] = true;
@@ -21,7 +21,7 @@ function setup(stage = 'dusk') {
   };
   const Game = createBattle({ save: Save, play: (...args) => cues.push(args), emit: (event, text) => { if (event === 'banner') banners.push(text); } });
   startStage(stage);
-  return { Game, Terrain, Environment, WorldInteractions, startStage, input, banners, cues, radius: CFG.PLAYER_R };
+  return { Game, Terrain, Environment, STAGES, WorldInteractions, startStage, input, banners, cues, radius: CFG.PLAYER_R };
 }
 
 test('区块移出缓存后重建一致，开局中心没有障碍', () => {
@@ -86,7 +86,7 @@ test('黎明只改变光照，地形整局不切换', () => {
   assert.deepEqual([0, 810, 840, 900].map(t => Environment.dawnlight(t)), [0, 0, 0.5, 1]);
   for (const time of [0, 180, 480, 840, 899]) {
     Game.time = time;
-    assert.equal(Environment.forBattle(Game).id, 'blizzard');
+    assert.equal(Game.stage, 'blizzard');
   }
 });
 
@@ -109,8 +109,8 @@ test('走近点灯，满血不浪费治疗，每局每盏灯只恢复一次', ()
 });
 
 test('各图在起点附近布置本地灯具，默认熄灭且可以安全靠近', () => {
-  const { Game, Terrain, Environment, WorldInteractions, startStage, radius } = setup();
-  for (const [scene, { lamp: kind }] of Object.entries(Environment.scenes)) {
+  const { Game, Terrain, Environment, STAGES, WorldInteractions, startStage, radius } = setup();
+  for (const [scene, { lamp: kind }] of Object.entries(STAGES)) {
     startStage(scene);
     const targets = [];
     Terrain.forEachProp(-140, -140, 140, 140, prop => {
@@ -161,22 +161,19 @@ test('同坐标的不同地图灯具有独立标记，留在同一张地图不�
   assert.equal(cues.filter(([name]) => name === 'lantern').length, 2);
 });
 
-test('地图地形布局独立，对受阻的角色、夜兽和宝箱保留避障处理', () => {
-  const { Game, Terrain, radius } = setup();
+test('角色与怪物都使用抽中地图的碰撞，幽灵仍可穿过障碍', () => {
+  const { Game, Terrain, radius } = setup('bamboo');
   const chunk = Terrain.chunk(2, 2, 'bamboo');
   assert.notDeepEqual(chunk.solid, Terrain.chunk(2, 2, 'night').solid);
   const { x, y } = chunk.solid;
-  const enemy = Game.spawnEnemy('shade', x + 80, y);
+  const enemy = Game.spawnEnemy('shade', x, y);
   const ghost = Game.spawnEnemy('wraith', x, y);
-  ghost.speed = 0;
-  const chest = { type: 'chest', x: x - 1, y };
-  for (const body of [Game.player, enemy]) Object.assign(body, { x, y });
-  Game.pickups.push(chest);
-  Game.enterLandscape('bamboo');
-  assert.equal(Game.landscape, 'bamboo');
+  Object.assign(Game.player, { x: x - chunk.solid.r - radius - 2, y });
+  Game.movePlayer(Game.player, { x: 1 }, 0.05);
+  assert.equal(Game.stage, 'bamboo');
+  assert.ok(Game.player.x < x - chunk.solid.r);
   assert.equal(Terrain.obstacleAt(Game.player.x, Game.player.y, radius, 'bamboo'), null);
   assert.equal(Terrain.obstacleAt(enemy.x, enemy.y, enemy.r, 'bamboo'), null);
-  assert.equal(Terrain.obstacleAt(chest.x, chest.y, 4, 'bamboo'), null);
   assert.deepEqual([ghost.x, ghost.y], [x, y]);
 });
 
@@ -276,15 +273,15 @@ test('鬼怪靠近时才喊叫，同种与不同种的叫声都限频，不把�
 });
 
 test('每张地图有自己的刷怪池，开局与后期随时间切换但不换图', () => {
-  const { Environment } = setup();
+  const { Environment, STAGES } = setup();
   const pool = (t, stage) => Environment.enemyPoolAt(t, stage);
-  assert.equal(pool(0), Environment.scenes.dusk.opening);
-  assert.equal(pool(20), Environment.scenes.dusk.enemies);
-  assert.equal(pool(704), Environment.scenes.dusk.late);
+  assert.equal(pool(0), STAGES.dusk.opening);
+  assert.equal(pool(20), STAGES.dusk.enemies);
+  assert.equal(pool(704), STAGES.dusk.late);
   for (const stage of ['storm', 'blizzard', 'burial']) {
-    assert.equal(pool(0, stage), Environment.scenes[stage].opening);
-    assert.equal(pool(184, stage), Environment.scenes[stage].enemies);
-    assert.equal(pool(704, stage), Environment.scenes[stage].late);
+    assert.equal(pool(0, stage), STAGES[stage].opening);
+    assert.equal(pool(184, stage), STAGES[stage].enemies);
+    assert.equal(pool(704, stage), STAGES[stage].late);
   }
 });
 
@@ -484,8 +481,8 @@ test('夜魇倒下收齐全图宝石并回血，宝箱和选卡让出短暂的�
 });
 
 test('三位 Boss 按分钟顺序登场，上一位未击败时后一位排队', () => {
-  const { Game, Environment, banners, cues } = setup();
-  const activeMap = () => Environment.forBattle(Game).id;
+  const { Game, banners, cues } = setup();
+  const activeMap = () => Game.stage;
   Game.eliteT = Infinity;
   Game.time = 240; Game.spawn(0);
   assert.equal(Game.state, 'decision');
@@ -503,7 +500,6 @@ test('三位 Boss 按分钟顺序登场，上一位未击败时后一位排队',
   assert.equal(Game.state, 'decision');
   Game.chooseBossPlan('normal');
   assert.equal(Game.boss.name, '棺山尸王');
-  assert.equal(Game.boss.arena.id, 'dusk');
   Game.time = 488;
   assert.equal(activeMap(), 'dusk');
   Game.killEnemy(Game.boss);

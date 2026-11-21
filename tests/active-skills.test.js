@@ -47,7 +47,7 @@ test('疾步不会穿过山石；暂停期间不可施放', () => {
 test('镇夜符只清附近敌弹并减速，不造成伤害或打断 Boss 阶段', () => {
   const { g } = setup();
   const near = g.spawnEnemy('shade', 90, 0), far = g.spawnEnemy('shade', 240, 0);
-  const boss = g.summonBoss('nightmare', 0, 114, 0, 'night');
+  const boss = g.summonBoss('nightmare', 0, 114, 0);
   boss.phase = 'wind';
   const other = { x: 270, y: 0, r: 7 };
   g.ebullets.push({ x: 90, y: 0, r: 6 }, { x: 140, y: 0, r: 6 }, other);
@@ -100,7 +100,7 @@ test('精英和 Boss 各掉一张镇夜符纸，普通怪不掉，也不会自�
   assert.equal(count(), 0);
   g.killEnemy(g.spawnEnemy('shade', 140, 0, true));
   assert.equal(count(), 1);
-  g.killEnemy(g.summonBoss('nightmare', 0, 180, 0, 'night'));
+  g.killEnemy(g.summonBoss('nightmare', 0, 180, 0));
   assert.equal(count(), 2);
   assert.equal(g.player.wardCharges, 1);
 });

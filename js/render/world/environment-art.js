@@ -18,13 +18,14 @@ const EnvironmentArt = {
     const cv = document.createElement('canvas');
     cv.width = cv.height = 256;
     const c = cv.getContext('2d');
-    c.fillStyle = Environment.scenes[id].ground; c.fillRect(0, 0, 256, 256);
+    const stage = STAGES[id];
+    c.fillStyle = stage.ground; c.fillRect(0, 0, 256, 256);
     c.fillStyle = '#17262538';
     for (let i = 0; i < 21; i++) {
       const x = 20 + Terrain.hash(i, 3, 1) * 216, y = 20 + Terrain.hash(i, 4, 2) * 216;
       c.beginPath(); c.ellipse(x, y, 8 + i % 11, 3 + i % 5, -0.3, 0, TAU); c.fill();
     }
-    const weather = Environment.scenes[id].weather;
+    const { weather } = stage;
     if (weather === 'rain' || weather === 'storm') this.paving(c);
     else this.scuffs(c, weather === 'snow' || weather === 'blizzard');
     return this.groundTiles[id] = ctx.createPattern(cv, 'repeat');

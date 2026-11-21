@@ -32,7 +32,7 @@ const WAVE_RATES = [1, 1.6, 2.2, 2.6, 3, 3.4, 3.8, 4.2, 4.6, 5.5, 6.5, 7.5, 8.5,
 
 // ----- 定时事件:包围圈 / Boss -----
 const EVENTS = [
-  { t: 16, opening: true, scene: 'dusk', kind: 'arrival', enemy: 'paperChild', msg: '纸扎童子摇摇晃晃地来了', sound: 'paperChildArrival' },
+  { t: 16, kind: 'opening' },
   { t: 70, scene: 'bamboo', kind: 'ring', enemy: 'jiangshi', n: 10, msg: '黄符僵尸围了上来', sound: 'corpseAmbush' },
   { t: 119, scene: 'rain', kind: 'arrival', enemy: 'umbrellaGhost', msg: '雨幕里撑起一把油纸伞', sound: 'umbrellaOpen' },
   { t: 150, scene: 'rain', kind: 'ring', enemy: 'swarm', n: 26 },
@@ -44,6 +44,7 @@ const EVENTS = [
   { t: 390, kind: 'ring', enemy: 'moth', n: 34, alternateFork: true },
   { t: 630, scene: 'night', kind: 'ring', enemy: 'wraith', n: 30 },
   { t: 840, kind: 'ring', enemy: 'brute', n: 36, msg: '镇墓石兽合围，天色将明' },
-  ...Object.entries(Environment.scenes).filter(([, map]) => map.boss)
-    .map(([scene, map]) => ({ kind: 'boss', scene, ...map.boss })),
+  { t: 240, kind: 'boss', variant: 'nightmare', tier: 0 },
+  { t: 480, kind: 'boss', variant: 'coffinKing', tier: 1 },
+  { t: 720, kind: 'boss', variant: 'bridalQueen', tier: 2 },
 ].sort((a, b) => a.t - b.t);

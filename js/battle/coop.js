@@ -46,7 +46,7 @@ const BattleCoop = {
     if (p.moving) {
       const k = il > 1 ? 1 / il : 1, { x, y } = p;
       const step = dash ? ACTIVE_SKILLS.dash.speed * Math.min(dt, dash.left) : speed * dt;
-      Terrain.move(p, ix * k * step, iy * k * step, CFG.PLAYER_R, 0, this.landscape);
+      Terrain.move(p, ix * k * step, iy * k * step, CFG.PLAYER_R, 0, this.stage);
       p.dirx = ix / il; p.diry = iy / il;
       if (Math.abs(ix) > 0.05) p.face = ix < 0 ? -1 : 1;
       p.moving = Math.hypot(p.x - x, p.y - y) > 0.05;

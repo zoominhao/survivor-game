@@ -39,7 +39,7 @@ const RouteTrainingUI = {
       '每局从勾选的地图抽一张，整局不换图。锁定的地图购买后才能使用。';
     list.replaceChildren();
     for (const [id, item] of Object.entries(STAGES)) {
-      const name = Environment.scenes[id].name, owned = Environment.canOpen(d, id);
+      const { name } = item, owned = Environment.canOpen(d, id);
       const selected = pool.includes(id), shortage = Math.max(0, item.cost - (Number.isFinite(d.coins) ? d.coins : 0));
       const { button, info } = this.growthRow(list, id, item.icon, name, item.desc);
       const label = owned ? `将${name}纳入随机池` : `购买${name}，${item.cost} 金币`;
@@ -81,7 +81,7 @@ const RouteTrainingUI = {
     }
     list.scrollTop = scrollTop;
     this.$('routeShopStatus').textContent = message || (Game.canPracticeStage(Game.practiceStage) ?
-      `下局试玩「${Environment.scenes[Game.practiceStage].name}」 · 不计战绩` : d.stageSelection ? '自选随机池' : '从全部已拥有场景随机');
+      `下局试玩「${STAGES[Game.practiceStage].name}」 · 不计战绩` : d.stageSelection ? '自选随机池' : '从全部已拥有场景随机');
   },
 
   drawTrainingShop(message) {

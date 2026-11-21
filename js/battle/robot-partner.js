@@ -76,7 +76,7 @@ const RobotPartner = (() => {
     const pace = goal.type === 'collect' && stationaryRisk < 30 ?
       U.clamp((distance(p, goal.at) - goal.range) / (p.st.speed * RobotThreats.horizon), 0.34, 1) : 1;
     const base = Math.atan2(goal.at.y - p.y, goal.at.x - p.x), r = CFG.PLAYER_R;
-    const at = (x, y, t) => Terrain.obstacleAt(p.x + x * p.st.speed * t, p.y + y * p.st.speed * t, r, g.landscape);
+    const at = (x, y, t) => Terrain.obstacleAt(p.x + x * p.st.speed * t, p.y + y * p.st.speed * t, r, g.stage);
     const steps = [0.12, 0.27, 0.4, RobotThreats.horizon];
     const blocked = (x, y) => steps.some(t => at(x, y, t));
     const canDetour = (goal.type === 'regroup' || goal.type === 'rescue') && distance(p, goal.at) > goal.range + 26 &&
@@ -104,11 +104,10 @@ const RobotPartner = (() => {
     input(g) {
       if (g.partner.hp <= 0) return stop;
       const brain = g.robotBrain;
-      if (g.time >= brain.next || brain.leaderDown !== (g.player.hp <= 0) || brain.landscape !== g.landscape) {
+      if (g.time >= brain.next || brain.leaderDown !== (g.player.hp <= 0)) {
         brain.next = g.time + 0.09;
         brain.move = chooseHeading(g, g.partner, g.player, brain);
         brain.leaderDown = g.player.hp <= 0;
-        brain.landscape = g.landscape;
       }
       return brain.move;
     },

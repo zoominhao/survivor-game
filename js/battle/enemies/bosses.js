@@ -12,17 +12,16 @@ const BOSS_TYPES = {
 };
 
 const BossBattle = {
-  summonBoss(kind, tier, x, y, sceneId, plan = 'normal') {
+  summonBoss(kind, tier, x, y, plan = 'normal') {
     const def = BOSS_TYPES[kind];
     const tactic = BOSS_TACTICS[kind];
-    const arena = sceneId ? { id: this.stage, from: this.stage } : null;
     const boss = this.spawnEnemy('boss', x, y);
     const hp = BOSS_HP[tier] * (this.coop ? COOP_DIFFICULTY.bossHp : 1);
     Object.assign(boss, {
       boss: true, kind, name: def.name, tier, plan, [tactic.stat]: tactic.values[plan],
       bounty: plan === 'challenge' ? tactic.bounty : 0, hp, maxHp: hp,
       speed: boss.speed * def.speed / ENEMIES.boss.speed,
-      r: 44 + tier * 6, dmg: 14 + tier * 7, cd: 3, phase: '', arrivedAt: this.time, arena,
+      r: 44 + tier * 6, dmg: 14 + tier * 7, cd: 3, phase: '', arrivedAt: this.time,
     });
     this.boss = boss;
     if (kind === 'bridalQueen') this.deferVoice(ENEMIES.bride.voice);

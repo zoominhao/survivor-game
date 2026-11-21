@@ -16,7 +16,6 @@ test('满场单人和双人都有 Boss 席位，最后一分钟照常出现完�
   for (const mate of [null, 'zhu']) {
     g.start('ella', mate);
     g.time = 839.98;
-    g.enterLandscape('dawn');
     g.eliteT = Infinity;
     g.evIdx = EVENTS.findIndex(e => e.t === 840);
     const near = g.spawnEnemy('shade', 25, 0), elite = g.spawnEnemy('shade', 1800, 0, true);
@@ -30,7 +29,7 @@ test('满场单人和双人都有 Boss 席位，最后一分钟照常出现完�
     assert.equal(g.enemies.filter(e => e.type === 'brute').length, 36);
     assert.ok(g.enemies.includes(near) && g.enemies.includes(elite));
     assert.ok(g.spawnAcc < 1);
-    const boss = g.summonBoss('bridalQueen', 2, 350, 0, 'rain');
+    const boss = g.summonBoss('bridalQueen', 2, 350, 0);
     assert.equal(g.enemies.length, CFG.MAX_ENEMIES);
     assert.equal(g.reserveEnemySlots(5), 5);
     assert.ok(g.enemies.includes(boss) && g.enemies.includes(elite));

@@ -27,7 +27,7 @@ const ContractUI = {
       info.appendChild(rewards);
       const stage = def.stage;
       const locked = stage && !Environment.canOpen(data, stage);
-      if (locked) this.growthShortage(info, `需解锁「${Environment.scenes[stage].name}」`);
+      if (locked) this.growthShortage(info, `需解锁「${STAGES[stage].name}」`);
       else if (stage && !Environment.stagePool(data).includes(stage)) this.growthShortage(info, '在场景商店把此地图加入随机池后才能遇到。');
       button.disabled = picked || claimed || !!locked;
       button.textContent = claimed ? '已结算' : picked ? '已接' : '接下';

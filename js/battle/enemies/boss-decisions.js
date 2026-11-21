@@ -19,11 +19,11 @@ const BossDecisions = {
   },
 
   describeBossDecision() {
-    const { variant, scene } = this.bossDecision;
+    const { variant } = this.bossDecision;
     const tactic = BOSS_TACTICS[variant], { values, explain } = tactic;
     const coins = Math.floor(this.player.coins);
     return {
-      name: BOSS_TYPES[variant].name, scene: Environment.scenes[scene].name, coins,
+      name: BOSS_TYPES[variant].name, scene: STAGES[this.stage].name, coins,
       cost: tactic.cost, bounty: tactic.bounty, missing: Math.max(0, tactic.cost - coins),
       wardEffect: explain(values.ward, values.normal), challengeEffect: explain(values.challenge, values.normal),
     };
@@ -31,7 +31,7 @@ const BossDecisions = {
 
   chooseBossPlan(plan) {
     if (this.state !== 'decision' || !this.bossDecision) return false;
-    const { variant, tier, scene } = this.bossDecision;
+    const { variant, tier } = this.bossDecision;
     const { cost, values } = BOSS_TACTICS[variant];
     if (!Object.hasOwn(values, plan)) return false;
     const p = this.player;
@@ -43,7 +43,7 @@ const BossDecisions = {
     this.state = 'playing';
     const a = Math.random() * TAU, r = this.spawnR();
     const anchor = p.hp > 0 ? p : this.partner || p;
-    this.summonBoss(variant, tier, anchor.x + Math.cos(a) * r, anchor.y + Math.sin(a) * r, scene, plan);
+    this.summonBoss(variant, tier, anchor.x + Math.cos(a) * r, anchor.y + Math.sin(a) * r, plan);
     this.emit('resume');
     return true;
   },

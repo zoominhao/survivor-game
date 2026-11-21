@@ -130,8 +130,8 @@ const Render = {
     const L = camera.x - hw, T = camera.y - hh, Rt = camera.x + hw, B = camera.y + hh;
     const vis = (x, y, pad) => x > L - pad && x < Rt + pad && y > T - pad && y < B + pad;
 
-    const outfitMap = Environment.forBattle(g).id;
-    const current = Environment.scenes[outfitMap];
+    const outfitMap = g.stage;
+    const current = STAGES[outfitMap];
     const shade = `rgb(${current.shade.join(',')})`;
     const afterglow = EnvironmentArt.afterglow(time - g.bossClearAt, BOSS_AFTERGLOW);
     const dawn = Environment.dawnlight(time, g.duration);

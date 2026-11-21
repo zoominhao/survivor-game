@@ -41,7 +41,7 @@ const LanUI = {
     this.$('btnLanAccept').disabled = !invited;
     const inRoom = phase === 'connected' && !!Lan.otherChar;
     const upcoming = inRoom ? Environment.sharedStages(Lan.localStages, Lan.peerStages) : Lan.localStages;
-    this.$('lanStages').textContent = `${inRoom ? '双方场景' : '你的随机池'} · ${upcoming.length === 1 ? Environment.scenes[upcoming[0]].name : `${upcoming.length} 张随机`}`;
+    this.$('lanStages').textContent = `${inRoom ? '双方场景' : '你的随机池'} · ${upcoming.length === 1 ? STAGES[upcoming[0]].name : `${upcoming.length} 张随机`}`;
     const host = Lan.role === 'host', start = this.$('btnLanStart'), ready = this.$('btnLanReady');
     show('lanRoom', inRoom);
     const bond = inRoom ? CoopBonds.forPair(Lan.char, Lan.otherChar) : null;

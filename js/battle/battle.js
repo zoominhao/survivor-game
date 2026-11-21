@@ -31,7 +31,6 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       const data = this.save.data;
       const selected = Environment.stagePool(data);
       this.stage = trialStage ?? Environment.pickStage(this.coop && !this.robot ? Environment.sharedStages(selected, peerStages) : selected);
-      this.landscape = this.stage;
       this.contract = this.startContract(data);
       this.fork = null;
       this.spawnAcc = 0;
@@ -63,7 +62,8 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.player = this.makePlayer(charId, 0);
       this.partner = partnerChar ? this.makePlayer(partnerChar, 1, 34) : null;
       this.players = this.partner ? [this.player, this.partner] : [this.player];
-      this.enterLandscape(this.stage);
+      // 按抽中的地图校正出生点；整局只使用这一张地图的碰撞。
+      for (const p of this.players) Terrain.move(p, 0, 0, CFG.PLAYER_R, 0, this.stage);
       this.stepBond();
       this.state = 'playing';
     },
@@ -111,17 +111,6 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       es.length = n;
 
       this.nextLevelUp();
-    },
-
-    enterLandscape(landscape) {
-      this.landscape = landscape;
-      // 开局使用所选地图的碰撞，清理可能覆盖出生点的障碍。
-      const unstick = (body, radius) => Terrain.move(body, 0, 0, radius, 0, landscape);
-      for (const p of this.players) unstick(p, CFG.PLAYER_R);
-      for (const e of this.enemies) {
-        if (!e.dead && !e.boss && !ENEMIES[e.type].ghost) unstick(e, e.r);
-      }
-      for (const pickup of this.pickups) if (pickup.type === 'chest') unstick(pickup, 4);
     },
 
     // 结算:win = 是否撑到黎明

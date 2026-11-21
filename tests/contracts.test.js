@@ -67,12 +67,11 @@ test('雨庭按不同喜灯计数，阵亡结算仍给一次奖励', () => {
   assert.equal(g.contract, null);
 });
 
-test('雪岭连续计时，只有实际取暖或离开才重置，进度不会在暂停中走动', () => {
+test('雪岭连续计时，只有实际取暖才重置，进度不会在暂停中走动', () => {
   const { g, world } = setup({ selectedContract: 'snowVigil', routes: { snow: true }, stageSelection: ['snow'] });
   const shrine = { kind: 'warmingShrine', x: 30, y: 3 };
   g.start('zhu');
   g.time = 194;
-  g.enterLandscape('snow');
   g.stepContract(12);
   g.state = 'paused';
   g.update(20);
@@ -86,14 +85,11 @@ test('雪岭连续计时，只有实际取暖或离开才重置，进度不会�
   g.stepContract(0.02);
   assert.equal(g.contract.progress, 0);
   g.time++;
-  g.stepContract(15);
-  g.enterLandscape('night'); g.stepContract(0.05);
-  assert.equal(g.contract.progress, 0);
-  g.enterLandscape('snow'); g.stepContract(29.99);
+  g.stepContract(29.99);
   assert.equal(g.contract.done, false);
   g.stepContract(0.01);
   assert.equal(g.contract.done, true);
-  g.enterLandscape('night'); g.stepContract(0.05);
+  g.stepContract(0.05);
   assert.equal(g.contract.progress, 30);
 });
 
@@ -102,7 +98,7 @@ test('揭符破魇只认夜魇的悬赏打法，未完成可重试，奖励叠�
   const fight = (variant, plan) => {
     g.start('ella');
     g.time = 245;
-    g.offerBossDecision({ variant, tier: 0, scene: 'night' });
+    g.offerBossDecision({ variant, tier: 0 });
     assert.ok(g.chooseBossPlan(plan));
     g.killEnemy(g.boss);
   };
@@ -143,7 +139,7 @@ test('练习局和双人局不发委托奖励，也不消费首次结算资格',
 test('两处镇纸符才算完成；空符、同一处冷却后重用都不算', () => {
   const { g, world } = setup({ selectedContract: 'bambooWards', routes: { bamboo: true }, stageSelection: ['bamboo'] });
   g.start('ella');
-  g.time = 70; g.enterLandscape('bamboo');
+  g.time = 70;
   const ward = { kind: 'paperWard', x: 10, y: 0 };
   world.visitLandmark(g, ward, 'bamboo:10:0');
   assert.equal(g.contract.progress, 0);
@@ -186,7 +182,7 @@ test('精英、Boss 宝箱和三关委托彼此独立，三关要求三位不同
   const elites = setup({ selectedContract: 'eliteHunt' }).g;
   elites.start('ella');
   elites.killEnemy(elites.spawnEnemy('shade', 40, 0));
-  elites.killEnemy(elites.summonBoss('nightmare', 0, 250, 0, 'night'));
+  elites.killEnemy(elites.summonBoss('nightmare', 0, 250, 0));
   assert.equal(elites.contract.progress, 0);
   for (let i = 0; i < 3; i++) elites.killEnemy(elites.spawnEnemy('shade', 55 + i, 0, true));
   assert.ok(elites.contract.done);

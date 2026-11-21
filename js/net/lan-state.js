@@ -88,7 +88,7 @@ const LanState = (() => {
     return {
       clock: pack(g, 'time bossClearAt stage shake'), players: g.players.map(p => packPlayer(p, g.pendingFor(p))),
       fork: g.fork && pack(g.fork, 'id since'),
-      boss: b && [pack(b, bossFields), b.arena && [b.arena.id, b.arena.from], b.seals?.map(s => pack(s, 'x y r'))],
+      boss: b && [pack(b, bossFields), b.seals?.map(s => pack(s, 'x y r'))],
       enemies: g.enemies.filter(e => !e.dead && e !== b).map(e => [typeKeys.indexOf(e.type), ...pack(e, enemyFields)]),
       projs: bound(g.projs, 400).map(p => pack(p, projs)), bullets: bound(g.ebullets, 120).map(p => pack(p, bullets)),
       zones: bound(g.zones, 200).map(z => pack(z, zones)), gems: g.gems.map(g => pack(g, 'x y v')),
@@ -107,7 +107,7 @@ const LanState = (() => {
     const clock = unpack(s.clock, 'time bossClearAt stage shake', { stage: v => Environment.isStage(v) });
     if (!players.every(Boolean) || !clock?.stage || !number(clock.time, 0, CFG.RUN_TIME + 1)) return null;
     const [partner, player] = players;
-    const frame = { ...clock, player, partner, players, boss: null, landscape: clock.stage, bossClearAt: clock.bossClearAt ?? -Infinity };
+    const frame = { ...clock, player, partner, players, boss: null, bossClearAt: clock.bossClearAt ?? -Infinity };
     const fork = s.fork;
     frame.fork = Array.isArray(fork) && own(ROUTE_BRANCHES, fork[0]) &&
       number(fork[1], FORK_WINDOW.start, Math.min(FORK_WINDOW.last, clock.time)) ? { id: fork[0], since: fork[1] } : null;
@@ -126,10 +126,8 @@ const LanState = (() => {
     });
     if (Array.isArray(s.boss)) {
       const b = unpack(s.boss[0], bossFields);
-      const arena = s.boss[1];
       if (b?.kind && b.r > 0 && number(b.maxHp, 1) && number(b.arrivedAt, 0) && number(b.t)) {
-        if (Array.isArray(arena) && arena.length === 2 && arena.every(k => k === frame.stage)) b.arena = { id: frame.stage, from: frame.stage };
-        b.seals = mapRows(s.boss[2], 3, row => unpack(row, 'x y r'));
+        b.seals = mapRows(s.boss[1], 3, row => unpack(row, 'x y r'));
         frame.boss = { ...b, type: 'boss', boss: true };
         frame.enemies.push(frame.boss);
       }

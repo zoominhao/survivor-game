@@ -125,7 +125,7 @@ test('一人倒下不结束，击败 Boss 后可以回场，两人都倒下才�
   assert.equal(q.hp, 0);
   assert.equal(g.state, 'playing');
   assert.equal(g.nearestPlayer(q.x, q.y), p);
-  const boss = g.summonBoss('nightmare', 0, 40, 0, 'night');
+  const boss = g.summonBoss('nightmare', 0, 40, 0);
   g.killEnemy(boss, p);
   assert.equal(q.hp, q.st.maxHp * 0.25);
   assert.ok(q.iframe > 0);
@@ -143,12 +143,14 @@ test('双人在同一张已启用地图连续迎战三位 Boss，撑完十五分
     g.time = time - 0.01;
     g.update(0.02);
     assert.equal(g.state, 'decision');
+    assert.equal(g.describeBossDecision().scene, '雷雨荒祠');
     assert.ok(g.chooseBossPlan('normal'));
     assert.equal(g.boss.kind, kind);
-    assert.equal(g.boss.arena.id, 'storm');
+    assert.equal(g.stage, 'storm');
+    if (kind === 'coffinKing') g.boss.seals = [{ x: 20, y: 50, r: 40 }];
     const snapshot = LanState.readFrame(JSON.parse(JSON.stringify(LanState.packFrame(g))));
     assert.equal(snapshot.stage, 'storm');
-    assert.equal(snapshot.boss.arena.id, 'storm');
+    if (kind === 'coffinKing') assert.deepEqual(Array.from(snapshot.boss.seals, s => [s.x, s.y, s.r]), [[20, 50, 40]]);
     const invalid = LanState.packFrame(g);
     invalid.clock[2] = 'constructor';
     assert.equal(LanState.readFrame(invalid), null);
@@ -165,7 +167,7 @@ test('怪潮为 Boss 留名额，满场快照可编码，来客只收到绘制�
   const { game: g, CFG, LanState } = setup();
   for (let i = 0; i < CFG.MAX_ENEMIES + 30; i++) g.spawnEnemy('shade', 200 + i, 20);
   assert.equal(g.enemies.length, CFG.MAX_ENEMIES - 1);
-  const boss = g.summonBoss('coffinKing', 1, 400, 400, 'snow');
+  const boss = g.summonBoss('coffinKing', 1, 400, 400);
   boss.phase = 'sealWind'; boss.seals = [{ x: 5, y: -20, r: 52 }];
   g.environment.lit.add('dusk:4:-20');
   g.environment.landmarkReady.set('dusk:5:1', Infinity);

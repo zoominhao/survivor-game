@@ -139,7 +139,7 @@ test('扶救需要站稳且连续，受击或走开会打断，整局只消耗�
   assert.ok(q.iframe > 0 && g.rescue.used);
   q.iframe = 0; g.hurtPlayer(1e3, null, q); g.stepRescue(3);
   assert.equal(q.hp, 0);
-  const boss = g.summonBoss('nightmare', 0, 120, 0, 'night');
+  const boss = g.summonBoss('nightmare', 0, 120, 0);
   g.killEnemy(boss);
   assert.ok(q.hp > 0); // 保留击败 Boss 后复起的路线。
 });

@@ -15,7 +15,7 @@ const BattleEnemies = {
     };
     const minute = Math.min(WAVE_RATES.length - 1, Math.floor(t / 60));
     const rate = WAVE_RATES[minute] * (this.coop ? COOP_DIFFICULTY.spawnRate : 1);
-    const landscape = Environment.forBattle(this).id;
+    const stage = this.stage;
     const count = this.enemies.length;
     if (count < this.enemyLimit()) {
       this.spawnAcc += rate * dt;
@@ -25,7 +25,7 @@ const BattleEnemies = {
     while (this.spawnAcc >= 1 && this.enemies.length < this.enemyLimit()) {
       this.spawnAcc--;
       const p = anchor();
-      const type = U.weighted(Environment.enemyPoolAt(t, landscape));
+      const type = U.weighted(Environment.enemyPoolAt(t, stage));
       const a = Math.random() * TAU;
       const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
       if (type === 'swarm') {
@@ -41,7 +41,7 @@ const BattleEnemies = {
     if (t >= this.eliteT) {
       const p = anchor();
       this.eliteT += 45;
-      const pool = Environment.enemyPoolAt(t, landscape);
+      const pool = Environment.enemyPoolAt(t, stage);
       let type = U.weighted(pool);
       if (type === 'swarm' || type === 'moth') type = Object.keys(pool).find(id => id !== 'swarm' && id !== 'moth');
       const a = Math.random() * TAU;
@@ -49,27 +49,26 @@ const BattleEnemies = {
     }
     // 定时事件
     while (this.evIdx < EVENTS.length && t >= EVENTS[this.evIdx].t) {
-      const event = EVENTS[this.evIdx++];
-      const ev = event.opening ? STAGES[this.stage]?.arrival ?? event : event;
-      const p = anchor();
-      if (ev.kind !== 'boss' && ((ev.scene && ev.scene !== landscape) || ev.alternateFork && this.fork)) continue;
-      if (ev.kind === 'ring') {
-        this.spawnRing(ev, p);
-      } else if (ev.kind === 'arrival') {
-        if (!this.reserveEnemySlots(1)) continue;
-        const a = Math.random() * TAU, rr = R * 0.78;
-        this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
-        this.emit('banner', ev.msg);
-        this.deferVoice(ENEMIES[ev.enemy].voice);
-        if (ev.sound) this.play(ev.sound);
-      } else if (ev.kind === 'boss') {
-        this.pendingBosses.push({ ...ev, scene: landscape });
-      }
+      const ev = EVENTS[this.evIdx++];
+      if (ev.scene && ev.scene !== stage || ev.alternateFork && this.fork) continue;
+      if (ev.kind === 'ring') this.spawnRing(ev, anchor());
+      else if (ev.kind === 'arrival' || ev.kind === 'opening') {
+        this.spawnArrival(ev.kind === 'opening' ? STAGES[stage].arrival : ev, anchor(), R * 0.78);
+      } else if (ev.kind === 'boss') this.pendingBosses.push(ev);
     }
     // 上一位还没击败时排队，但其他定时怪潮照常发生。
     if (this.state === 'playing' && !this.boss && this.pendingBosses.length && t - this.bossClearAt >= BOSS_REWARD_BEAT) {
       this.offerBossDecision(this.pendingBosses.shift());
     }
+  },
+
+  spawnArrival(ev, p, radius) {
+    if (!this.reserveEnemySlots(1)) return;
+    const a = Math.random() * TAU;
+    this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius);
+    this.emit('banner', ev.msg);
+    this.deferVoice(ENEMIES[ev.enemy].voice);
+    if (ev.sound) this.play(ev.sound);
   },
 
   spawnRing(ev, p) {
@@ -117,7 +116,7 @@ const BattleEnemies = {
       e.hp = e.maxHp = e.hp * 7;
       e.r *= 1.45; e.xp *= 10; e.kbRes = Math.max(e.kbRes, 0.8);
     }
-    if (type !== 'boss' && !d.ghost) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
+    if (type !== 'boss' && !d.ghost) Terrain.move(e, 0, 0, e.r, 0, this.stage);
     this.enemies.push(e);
     return e;
   },
@@ -143,7 +142,7 @@ const BattleEnemies = {
       if (playerDistance > far && !e.boss) {
         const a = Math.random() * TAU;
         e.x = p.x + Math.cos(a) * R; e.y = p.y + Math.sin(a) * R;
-        if (avoidsTerrain) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
+        if (avoidsTerrain) Terrain.move(e, 0, 0, e.r, 0, this.stage);
         continue;
       }
       let sp = e.speed;
@@ -185,7 +184,7 @@ const BattleEnemies = {
 
       const prevX = e.x, prevY = e.y;
       const moveX = (mx * sp + e.kx) * dt, moveY = (my * sp + e.ky) * dt;
-      if (avoidsTerrain && (moveX || moveY)) Terrain.move(e, moveX, moveY, e.r, e.side, this.landscape);
+      if (avoidsTerrain && (moveX || moveY)) Terrain.move(e, moveX, moveY, e.r, e.side, this.stage);
       else { e.x += moveX; e.y += moveY; }
       e.kx *= decay; e.ky *= decay;
 
@@ -209,7 +208,7 @@ const BattleEnemies = {
             }
           }
         }
-        if (e.x !== x || e.y !== y) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
+        if (e.x !== x || e.y !== y) Terrain.move(e, 0, 0, e.r, 0, this.stage);
       }
 
       if (e.clackPushUntil > this.time) FolkSynergy.crossedThread(this, e, prevX, prevY);

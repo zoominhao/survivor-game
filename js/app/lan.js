@@ -200,7 +200,7 @@ const Lan = {
     Input.keys.clear();
     Input.endJoy();
     UI.show(null);
-    this.battleEvent('banner', Environment.scenes[Game.stage].name);
+    this.battleEvent('banner', STAGES[Game.stage].name);
     this.sendFrame();
   },
 

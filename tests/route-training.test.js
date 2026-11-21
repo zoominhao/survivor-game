@@ -23,7 +23,7 @@ test('只有已购地图可用；购买不重复扣款，默认随机，单选�
   g.start('zhu');
   for (const time of [26, 105, 177, 480, 899]) {
     g.time = time;
-    assert.equal(Environment.forBattle(g).id, 'dusk');
+    assert.equal(g.stage, 'dusk');
   }
   assert.ok(!Save.buyRoute('constructor'));
   assert.ok(Save.buyRoute('snow'));
@@ -39,16 +39,15 @@ test('只有已购地图可用；购买不重复扣款，默认随机，单选�
   assert.deepEqual(Array.from(Save.data.stageSelection), ['snow']);
   assert.equal(Save.data.lastChar, 'zhu');
   g.start('zhu');
-  assert.equal(g.landscape, 'snow');
-  assert.equal(Environment.forBattle(g).id, 'snow');
+  assert.equal(g.stage, 'snow');
   g.time = 16;
   g.spawn(0);
   assert.ok(g.enemies.some(e => e.type === 'snowEnvoy'));
   assert.ok(cues.includes('envoyCall'));
   g.time = 65;
-  assert.equal(Environment.forBattle(g).id, 'snow');
-  g.summonBoss('nightmare', 0, 300, 0, 'night');
-  assert.equal(Environment.forBattle(g).id, 'snow');
+  assert.equal(g.stage, 'snow');
+  g.summonBoss('nightmare', 0, 300, 0);
+  assert.equal(g.stage, 'snow');
   g.start('zhu', 'ella', { peerStages: ['dusk', 'storm'] });
   assert.equal(g.stage, 'dusk');
   g.start('zhu', 'ella', { peerStages: ['snow'] });
@@ -71,7 +70,6 @@ test('旧版已购场景迁移进默认随机池，购买新图不会改变已�
   Save.load();
   g.start('ella');
   assert.equal(g.stage, 'storm');
-  assert.equal(Environment.scenes[g.stage].weather, 'storm');
 });
 
 test('守夜印只用于已解锁英雄的个人修炼，可预览并叠加到单人初始属性', () => {
@@ -108,7 +106,7 @@ test('守夜印在正式单人结算按时长和 Boss 发放，不重复发、�
   assert.equal(g.result.earnedSeals, 0);
   g.start('ella');
   g.time = 244;
-  const boss = g.summonBoss('nightmare', 0, 300, 0, 'night');
+  const boss = g.summonBoss('nightmare', 0, 300, 0);
   g.killEnemy(boss);
   g.finish(false);
   assert.equal(g.result.earnedSeals, 4);
@@ -137,7 +135,7 @@ test('旧存档和异常字段回到安全默认值，不赠送未购买的场�
   assert.deepEqual(Object.keys(Save.data.training.zhu), ['swift']);
   assert.equal(Save.data.coins, 20);
   g.start('zhu');
-  assert.equal(g.landscape, 'dusk');
+  assert.equal(g.stage, 'dusk');
   assert.equal(g.player.hp, 95);
   assert.equal(g.player.st.might, 1);
 });

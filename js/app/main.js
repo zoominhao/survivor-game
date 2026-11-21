@@ -69,7 +69,7 @@ const App = {
     if (Game.state !== 'intro' || document.hidden) return;
     Game.state = 'playing';
     UI.show(null);
-    const scene = Environment.scenes[Game.stage];
+    const scene = STAGES[Game.stage];
     UI.banner(scene.name);
     if (scene.sound) Sfx.play(scene.sound, 0.78);
   },
@@ -225,7 +225,7 @@ const App = {
     }
     const boss = Game.boss;
     const stage = Game.player && Game.state !== 'menu' ? Game.stage : null;
-    const landscape = Environment.scenes[stage]?.music ?? stage;
+    const landscape = STAGES[stage]?.music ?? stage;
     const bossTheme = boss && !boss.dead ? boss.kind ?? 'boss' : null;
     const musicState = Game.state === 'audio' ? 'playing' : Game.state === 'practiceSetup' ? 'practice' : Game.state;
     Sfx.syncMusic(musicState, bossTheme, landscape);

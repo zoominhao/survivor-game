@@ -2,9 +2,9 @@
 
 const CONTRACTS = {
   rainLights: { name: '雨庭添灯', group: 'map', stage: 'rain', icon: 'rainRoute', goal: 3, unit: '盏', coins: 60, seals: 1,
-    desc: '点亮雨落石庭的 3 盏不同喜灯。重访雨庭时保留进度。' },
+    desc: '点亮雨落石庭的 3 盏不同喜灯。' },
   snowVigil: { name: '雪岭禁暖', group: 'map', stage: 'snow', icon: 'winter', goal: 30, unit: '秒', coins: 75, seals: 1,
-    desc: '在霜封山径连续坚持 30 秒。离开雪岭或用取暖龛回血会重新计时。' },
+    desc: '在霜封山径连续坚持 30 秒。用取暖龛回血会重新计时。' },
   bambooWards: { name: '竹径镇纸', group: 'map', stage: 'bamboo', icon: 'exampaper', goal: 2, unit: '处', coins: 70, seals: 1,
     desc: '在风过竹径引动两处不同的镇纸符。附近有夜兽才会触发。' },
   pineBell: { name: '松林暮钟', group: 'map', stage: 'night', icon: 'moon', goal: 4, unit: '只', coins: 65, seals: 1,
@@ -82,8 +82,7 @@ const BattleContracts = {
   stepContract(dt) {
     const c = this.contract;
     if (c?.id !== 'snowVigil' || c.done) return;
-    if (this.landscape !== 'snow') c.progress = 0;
-    else if (c.resetAt !== this.time) this.advanceContract(dt);
+    if (c.resetAt !== this.time) this.advanceContract(dt);
   },
 
   contractBoss(boss) {

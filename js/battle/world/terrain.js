@@ -18,12 +18,12 @@ const Terrain = {
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   },
 
-  chunk(cx, cy, scene = 'dusk') {
+  chunk(cx, cy, scene = DEFAULT_STAGE) {
     const cell = cx + ':' + cy, key = `${scene}:${cell}`;
     const saved = this.cache.get(key);
     if (saved) return saved;
 
-    const map = Environment.scenes[scene];
+    const map = STAGES[scene];
     const roll = salt => this.hash(cx, cy, salt + map.seed);
     const x0 = cx * this.size, y0 = cy * this.size;
     const tall = roll(3) < 0.47;

@@ -29,14 +29,14 @@ test('战斗模块不直接读写界面、输入或浏览器存储', () => {
 test('普通怪潮、场景怪和 Boss 都有各自的贴图绘制函数', () => {
   const scope = vm.createContext({ Path2D: class {} });
   loadGame(scope, file => battleScript(file) || file.startsWith('js/render/enemies/'));
-  const { ENEMIES, EVENTS, Environment, BOSS_TYPES, EnemyRendering } = vm.runInContext(
-    '({ ENEMIES, EVENTS, Environment, BOSS_TYPES, EnemyRendering })', scope);
+  const { ENEMIES, EVENTS, STAGES, BOSS_TYPES, EnemyRendering } = vm.runInContext(
+    '({ ENEMIES, EVENTS, STAGES, BOSS_TYPES, EnemyRendering })', scope);
   const spriteRegistry = { ...EnemyRendering, sprites: {}, makeSprite: (_, paint) => paint };
   spriteRegistry.buildEnemySprites();
   const regularIds = Object.keys(ENEMIES).filter(id => id !== 'boss');
   const encounterIds = new Set([
-    ...Object.values(Environment.scenes).flatMap(({ opening, enemies, late }) => [
-      ...Object.keys(opening || {}), ...Object.keys(enemies), ...Object.keys(late || {}),
+    ...Object.values(STAGES).flatMap(({ opening, enemies, late, arrival }) => [
+      ...Object.keys(opening || {}), ...Object.keys(enemies), ...Object.keys(late || {}), arrival.enemy,
     ]),
     ...EVENTS.filter(event => event.enemy).map(event => event.enemy),
   ]);
@@ -50,14 +50,19 @@ test('普通怪潮、场景怪和 Boss 都有各自的贴图绘制函数', () =>
 test('地图的灯、机关、地貌与定时遭遇都绑定在正确场景', () => {
   const scope = vm.createContext({});
   loadGame(scope, file => battleScript(file) || file.startsWith('js/render/world/'));
-  const { Environment, TerrainArt, WorldInteractions, EVENTS } = vm.runInContext(
-    '({ Environment, TerrainArt, WorldInteractions, EVENTS })', scope);
-  for (const map of Object.values(Environment.scenes)) {
+  const { Environment, STAGES, DEFAULT_STAGE, TerrainArt, WorldInteractions, EVENTS } = vm.runInContext(
+    '({ Environment, STAGES, DEFAULT_STAGE, TerrainArt, WorldInteractions, EVENTS })', scope);
+  assert.deepEqual(Array.from(Environment.stagePool({})), [DEFAULT_STAGE]);
+  assert.equal(new Set(Object.values(STAGES).map(map => map.seed)).size, Object.keys(STAGES).length);
+  for (const map of Object.values(STAGES)) {
     assert.ok(Object.hasOwn(Environment.lights, map.lamp));
     assert.ok(Object.hasOwn(WorldInteractions.landmarks, map.landmark));
     for (const prop of [map.lamp, map.landmark, map.decor, ...map.solids]) assert.equal(typeof TerrainArt[prop], 'function', prop);
   }
   for (const event of EVENTS) if (event.scene) assert.ok(Environment.isStage(event.scene));
+  const bosses = EVENTS.filter(event => event.kind === 'boss');
+  assert.deepEqual(Array.from(bosses, event => event.t), [240, 480, 720]);
+  assert.ok(bosses.every(event => !event.scene));
 });
 
 test('无浏览器的战斗可以升级、开箱和结算，两个本局状态互不影响', () => {

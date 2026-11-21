@@ -94,7 +94,7 @@ const FolkLoadouts = {
     const offsets = s.twin ? [-s.twin, s.twin] : [0];
     offsets.forEach((offset, i) => {
       const at = { x: p.x + dx * distance - dy * offset, y: p.y + dy * distance + dx * offset };
-      Terrain.move(at, 0, 0, CFG.PLAYER_R, 0, g.landscape);
+      Terrain.move(at, 0, 0, CFG.PLAYER_R, 0, g.stage);
       g.addZone({ type: 'decoy', look: 'maskEcho', ...at,
         r: s.radius * p.st.area, trigger: s.blast * p.st.area, life: s.dur + i * 0.42,
         dmg: s.dmg * p.st.might, kb: s.kb, wid: w.id, color: WEAPONS[w.id].color });

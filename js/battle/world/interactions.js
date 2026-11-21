@@ -17,13 +17,13 @@ const WorldInteractions = {
   // 交互由走位触发，手机不用增加按钮；点亮、治疗分别记录，满血不会浪费治疗。
   step(g) {
     const run = g.environment;
-    const landscape = Environment.forBattle(g).id;
+    const stage = g.stage;
     for (const [key, end] of run.reeds) if (end <= g.time) run.reeds.delete(key);
     const reach = 42;
     for (const p of g.players) {
       if (p.hp <= 0) continue;
       Terrain.forEachProp(p.x - reach, p.y - reach, p.x + reach, p.y + reach, prop => {
-        const dist = Math.hypot(p.x - prop.x, p.y - prop.y), key = this.key(prop, landscape);
+        const dist = Math.hypot(p.x - prop.x, p.y - prop.y), key = this.key(prop, stage);
         if (Object.hasOwn(Environment.lights, prop.kind) && dist <= 36) this.visitLight(g, prop, key, p);
         if (Object.hasOwn(this.landmarks, prop.kind) && dist <= 34) this.visitLandmark(g, prop, key, p);
         if (prop.kind === 'reeds' && p.moving && dist <= 24 && !run.reeds.has(key)) {
@@ -31,7 +31,7 @@ const WorldInteractions = {
           g.burst(prop.x, prop.y, '#a3b66c', 5);
           g.play('rustle');
         }
-      }, landscape);
+      }, stage);
     }
   },
 
