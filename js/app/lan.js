@@ -14,7 +14,7 @@ const Lan = {
     this.close();
     this.char = Save.data.lastChar;
     this.phase = 'pick';
-    this.status = message || `已选 ${CHARS[this.char].name}。好友用同一 Wi-Fi 和连接码加入；没人时可由机器人补位。`;
+    this.status = message || `已选 ${CHARS[this.char].name}。同一 Wi-Fi 的好友可扫码加入；没人时可由机器人补位。`;
     UI.$('lanIn').value = '';
     UI.show('lan');
     UI.refreshLan();
@@ -29,11 +29,14 @@ const Lan = {
     this.select('guest');
     if (this.phase === 'offer-in') {
       UI.$('lanIn').value = code;
-      this.statusText('邀请已填好，点确认生成应答码。');
+      this.statusText('邀请已填好，点击「生成应答二维码」。');
+      UI.$('btnLanAccept').focus();
     }
   },
 
   close() {
+    UI.stopLanScan();
+    UI.$('lanManual').open = false;
     const link = this.link;
     this.link = null;
     link?.close();
@@ -79,8 +82,8 @@ const Lan = {
     if (role === 'host') this.makeLink();
     else {
       this.phase = 'offer-in';
-      this.statusText('粘贴房主发来的邀请码，生成应答码。');
-      UI.$('lanIn').focus();
+      this.statusText('扫描房主的邀请二维码，或粘贴房主发来的邀请。');
+      (UI.$('btnLanScan').disabled ? UI.$('btnLanImage') : UI.$('btnLanScan')).focus();
     }
   },
 
@@ -101,7 +104,7 @@ const Lan = {
       this.out = code;
       this.phase = host ? 'answer-in' : 'answer-out';
       if (host) this.fallbackAt = performance.now() + LAN_FALLBACK_MS;
-      this.statusText(host ? '把邀请码发给队友，再粘贴对方回传的应答码。' : '把应答码回传房主，保持网页开启。');
+      this.statusText(host ? '让好友先扫码，再扫描好友的应答二维码。' : '请房主扫描应答二维码，保持网页开启。');
     } catch (e) {
       if (this.link !== link && link) return;
       link?.close();
@@ -118,7 +121,7 @@ const Lan = {
       const code = await link.localCode('offer', true);
       if (this.link !== link || this.phase !== 'answer-in') return;
       this.out = code;
-      this.statusText('已切换兼容码，请重新复制发给队友。');
+      this.statusText('已切换兼容码，请让好友重新扫描或复制。');
     } catch (e) {
       if (this.link === link) this.statusText(e.message);
     }
@@ -136,7 +139,7 @@ const Lan = {
       if (link !== this.link) return;
       this.fallbackAt = deadline;
       this.phase = 'answer-in';
-      this.statusText(e instanceof DOMException ? '这不是当前邀请的应答码，请重新复制。' : e.message);
+      this.statusText(e instanceof DOMException ? '这不是当前邀请的应答码，请重新扫描或复制。' : e.message);
     }
   },
 

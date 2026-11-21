@@ -112,6 +112,16 @@
 .preview-row button { min-width: 0; font-size: 13px; padding-inline: 3px; }
 #soundTestStatus { margin: 0; color: var(--dim); font-size: 12px; line-height: 1.5; }
 .lan-panel { width: min(515px, 100%); }
+.lan-qr-out { display: grid; justify-items: center; gap: 8px; margin: 12px 0; text-align: center; }
+.lan-qr-out canvas { width: min(100%, 284px); height: auto; image-rendering: pixelated; }
+.lan-qr-out figcaption, .lan-qr-in h3 { margin: 0; color: var(--text); font-size: 14px; }
+.lan-qr-in { margin: 12px 0; }
+.lan-qr-in .row { margin-top: 8px; }
+.lan-qr-in video { display: block; width: 100%; max-height: 235px; margin-top: 8px; background: var(--surface); }
+#lanQrStatus:empty { display: none; }
+.lan-manual { margin-block: 12px; border-block: 1px solid var(--line); }
+.lan-manual summary { min-height: 44px; padding-block: 11px; cursor: pointer; color: var(--gold); }
+.lan-manual summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .lan-code { display: grid; gap: 8px; margin-block: 16px; }
 .lan-code label { font-size: 14px; font-weight: 700; }
 .lan-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }

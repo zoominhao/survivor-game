@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css?v=practice-roster1">
+  <link rel="stylesheet" href="css/screens.css?v=lan-qr1">
   <link rel="stylesheet" href="css/responsive.css?v=ambience1">
 </head>
 <body>
@@ -119,18 +119,32 @@
         <button id="btnLanHost" class="primary" type="button">创建邀请</button>
         <button id="btnLanJoin" type="button">加入朋友</button>
       </div>
-      <div id="lanOutBox" class="lan-code hidden">
-        <label id="lanOutLabel" for="lanOut">发给朋友的码</label>
-        <div class="lan-code-row"><textarea id="lanOut" rows="2" readonly spellcheck="false" autocapitalize="off"></textarea><button id="btnLanCopy" type="button">复制</button></div>
-        <div class="lan-copy-tools">
-          <button id="btnLanCopyLink" type="button" class="hidden">复制邀请链接</button>
-          <button id="btnLanLegacy" type="button" class="hidden">改用兼容码</button>
+      <figure id="lanQrOut" class="lan-qr-out hidden">
+        <canvas id="lanQrCode" role="img"></canvas>
+        <figcaption id="lanQrCaption"></figcaption>
+      </figure>
+      <section id="lanQrIn" class="lan-qr-in hidden" aria-labelledby="lanQrScanTitle">
+        <h3 id="lanQrScanTitle"></h3>
+        <div class="row"><button id="btnLanScan" type="button">打开相机</button><button id="btnLanImage" type="button">读取二维码图片</button></div>
+        <input id="lanQrFile" type="file" accept="image/*" hidden>
+        <video id="lanQrVideo" class="hidden" playsinline muted aria-label="本机相机预览"></video>
+        <p id="lanQrStatus" class="control-note" role="status"></p>
+      </section>
+      <details id="lanManual" class="lan-manual hidden">
+        <summary>备用：复制或粘贴长码</summary>
+        <div id="lanOutBox" class="lan-code hidden">
+          <label id="lanOutLabel" for="lanOut">发给朋友的码</label>
+          <div class="lan-code-row"><textarea id="lanOut" rows="2" readonly spellcheck="false" autocapitalize="off"></textarea><button id="btnLanCopy" type="button">复制</button></div>
+          <div class="lan-copy-tools">
+            <button id="btnLanCopyLink" type="button" class="hidden">复制邀请链接</button>
+            <button id="btnLanLegacy" type="button" class="hidden">改用兼容码</button>
+          </div>
         </div>
-      </div>
-      <div id="lanInBox" class="lan-code hidden">
-        <label id="lanInLabel" for="lanIn">朋友发来的码</label>
-        <div class="lan-code-row"><textarea id="lanIn" rows="2" maxlength="24000" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><button id="btnLanAccept" type="button">确认</button></div>
-      </div>
+        <div id="lanInBox" class="lan-code hidden">
+          <label id="lanInLabel" for="lanIn">朋友发来的码</label>
+          <textarea id="lanIn" rows="2" maxlength="24000" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        </div>
+      </details>
       <dl id="lanRoom" class="lan-room hidden" aria-label="房间成员">
         <div><dt>房主</dt><dd id="lanRoomHost"></dd></div>
         <div><dt>队友</dt><dd><span id="lanRoomGuest"></span><small id="lanRoomReady"></small></dd></div>
@@ -138,6 +152,7 @@
       <p id="lanBond" class="control-note"></p>
       <p id="lanCountdown" class="control-note hidden"></p>
       <div class="row">
+        <button id="btnLanAccept" class="primary hidden" type="button" disabled>确认</button>
         <button id="btnLanReady" class="primary hidden" type="button" aria-pressed="false">准备</button>
         <button id="btnLanStart" class="primary hidden" type="button" disabled>开始</button>
         <button id="btnLanBot" type="button">和机器人开局</button>
@@ -410,16 +425,20 @@
   <script src="js/ui/battle-panels.js?v=partners1"></script>
   <script src="js/ui/hud.js?v=bonds1"></script>
   <script src="js/ui/utilities.js?v=practice-roster1"></script>
-  <script src="js/ui/lan.js?v=bonds1"></script>
+  <script src="js/ui/lan-qr.js"></script>
+  <script src="js/ui/lan.js?v=lan-qr1"></script>
   <script src="js/ui/coop-support.js?v=bonds1"></script>
   <script src="js/ui/contracts.js?v=ambience1"></script>
-  <script src="js/ui/screens.js?v=folk1"></script>
+  <script src="js/ui/screens.js?v=lan-qr1"></script>
+  <script src="js/vendor/qrcode-generator-2.0.4.min.js"></script>
+  <script src="js/vendor/jsqr-1.4.0.min.js"></script>
   <script src="js/net/lan-code.js"></script>
+  <script src="js/net/lan-qr.js"></script>
   <script src="js/net/lan-link.js?v=invite2"></script>
   <script src="js/net/lan-state.js?v=bonds1"></script>
   <script src="js/app/input.js?v=lan1"></script>
   <script src="js/app/lan-room.js?v=bonds1"></script>
-  <script src="js/app/lan.js?v=robot2"></script>
-  <script src="js/app/main.js?v=practice-roster1"></script>
+  <script src="js/app/lan.js?v=lan-qr1"></script>
+  <script src="js/app/main.js?v=lan-qr1"></script>
 </body>
 </html>

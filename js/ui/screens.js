@@ -74,7 +74,7 @@ const UI = {
   trapDialogTab(e) {
     const id = this.overlayId;
     if (e.key !== 'Tab' || !id || id === 'menu') return;
-    const controls = [...this.$(id).querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled)')].filter(el => el.getClientRects().length);
+    const controls = [...this.$(id).querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), summary')].filter(el => el.getClientRects().length);
     if (!controls.length) return;
     const current = controls.indexOf(document.activeElement);
     const last = controls.length - 1;

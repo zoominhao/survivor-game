@@ -31,6 +31,7 @@ const App = {
     Input.init();
     UI.init();
     Lan.openHashInvite();
+    window.addEventListener('hashchange', () => { if (Game.state === 'menu' && !Lan.running) Lan.openHashInvite(); });
     // 切到后台时自动暂停
     document.addEventListener('visibilitychange', () => {
       Sfx.setHidden(document.hidden);
@@ -41,6 +42,7 @@ const App = {
       }
     });
     window.addEventListener('pagehide', e => {
+      UI.stopLanScan();
       if (!Lan.link) return;
       if (e.persisted) Lan.leave(); else Lan.close();
     });
