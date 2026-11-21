@@ -72,9 +72,10 @@ const Render = {
 
   // 发光贴图,按颜色缓存
   glow(color) {
-    let g = this.glows[color];
-    if (g) return g;
-    g = document.createElement('canvas');
+    if (typeof color !== 'string') color = '#fff';
+    if (Object.hasOwn(this.glows, color)) return this.glows[color];
+    if (color !== '#fff' && Object.keys(this.glows).length >= 128) return this.glow('#fff');
+    const g = document.createElement('canvas');
     g.width = g.height = 64;
     const c = g.getContext('2d');
     const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -110,15 +111,16 @@ const Render = {
       return;
     }
 
-    const p = g.player, time = g.time;
+    const p = g.player, time = g.time, mate = g.partner;
+    const camera = p.hp <= 0 && mate?.hp > 0 ? mate : p;
     let sx = 0, sy = 0;
     if (g.shake > 0.2 && g.state === 'playing') {
       sx = (Math.random() - 0.5) * g.shake * s;
       sy = (Math.random() - 0.5) * g.shake * s;
     }
-    ctx.setTransform(s, 0, 0, s, W / 2 - p.x * s + sx, H / 2 - p.y * s + sy);
+    ctx.setTransform(s, 0, 0, s, W / 2 - camera.x * s + sx, H / 2 - camera.y * s + sy);
     const hw = g.view.hw + 24, hh = g.view.hh + 24;
-    const L = p.x - hw, T = p.y - hh, Rt = p.x + hw, B = p.y + hh;
+    const L = camera.x - hw, T = camera.y - hh, Rt = camera.x + hw, B = camera.y + hh;
     const vis = (x, y, pad) => x > L - pad && x < Rt + pad && y > T - pad && y < B + pad;
 
     const scene = Environment.forBattle(g);
@@ -127,20 +129,35 @@ const Render = {
     const afterglow = EnvironmentArt.afterglow(time - g.bossClearAt, BOSS_AFTERGLOW);
     const darkness = (before.darkness + (current.darkness - before.darkness) * scene.mix) * (1 - afterglow * 0.80);
     const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
-    const pose = this.playerPose(p, time);
-    const beam = g.state === 'intro' ? null : p.char === 'echo' ? EchoFigure.drawBeam : p.char === 'xiaoxiao' ? XiaoxiaoArt.drawBeam : null;
-    this.drawZones(ctx, g, p, time);
+    const pose = this.playerPose(camera, time);
+    const beam = g.state === 'intro' ? null : camera.char === 'echo' ? EchoFigure.drawBeam : camera.char === 'xiaoxiao' ? XiaoxiaoArt.drawBeam : null;
+    if (mate?.hp > 0 && mate !== camera) lights.push({ x: mate.x, y: mate.y, light: EnvironmentArt.partnerLight, weight: 1 });
+    this.drawZones(ctx, g, time);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
-    EnvironmentArt.drawLighting(ctx, this, lights, darkness, shade, p, pose, beam);
-    if (beam) beam(ctx, p, pose);
+    EnvironmentArt.drawLighting(ctx, this, lights, darkness, shade, camera, pose, beam);
+    if (beam) beam(ctx, camera, pose);
     const boss = g.boss, reduced = this.reduceMotion?.matches;
     if (boss?.kind === 'nightmare' && !boss.dead && vis(boss.x, boss.y, boss.r * 1.5)) {
       NightmareArt.signs(ctx, boss, time, reduced, (color, x, y, r) => this.drawGlow(ctx, color, x, y, r));
     }
     this.drawBossWarning(ctx, g.boss);
-    this.drawPlayer(ctx, g, p, pose);
-    this.drawProjs(ctx, g, p, vis);
+    if (mate) {
+      for (const member of g.players) {
+        if (!vis(member.x, member.y, 48)) continue;
+        ctx.save();
+        if (member.hp <= 0) ctx.globalAlpha = 0.37;
+        this.drawPlayer(ctx, g, member);
+        ctx.restore();
+        ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = member === p ? '#ffe4aa' : '#b2efe6';
+        ctx.strokeStyle = '#182421'; ctx.lineWidth = 3;
+        const label = `守夜 ${member.slot + 1}${member.hp <= 0 ? ' · 倒下' : ''}`;
+        ctx.strokeText(label, member.x, member.y - 32);
+        ctx.fillText(label, member.x, member.y - 32);
+      }
+    } else this.drawPlayer(ctx, g, p, pose);
+    this.drawProjs(ctx, g, vis);
     this.drawFx(ctx, g, vis);
     EnvironmentArt.drawLightHint(ctx, hint);
 

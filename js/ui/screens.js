@@ -2,7 +2,7 @@
 // ===== 界面:菜单、强化商店、升级选卡、宝箱、暂停、结算、HUD(均为 DOM) =====
 
 const UI = {
-  ...MenuUI, ...BattlePanelsUI, ...HudUI, ...UtilityUI,
+  ...MenuUI, ...BattlePanelsUI, ...HudUI, ...UtilityUI, ...LanUI,
   cache: {},
   overlayId: null,
   $(id) { return document.getElementById(id); },
@@ -19,11 +19,12 @@ const UI = {
     on('btnNormalFight', () => Game.chooseBossPlan('normal'));
     on('btnChestOk', () => Game.closeChest());
     on('btnResume', () => App.resume());
-    on('btnQuit', () => Game.finish(false));
+    on('btnQuit', () => Lan.guest ? Lan.leave() : Game.finish(false));
     on('btnRetry', () => App.startRun());
-    on('btnMenu', () => this.showMenu());
+    on('btnMenu', () => Lan.running ? Lan.leave() : this.showMenu());
     on('btnPause', () => App.pause());
     this.initUtilities(on);
+    this.initLan(on);
     this.showMenu();
   },
 
@@ -46,7 +47,7 @@ const UI = {
       title.tabIndex = -1;
       title.focus({ preventScroll: true });
     } else if (id === 'menu' && previous) {
-      this.$(previous === 'shop' ? 'btnShop' : 'btnStart').focus();
+      this.$(previous === 'shop' ? 'btnShop' : previous === 'lan' ? 'btnLan' : 'btnStart').focus();
     } else if (previous === 'pause' && this.pauseFromHud) {
       this.$('btnPause').focus({ preventScroll: true });
     } else if (previous === 'decision' && this.decisionFocus) {
@@ -58,7 +59,7 @@ const UI = {
   trapDialogTab(e) {
     const id = this.overlayId;
     if (e.key !== 'Tab' || !id || id === 'menu') return;
-    const controls = [...this.$(id).querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el => el.getClientRects().length);
+    const controls = [...this.$(id).querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled)')].filter(el => el.getClientRects().length);
     if (!controls.length) return;
     const current = controls.indexOf(document.activeElement);
     const last = controls.length - 1;

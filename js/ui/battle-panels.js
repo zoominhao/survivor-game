@@ -50,7 +50,7 @@ const BattlePanelsUI = {
     });
     const rr = this.$('btnReroll');
     this.$('rerollLabel').textContent = '重掷（' + p.rerolls + '）';
-    rr.classList.toggle('hidden', Save.data.meta.reroll <= 0);
+    rr.classList.toggle('hidden', Game.coop || Save.data.meta.reroll <= 0);
     rr.disabled = p.rerolls <= 0;
     this.show('levelup');
   },
@@ -83,6 +83,8 @@ const BattlePanelsUI = {
 
   // ---------- 暂停 ----------
   showPause() {
+    this.$('pauseTitle').textContent = Lan.guest ? '本机菜单 · 战斗仍在继续' : '巡夜暂停';
+    this.$('btnQuit').textContent = Lan.guest ? '退出联机' : '放弃本局';
     this.$('pauseBuild').innerHTML = this.buildHtml();
     this.show('pause');
   },
@@ -91,7 +93,8 @@ const BattlePanelsUI = {
   showResult() {
     const r = Game.result, p = Game.player;
     this.$('resTitle').textContent = r.win ? '天亮了' : '长夜吞没了你';
-    this.$('resSub').textContent = r.assisted ? '本局使用了练习功能，不计战绩或金币奖励。' :
+    this.$('resSub').textContent = r.coop ? '双人战报 · 小队击杀合计，不影响单人战绩和存档。' :
+      r.assisted ? '本局使用了练习功能，不计战绩或金币奖励。' :
       r.win ? '你守到了黎明,夜兽在晨光中消散。' : '提灯熄灭了,但余烬仍在。';
     this.$('result').classList.toggle('win', r.win);
     this.$('resStats').innerHTML =
@@ -106,6 +109,7 @@ const BattlePanelsUI = {
       const d = WEAPONS[id];
       return `<li><span>${Icons.html(d ? id : 'lantern')} ${d ? d.name : '余烬'}</span><i><u style="width:${(v / top * 100).toFixed(1)}%"></u></i><em>${v}</em></li>`;
     }).join('');
+    this.$('btnRetry').textContent = r.coop ? '重新组队' : '再来一局';
     this.show('result');
   },
 };

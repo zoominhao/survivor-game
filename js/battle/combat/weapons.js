@@ -77,7 +77,7 @@ const WeaponFns = {
     if (w.timer > 0) return;
     if (!g.nearestEnemy(p.x, p.y, s.range)) { w.timer = 0.2; return; }
     w.timer = s.cd * st.cd;
-    g.zones.push({
+    g.addZone({
       type: 'ricecake', x: p.x, y: p.y, r: s.radius * st.area, trigger: s.trigger * st.area,
       life: s.life, dmg: s.dmg * st.might, slow: s.slow, chill: s.chill,
       wid: w.id, color: WEAPONS[w.id].color,
@@ -282,7 +282,7 @@ const WeaponFns = {
       const a = Math.atan2(target.y - p.y, target.x - p.x);
       const offset = i < targets.length ? 0 : (i % 2 ? -1 : 1) * Math.min(28, i * 12);
       const delay = s.delay + i * 0.08;
-      g.zones.push({
+      g.addZone({
         type: d.look, fromX: p.x, fromY: p.y,
         x: target.x - Math.sin(a) * offset, y: target.y + Math.cos(a) * offset,
         r: s.radius * st.area, t: delay, max: delay, dmg: s.dmg * st.might, wid: w.id,
@@ -304,7 +304,7 @@ const WeaponFns = {
       if (!t) break;
       fired = true;
       const delay = 0.65 + i * 0.12;
-      g.zones.push({
+      g.addZone({
         type: 'meteor', x: t.x + U.rand(-18, 18), y: t.y + U.rand(-18, 18),
         r: s.radius * st.area, t: delay, max: delay,
         dmg: s.dmg * st.might, wid: w.id, burn: s.burn || 0,
@@ -321,7 +321,7 @@ const WeaponFns = {
     const R = s.radius * st.area;
     if (!g.nearestEnemy(p.x, p.y, R + 40)) { w.timer = 0.2; return; }
     w.timer = s.cd * st.cd;
-    g.zones.push({
+    g.addZone({
       type: 'ring', x: p.x, y: p.y, r: 12, maxR: R, spd: R / 0.45,
       dmg: s.dmg * st.might, wid: w.id, slow: s.slow || 0, freeze: s.freeze || 0, hit: new Set(),
       look: d.look, color: d.color, kb: s.kb ?? 60,

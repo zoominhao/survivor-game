@@ -29,29 +29,29 @@ const BossBattle = {
     return boss;
   },
 
-  updateBossAttack(boss, dt, dx, dy, dist) {
-    if (boss.kind === 'coffinKing') this.updateCoffinKing(boss, dt, dx, dy, dist);
+  updateBossAttack(boss, dt, dx, dy, dist, target = this.player) {
+    if (boss.kind === 'coffinKing') this.updateCoffinKing(boss, dt, dx, dy, dist, target);
     else if (boss.kind === 'bridalQueen') this.updateBridalQueen(boss, dt, dx, dy, dist);
     else this.updateNightmare(boss, dt, dx, dy);
   },
 
-  updateCoffinKing(boss, dt, dx, dy, dist) {
+  updateCoffinKing(boss, dt, dx, dy, dist, p = this.player) {
     boss.cd -= dt;
     if (boss.cd > 0) return;
     if (boss.phase !== 'sealWind') {
       if (dist > 310) { boss.cd = 0.35; return; }
-      const p = this.player;
       boss.phase = 'sealWind'; boss.windTime = boss.cd = 1.04;
       boss.seals = [-1, 0, 1].map(i => ({ x: p.x - dy * i * 125, y: p.y + dx * i * 125, r: boss.sealRadius }));
       this.playNearby('coffinSeal', boss, 450);
       return;
     }
     boss.phase = ''; boss.cd = 3.4;
-    const p = this.player;
     for (const seal of boss.seals) {
       this.fx.push({ type: 'boom', ...seal, life: 0.45, max: 0.45, c: '#d2cb86' });
       this.burst(seal.x, seal.y, '#d8bf77', 7);
-      if (Math.hypot(p.x - seal.x, p.y - seal.y) < seal.r + CFG.PLAYER_R) this.hurtPlayer(boss.dmg, boss);
+      for (const member of this.players) {
+        if (Math.hypot(member.x - seal.x, member.y - seal.y) < seal.r + CFG.PLAYER_R) this.hurtPlayer(boss.dmg, boss, member);
+      }
     }
     boss.seals = [];
     this.shake = Math.max(this.shake, 3.5);
@@ -77,21 +77,23 @@ const BossBattle = {
     this.playNearby('weddingPaper', boss, 480);
   },
 
-  bossCleared(boss) {
+  bossCleared(boss, attacker = this.player) {
     for (let i = 0; i < 12; i++) this.dropGem(boss.x + U.rand(-50, 50), boss.y + U.rand(-50, 50), 8);
     this.lastBossArena = boss.arena ? Environment.landscape(Environment.forBattle(this)) : null;
     if (this.boss === boss) this.boss = null;
     this.bossClearAt = this.time;
 
-    const p = this.player;
-    const healed = Math.min(p.st.maxHp - p.hp, p.st.maxHp * 0.25);
-    p.hp += healed;
-    p.iframe = Math.max(p.iframe, BOSS_REWARD_BEAT);
+    const p = attacker, before = Math.max(0, p.hp);
+    for (const member of this.players) {
+      member.hp = Math.min(member.st.maxHp, Math.max(0, member.hp) + member.st.maxHp * 0.25);
+      member.iframe = Math.max(member.iframe, BOSS_REWARD_BEAT);
+    }
+    const healed = p.hp - before;
     const xp = this.collectAllGems();
     const reward = [`+${Number((xp * p.st.growth).toFixed(1))} 经验`];
     if (healed > 0) reward.push(`+${Math.round(healed)} 生命`);
     if (boss.bounty) {
-      p.coins += boss.bounty;
+      this.players[0].coins += boss.bounty;
       reward.push(`+${boss.bounty} 赏金`);
     }
     this.texts.push({ x: p.x, y: p.y - 28, s: reward.join(' · '), life: 1.2, c: '#d4f5b1' });

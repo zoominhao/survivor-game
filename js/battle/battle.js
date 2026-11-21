@@ -4,13 +4,12 @@
 function createBattle({ save, emit = () => {}, play = () => {} }) {
   return {
     ...BattleProgression, ...BattleEnemies, ...NightmareBattle, ...BossBattle, ...BossDecisions,
-    ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle,
+    ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle, ...BattleCoop,
     save, emit, play, uid: 0,
     state: 'menu', view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
 
     // ---------- 开局 ----------
-    start(charId) {
-      const c = CHARS[charId], m = this.save.data.meta;
+    start(charId, partnerChar = null) {
       this.time = 0;
       this.assisted = false;
       this.practiceInvincible = false;
@@ -30,6 +29,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.parts = [];
       this.shake = 0;
       this.pending = 0;   // 待处理的升级次数
+      this.levelPlayer = null;
       this.boss = null;
       this.bossDecision = null;
       this.pendingBosses = [];
@@ -39,22 +39,17 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.chest = null;
       this.result = null;
       this.dirty = true;  // 构筑有变化,通知 HUD 刷新
-      this.player = {
-        x: 0, y: 0, dirx: 1, diry: 0, face: 1, moving: false, walkT: 0,
-        iframe: 0, hp: 0, level: 1, xp: 0, xpNeed: this.xpFor(1), char: charId,
-        weapons: [], passives: [], evolved: {}, kills: 0, coins: 0, dmgBy: {},
-        st: {}, rerolls: m.reroll, revives: m.revive,
-      };
-      this.recalc();
-      this.player.hp = this.player.st.maxHp;
-      this.addWeapon(c.weapon);
+      this.player = this.makePlayer(charId, 0);
+      this.partner = partnerChar ? this.makePlayer(partnerChar, 1, 34) : null;
+      this.players = this.partner ? [this.player, this.partner] : [this.player];
+      this.coop = !!this.partner;
+      if (this.partner) Terrain.move(this.partner, 0, 0, CFG.PLAYER_R, 0, this.landscape);
       this.state = 'playing';
     },
 
     // ---------- 主循环 ----------
-    update(dt, input = { x: 0, y: 0 }) {
+    update(dt, input = {}, partnerInput = {}) {
       if (this.state !== 'playing') return;
-      const p = this.player, st = p.st;
       this.time += dt;
       if (this.time >= CFG.RUN_TIME) { this.finish(true); return; }
 
@@ -68,20 +63,8 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       }
 
       // 玩家移动
-      const { x: ix, y: iy } = input;
-      const il = Math.hypot(ix, iy);
-      p.moving = il > 0.08;
-      if (p.moving) {
-        const k = il > 1 ? 1 / il : 1;
-        const x = p.x, y = p.y;
-        Terrain.move(p, ix * k * st.speed * dt, iy * k * st.speed * dt, CFG.PLAYER_R, 0, this.landscape);
-        p.dirx = ix / il; p.diry = iy / il;
-        if (Math.abs(ix) > 0.05) p.face = ix < 0 ? -1 : 1;
-        p.moving = Math.hypot(p.x - x, p.y - y) > 0.05;
-        if (p.moving) p.walkT += dt;
-      }
-      if (p.iframe > 0) p.iframe -= dt;
-      if (st.regen > 0 && p.hp < st.maxHp) p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
+      this.movePlayer(this.player, input, dt);
+      if (this.partner) this.movePlayer(this.partner, partnerInput, dt);
       this.spawn(dt);
       if (this.state !== 'playing') return;
 
@@ -93,7 +76,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       // 玩家可能在敌人/子弹阶段阵亡,此时本帧后续逻辑(尤其是拾取宝箱)不能再改状态
       this.updateEnemies(dt);
       if (this.state !== 'playing') return;
-      for (const w of p.weapons) WeaponFns[WEAPONS[w.id].kind](this, w, w.s, dt);
+      for (const p of this.players) this.stepLoadout(p, dt);
       this.updateProjs(dt);
       this.updateZones(dt);
       this.updateBullets(dt);
@@ -107,19 +90,14 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       for (let i = 0; i < es.length; i++) if (!es[i].dead) es[n++] = es[i];
       es.length = n;
 
-      if (this.pending > 0 && this.state === 'playing' && this.time - this.bossClearAt >= BOSS_REWARD_BEAT) {
-        this.state = 'levelup';
-        this.choices = this.buildChoices(3);
-        this.play('level');
-        this.emit('levelup');
-      }
+      this.nextLevelUp();
     },
 
     enterLandscape(landscape) {
       this.landscape = landscape;
       // 地貌淡变到中点时切换碰撞，只移开被新障碍覆盖的对象。
       const unstick = (body, radius) => Terrain.move(body, 0, 0, radius, 0, landscape);
-      unstick(this.player, CFG.PLAYER_R);
+      for (const p of this.players) unstick(p, CFG.PLAYER_R);
       for (const e of this.enemies) {
         if (!e.dead && !e.boss && !ENEMIES[e.type].ghost) unstick(e, e.r);
       }
@@ -128,11 +106,13 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
 
     // 结算:win = 是否撑到黎明
     finish(win) {
+      if (this.state === 'victory' || this.state === 'gameover') return;
       const p = this.player, d = this.save.data;
+      const ranked = !this.coop && !this.assisted;
       const time = Math.min(CFG.RUN_TIME, this.time);
-      const newBest = !this.assisted && this.time > d.best;
-      const earned = this.assisted ? 0 : Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0);
-      if (!this.assisted) {
+      const newBest = ranked && this.time > d.best;
+      const earned = ranked ? Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0) : 0;
+      if (ranked) {
         d.coins += earned;
         d.runs++;
         d.kills += p.kills;
@@ -140,7 +120,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
         if (newBest) d.best = time;
         this.save.write();
       }
-      this.result = { win, earned, time, kills: p.kills, level: p.level, newBest, assisted: this.assisted };
+      this.result = { win, earned, time, kills: p.kills + (this.partner?.kills ?? 0), level: p.level, newBest, assisted: this.assisted, coop: this.coop };
       this.state = win ? 'victory' : 'gameover';
       if (win) {
         for (const e of this.enemies) this.burst(e.x, e.y, '#ffe9a8', 2);

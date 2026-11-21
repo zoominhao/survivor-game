@@ -31,6 +31,8 @@ const HudUI = {
     this.set('kills', 'text', String(p.kills));
     this.set('coins', 'text', String(Math.floor(p.coins)));
     this.set('practiceFlag', 'hidden', !g.assisted);
+    this.set('lanFlag', 'hidden', !g.coop);
+    if (g.coop) this.set('lanFlag', 'text', `双人 · ${p.slot + 1} 号${p.hp <= 0 ? ' · 已倒下' : ''} · 队友${g.partner.hp > 0 ? '在场' : '已倒下'}`);
     const boss = g.boss && !g.boss.dead ? g.boss : null;
     this.set('bossbar', 'hidden', !boss);
     if (boss) {

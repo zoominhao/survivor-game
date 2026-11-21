@@ -9,6 +9,10 @@ const Input = {
   init() {
     window.addEventListener('keydown', e => {
       Sfx.unlock();
+      if (e.target instanceof HTMLTextAreaElement) {
+        if (e.code === 'Escape' && !e.repeat) App.onKey(e.code, e.shiftKey);
+        return;
+      }
       // 按钮获得焦点时，交给浏览器用 Enter / 空格触发点击，勿同时触发全局快捷键。
       if (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space')) return;
       // 音量滑杆的方向键交给浏览器，不触发走位或禁止默认行为。
@@ -27,7 +31,7 @@ const Input = {
     const MAXR = 48;
     cv.addEventListener('pointerdown', e => {
       Sfx.unlock();
-      if (Game.state !== 'playing' || this.joy) return;
+      if (Game.state !== 'playing' || UI.overlayId || this.joy) return;
       this.joy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0 };
       joyEl.style.left = e.clientX + 'px';
       joyEl.style.top = e.clientY + 'px';

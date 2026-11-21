@@ -5,8 +5,8 @@ const BattleProgression = {
   xpFor(lv) { return Math.floor(5 + (lv - 1) * 5 + Math.pow(lv - 1, 1.6)); },
 
   // 汇总角色、局外强化、被动道具,得到当前面板
-  recalc() {
-    const p = this.player, c = CHARS[p.char], m = this.save.data.meta, st = p.st;
+  recalc(p = this.player) {
+    const c = CHARS[p.char], m = this.save.data.meta, st = p.st;
     const L = id => { const q = p.passives.find(x => x.id === id); return q ? q.lv : 0; };
     const oldMax = st.maxHp || 0;
     st.maxHp = Math.round((100 + (c.hp || 0)) * (1 + 0.1 * m.vital + 0.2 * L('vital')));
@@ -23,15 +23,15 @@ const BattleProgression = {
     if (oldMax && st.maxHp > oldMax) p.hp += st.maxHp - oldMax; // 生命上限提高时同步补血
   },
 
-  addWeapon(id) {
+  addWeapon(id, p = this.player) {
     const s = weaponStats(id, 1);
-    this.player.weapons.push({ id, lv: 1, timer: 0, s, guards: s.guards || 0 });
+    p.weapons.push({ id, lv: 1, timer: 0, s, guards: s.guards || 0 });
     this.dirty = true;
   },
 
   // ---------- 升级选项 ----------
-  buildChoices(n) {
-    const p = this.player, out = [];
+  buildChoices(n, p = this.player) {
+    const out = [];
     // 可进化的武器必定出现
     for (const w of p.weapons) {
       const d = WEAPONS[w.id];
@@ -82,8 +82,7 @@ const BattleProgression = {
   },
 
   // 把选项转成卡片展示信息
-  describe(c) {
-    const p = this.player;
+  describe(c, p = this.player) {
     if (c.kind === 'weapon') {
       const d = WEAPONS[c.id];
       let desc = c.lv === 1 ? d.desc : upgradeText(d.ups[c.lv - 2]);
@@ -111,19 +110,18 @@ const BattleProgression = {
     return { icon: 'tonic', name: '治疗药剂', tag: '', desc: '回复 30% 生命', cls: 'passive' };
   },
 
-  applyChoice(c) {
-    const p = this.player;
+  applyChoice(c, p = this.player) {
     if (c.kind === 'weapon') {
       const w = p.weapons.find(x => x.id === c.id);
       if (w) {
         const oldGuards = w.s.guards || 0;
         w.s = weaponStats(w.id, ++w.lv);
         if (w.guards > 0) w.guards += Math.max(0, w.s.guards - oldGuards);
-      } else this.addWeapon(c.id);
+      } else this.addWeapon(c.id, p);
     } else if (c.kind === 'passive') {
       const q = p.passives.find(x => x.id === c.id);
       if (q) q.lv++; else p.passives.push({ id: c.id, lv: 1 });
-      this.recalc();
+      this.recalc(p);
     } else if (c.kind === 'evo') {
       const w = p.weapons.find(x => x.id === c.id);
       if (w) {
@@ -142,42 +140,47 @@ const BattleProgression = {
   // 玩家在升级界面选了第 i 项
   choose(i) {
     if (this.state !== 'levelup' || !this.choices[i]) return;
-    this.applyChoice(this.choices[i]);
-    this.pending--;
-    if (this.pending > 0) {
-      this.choices = this.buildChoices(3);
+    const p = this.levelPlayer || this.player;
+    this.applyChoice(this.choices[i], p);
+    this.addPending(p, -1);
+    if (this.pendingFor(p) > 0) {
+      this.choices = this.buildChoices(3, p);
       this.emit('levelup');
     } else {
-      const p = this.player;
       this.fx.push({ type: 'outfitPulse', x: p.x, y: p.y, life: 0.55, max: 0.55, c: CHARS[p.char].color });
+      this.levelPlayer = null;
       this.state = 'playing';
-      this.emit('resume');
+      if (this.coop) this.nextLevelUp();
+      if (this.state === 'playing') this.emit('resume');
     }
   },
 
   reroll() {
-    const p = this.player;
+    const p = this.levelPlayer || this.player;
     if (this.state !== 'levelup' || p.rerolls <= 0) return;
     p.rerolls--;
-    this.choices = this.buildChoices(3);
+    this.choices = this.buildChoices(3, p);
     this.emit('levelup');
   },
 
   // 宝箱:金币 + 直接获得若干次强化(优先进化)
-  openChest(boss, bossName) {
-    const p = this.player;
+  openChest(boss, bossName, p = this.player) {
     const coins = Math.round((boss ? U.randInt(80, 120) : U.randInt(15, 35)) * p.st.greed);
     p.coins += coins;
     const got = [];
     for (let i = 0, n = boss ? 3 : 1; i < n; i++) {
-      const c = this.buildChoices(1)[0];
+      const c = this.buildChoices(1, p)[0];
       if (!c || c.kind === 'coins' || c.kind === 'heal') break;
-      got.push(this.describe(c));
-      this.applyChoice(c);
+      got.push(this.describe(c, p));
+      this.applyChoice(c, p);
+    }
+    this.play('chest');
+    if (this.coop) {
+      this.emit('banner', `${p.slot + 1} 号守夜人启匣 · +${coins} 金币${got.length ? ` · ${got.map(c => c.name).join('、')}` : ''}`);
+      return;
     }
     this.chest = { coins, got, boss, bossName };
     this.state = 'chest';
-    this.play('chest');
     this.emit('chest');
   },
 

@@ -42,7 +42,8 @@ const BossDecisions = {
     this.bossDecision = null;
     this.state = 'playing';
     const a = Math.random() * TAU, r = this.spawnR();
-    this.summonBoss(variant, tier, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, scene, plan);
+    const anchor = p.hp > 0 ? p : this.partner || p;
+    this.summonBoss(variant, tier, anchor.x + Math.cos(a) * r, anchor.y + Math.sin(a) * r, scene, plan);
     this.emit('resume');
     return true;
   },

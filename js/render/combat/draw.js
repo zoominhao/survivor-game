@@ -3,9 +3,10 @@
 // 武器效果、掉落物、投射物和粒子。
 const CombatRendering = {
   lightningPoints: new WeakMap(),
-  drawZones(ctx, g, p, time) {
+  drawZones(ctx, g, time) {
     // 光环类武器
-    for (const w of p.weapons) {
+    for (const p of g.players) for (const w of p.weapons) {
+      if (p.hp <= 0) continue;
       if (WEAPONS[w.id].kind !== 'aura') continue;
       const R = w.s.radius * p.st.area, strong = !!w.s.thorns;
       ctx.fillStyle = strong ? 'rgba(150,255,140,0.13)' : 'rgba(120,220,130,0.09)';
@@ -219,10 +220,11 @@ const CombatRendering = {
     ctx.restore();
   },
 
-  drawProjs(ctx, g, p, vis) {
+  drawProjs(ctx, g, vis) {
     ctx.globalCompositeOperation = 'lighter';
     // 环绕类武器的光球与甜筒
-    for (const w of p.weapons) {
+    for (const p of g.players) for (const w of p.weapons) {
+      if (p.hp <= 0) continue;
       if (WEAPONS[w.id].kind !== 'orbit' || !(w.on > 0)) continue;
       const st = p.st, n = w.s.count + st.amount, R = w.s.radius * st.area, r = w.s.size * st.area;
       const color = WEAPONS[w.id].color;

@@ -55,7 +55,7 @@
 .ledger div + div { border-left: 1px solid var(--line); }
 .ledger dt { color: var(--dim); font-size: 11px; white-space: nowrap; }
 .ledger dd { margin: 2px 0 0; color: var(--gold); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.roster-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+.roster-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 8px; }
 .roster-actions button { font-size: 14px; }
 .roster-actions .primary { font-size: 17px; letter-spacing: .1em; }
 .hint { margin: 12px 0 0; font-size: 11px; line-height: 1.5; color: var(--dim); }
@@ -101,6 +101,16 @@
 .mix-channel input { grid-column: 1 / -1; width: 100%; height: 44px; margin: 0; accent-color: var(--vermillion); }
 .mix-channel input:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .control-note { margin: 12px 0; color: var(--dim); font-size: 14px; line-height: 1.55; }
+.lan-panel { width: min(515px, 100%); }
+.lan-code { display: grid; gap: 8px; margin-block: 16px; }
+.lan-code label { font-size: 14px; font-weight: 700; }
+.lan-code > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.lan-code textarea {
+  min-width: 0; width: 100%; min-height: 60px; padding: 8px; resize: vertical;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font: 16px/1.25 ui-monospace, monospace; overflow-wrap: anywhere;
+}
+.lan-code textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 #practiceStatus { display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; }
 .practice-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .practice-actions button { padding-inline: 8px; }

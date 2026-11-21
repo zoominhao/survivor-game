@@ -9,11 +9,12 @@ const battleViews = {
   resume: () => UI.show(null),
   banner: text => UI.banner(text),
 };
-const Game = createBattle({
+const SoloGame = createBattle({
   save: Save,
   emit: (event, data) => battleViews[event](data),
   play: (...args) => Sfx.play(...args),
 });
+let Game = SoloGame;
 
 const App = {
   last: 0,
@@ -33,9 +34,14 @@ const App = {
     document.addEventListener('visibilitychange', () => {
       Sfx.setHidden(document.hidden);
       if (document.hidden) {
+        if (Lan.guest) return;
         if (this.utilityReturn?.state === 'playing') this.utilityReturn.state = 'paused';
         this.pause();
       }
+    });
+    window.addEventListener('pagehide', e => {
+      if (!Lan.link) return;
+      if (e.persisted) Lan.leave(); else Lan.close();
     });
     this.last = performance.now();
     requestAnimationFrame(t => this.frame(t));
@@ -43,6 +49,7 @@ const App = {
 
   startRun() {
     if (Game.state === 'intro') return;
+    if (Lan.running) { Lan.open(); return; }
     this.tapCount = 0; this.tapsSince = -Infinity;
     Input.endJoy();
     Game.start(Save.data.lastChar);
@@ -62,12 +69,23 @@ const App = {
 
   pause() {
     if (Game.state !== 'playing') return;
+    if (Lan.guest) {
+      Lan.guestPause = true;
+      Input.endJoy();
+      UI.showPause();
+      return;
+    }
     Game.state = 'paused';
     Input.endJoy();
     UI.showPause();
   },
 
   resume() {
+    if (Lan.guest && Lan.guestPause) {
+      Lan.guestPause = false;
+      Lan.syncGuestPanel(true);
+      return;
+    }
     if (Game.state !== 'paused') return;
     Game.state = 'playing';
     UI.show(null);
@@ -81,11 +99,12 @@ const App = {
   openUtility(id) {
     const state = Game.state;
     if (id !== 'audio' && id !== 'practice') return;
+    if (id === 'practice' && Lan.running) return;
     if (this.utilityReturn || !(['playing', 'paused'].includes(state) || (id === 'audio' && state === 'menu'))) return;
-    this.utilityReturn = { id, state, focus: document.activeElement };
+    this.utilityReturn = { id, state, focus: document.activeElement, guestPause: Lan.guestPause };
     this.tapCount = 0; this.tapsSince = -Infinity;
     // 主菜单本身不推进战斗，保留状态可继续播放菜单音乐。
-    if (state !== 'menu') Game.state = id;
+    if (state !== 'menu' && !Lan.guest) Game.state = id;
     Input.endJoy();
     if (id === 'audio') UI.refreshAudio(); else UI.refreshPractice();
     UI.show(id);
@@ -93,8 +112,14 @@ const App = {
 
   closeUtility() {
     if (!this.utilityReturn) return;
-    const { state, focus } = this.utilityReturn;
+    const { state, focus, guestPause } = this.utilityReturn;
     this.utilityReturn = null;
+    if (Lan.guest) {
+      if (guestPause && Game.state === 'playing') UI.showPause();
+      else Lan.syncGuestPanel(true);
+      if (focus?.getClientRects().length) focus.focus({ preventScroll: true });
+      return;
+    }
     Game.state = state;
     if (state === 'paused') UI.showPause();
     else UI.show(state === 'menu' ? 'menu' : null);
@@ -102,7 +127,7 @@ const App = {
   },
 
   tapPractice(now = performance.now()) {
-    if (Game.state !== 'playing' || this.utilityReturn) return;
+    if (Game.state !== 'playing' || this.utilityReturn || Lan.running) return;
     if (now - this.tapsSince > 2500) { this.tapCount = 0; this.tapsSince = now; }
     if (++this.tapCount === 5) this.openUtility('practice');
   },
@@ -115,12 +140,14 @@ const App = {
       if (code === 'Escape' || (practiceKey && this.utilityReturn.id === 'practice')) this.closeUtility();
       return;
     }
+    if (UI.overlayId === 'lan') { if (code === 'Escape') Lan.leave(); return; }
     if (practiceKey) { this.openUtility('practice'); return; }
     if (s === 'intro') {
       if (['Enter', 'Space', 'Escape'].includes(code)) this.finishIntro();
       return;
     }
     if (s === 'decision') {
+      if (Lan.guest) return;
       if (code === 'Digit1' || code === 'Numpad1') Game.chooseBossPlan('ward');
       else if (code === 'Digit2' || code === 'Numpad2') Game.chooseBossPlan('challenge');
       else if (code === 'Escape') Game.chooseBossPlan('normal');
@@ -128,10 +155,12 @@ const App = {
     }
     if (code === 'Escape' && UI.overlayId === 'shop') { UI.showMenu(); return; }
     if (code === 'Escape' || code === 'KeyP') {
-      if (s === 'playing') this.pause(); else if (s === 'paused') this.resume();
+      if (Lan.guestPause) this.resume();
+      else if (s === 'playing') this.pause(); else if (s === 'paused' && !Lan.guest) this.resume();
       return;
     }
     if (s === 'levelup') {
+      if (!Lan.localTurn) return;
       if (code === 'Digit1' || code === 'Numpad1') Game.choose(0);
       else if (code === 'Digit2' || code === 'Numpad2') Game.choose(1);
       else if (code === 'Digit3' || code === 'Numpad3') Game.choose(2);
@@ -150,7 +179,8 @@ const App = {
     const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     Input.poll();
-    if (Game.state === 'intro') {
+    if (Lan.running) Lan.step(dt, now);
+    else if (Game.state === 'intro') {
       if (now >= this.introEndsAt) this.finishIntro();
     } else if (Game.state === 'playing') {
       Game.update(dt, Input);

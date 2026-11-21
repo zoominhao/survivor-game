@@ -5,6 +5,7 @@ const EnvironmentArt = {
   lightMasks: new Map(),
   closeLight: { radius: 61, strength: 0.97 },
   carriedLantern: { radius: 125, strength: 0.95 },
+  partnerLight: { radius: 69, strength: 0.88, color: '#a8dfd1' },
 
   afterglow(age, duration) {
     if (age < 0 || age >= duration) return 0;

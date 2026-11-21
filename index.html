@@ -6,8 +6,8 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css">
-  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/screens.css?v=lan1">
+  <link rel="stylesheet" href="css/responsive.css?v=lan1">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -28,6 +28,7 @@
     <div id="bossbar" class="hidden"><span id="bossName">夜魇</span><div><div id="bossfill"></div></div></div>
     <div id="banner"></div>
     <span id="practiceFlag" class="practice-mark hidden">练习局 · 不计战绩</span>
+    <span id="lanFlag" class="practice-mark hidden"></span>
   </div>
 
   <!-- 虚拟摇杆 -->
@@ -57,7 +58,8 @@
         <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
         <p id="charNotice" class="char-notice" role="status"></p>
         <div class="roster-actions">
-          <button id="btnStart" class="primary"><span data-icon="lantern"></span> 开始守夜</button>
+          <button id="btnStart" class="primary"><span data-icon="lantern"></span> 单人守夜</button>
+          <button id="btnLan" type="button">局域网双人</button>
           <button id="btnShop">永久强化</button>
           <button id="btnAudioMenu" class="icon-button" aria-label="声音设置" data-icon="sound"></button>
         </div>
@@ -65,6 +67,39 @@
       </div>
     </div>
   </main>
+
+  <section id="lan" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanTitle">
+    <div class="panel lan-panel">
+      <p class="chapter">结伴巡夜</p>
+      <h2 id="lanTitle">局域网双人</h2>
+      <p id="lanStatus" class="sub" role="status"></p>
+      <div id="lanModes" class="row">
+        <button id="btnLanHost" class="primary" type="button">创建邀请</button>
+        <button id="btnLanJoin" type="button">加入朋友</button>
+      </div>
+      <div id="lanOutBox" class="lan-code hidden">
+        <label id="lanOutLabel" for="lanOut">发给朋友的码</label>
+        <div><textarea id="lanOut" rows="2" readonly spellcheck="false"></textarea><button id="btnLanCopy" type="button">复制</button></div>
+      </div>
+      <div id="lanInBox" class="lan-code hidden">
+        <label id="lanInLabel" for="lanIn">朋友发来的码</label>
+        <div><textarea id="lanIn" rows="2" maxlength="24000" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><button id="btnLanAccept" type="button">确认</button></div>
+      </div>
+      <div class="row">
+        <button id="btnLanStart" class="primary hidden" type="button" disabled>两人入夜</button>
+        <button id="btnLanBack" type="button">返回主菜单</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="lanWait" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanWaitTitle">
+    <div class="panel">
+      <p class="chapter">结伴巡夜</p>
+      <h2 id="lanWaitTitle">等候队友</h2>
+      <p id="lanWaitNote" class="sub" role="status"></p>
+      <div class="row"><button id="btnLanLeave" type="button">退出联机</button></div>
+    </div>
+  </section>
 
   <!-- 战斗开场 -->
   <section id="intro" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="introTitle">
@@ -212,47 +247,52 @@
   <script src="js/battle/enemies/catalog.js"></script>
   <script src="js/battle/combat/grid.js"></script>
   <script src="js/battle/world/terrain.js"></script>
-  <script src="js/battle/world/interactions.js"></script>
-  <script src="js/battle/combat/weapons.js"></script>
-  <script src="js/battle/characters/progression.js"></script>
-  <script src="js/battle/enemies/behavior.js"></script>
+  <script src="js/battle/world/interactions.js?v=lan1"></script>
+  <script src="js/battle/combat/weapons.js?v=lan1"></script>
+  <script src="js/battle/characters/progression.js?v=lan1"></script>
+  <script src="js/battle/enemies/behavior.js?v=lan1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
-  <script src="js/battle/enemies/boss-decisions.js"></script>
-  <script src="js/battle/enemies/bosses.js"></script>
-  <script src="js/battle/combat/damage.js"></script>
-  <script src="js/battle/combat/projectiles.js"></script>
-  <script src="js/battle/combat/drops.js"></script>
+  <script src="js/battle/enemies/boss-decisions.js?v=lan1"></script>
+  <script src="js/battle/enemies/bosses.js?v=lan1"></script>
+  <script src="js/battle/combat/damage.js?v=lan1"></script>
+  <script src="js/battle/combat/projectiles.js?v=lan1"></script>
+  <script src="js/battle/combat/drops.js?v=lan1"></script>
   <script src="js/battle/combat/effects.js"></script>
-  <script src="js/battle/practice.js"></script>
-  <script src="js/battle/battle.js"></script>
+  <script src="js/battle/practice.js?v=lan1"></script>
+  <script src="js/battle/coop.js"></script>
+  <script src="js/battle/battle.js?v=lan1"></script>
 
   <script src="js/platform/save.js"></script>
   <script src="js/audio/music.js"></script>
-  <script src="js/audio/arrivals.js"></script>
-  <script src="js/audio/audio.js"></script>
+  <script src="js/audio/arrivals.js?v=lan1"></script>
+  <script src="js/audio/audio.js?v=lan1"></script>
   <script src="js/render/characters/hand-light.js"></script>
   <script src="js/render/characters/echo-figure.js"></script>
   <script src="js/render/characters/xiaoxiao-art.js?v=fringe-1"></script>
   <script src="js/render/characters/wardrobe.js"></script>
   <script src="js/render/characters/draw.js"></script>
   <script src="js/render/combat/food-art.js"></script>
-  <script src="js/render/combat/draw.js"></script>
+  <script src="js/render/combat/draw.js?v=lan1"></script>
   <script src="js/render/world/map-props-art.js"></script>
   <script src="js/render/world/terrain-art.js"></script>
-  <script src="js/render/world/environment-art.js"></script>
+  <script src="js/render/world/environment-art.js?v=lan1"></script>
   <script src="js/render/enemies/night-parade-art.js"></script>
   <script src="js/render/enemies/folk-enemy-art.js"></script>
   <script src="js/render/enemies/nightmare-art.js"></script>
   <script src="js/render/enemies/boss-art.js"></script>
   <script src="js/render/enemies/draw.js"></script>
-  <script src="js/render/renderer.js"></script>
+  <script src="js/render/renderer.js?v=lan1"></script>
   <script src="js/ui/icons.js"></script>
   <script src="js/ui/menu.js"></script>
-  <script src="js/ui/battle-panels.js"></script>
-  <script src="js/ui/hud.js"></script>
+  <script src="js/ui/battle-panels.js?v=lan1"></script>
+  <script src="js/ui/hud.js?v=lan1"></script>
   <script src="js/ui/utilities.js"></script>
-  <script src="js/ui/screens.js"></script>
-  <script src="js/app/input.js"></script>
-  <script src="js/app/main.js"></script>
+  <script src="js/ui/lan.js"></script>
+  <script src="js/ui/screens.js?v=lan1"></script>
+  <script src="js/net/lan-link.js"></script>
+  <script src="js/net/lan-state.js"></script>
+  <script src="js/app/input.js?v=lan1"></script>
+  <script src="js/app/lan.js"></script>
+  <script src="js/app/main.js?v=lan1"></script>
 </body>
 </html>

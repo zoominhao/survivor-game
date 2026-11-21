@@ -6,7 +6,12 @@ const BattleEnemies = {
   spawnR() { return Math.hypot(this.view.hw, this.view.hh) + 50; },
 
   spawn(dt) {
-    const t = this.time, p = this.player;
+    const t = this.time;
+    const anchor = () => {
+      if (!this.coop) return this.player;
+      const slot = this.uid % 2, p = this.players[slot];
+      return p.hp > 0 ? p : this.players[1 - slot];
+    };
     const minute = Math.min(WAVE_RATES.length - 1, Math.floor(t / 60));
     const rate = WAVE_RATES[minute];
     const scene = Environment.forBattle(this), landscape = Environment.landscape(scene);
@@ -18,6 +23,7 @@ const BattleEnemies = {
     const R = this.spawnR();
     while (this.spawnAcc >= 1) {
       this.spawnAcc--;
+      const p = anchor();
       const type = U.weighted(Environment.enemyPoolAt(t, undefined, scene));
       const a = Math.random() * TAU;
       const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
@@ -29,6 +35,7 @@ const BattleEnemies = {
     }
     // 定期出现的精英怪,击杀掉宝箱
     if (t >= this.eliteT) {
+      const p = anchor();
       this.eliteT += 45;
       const pool = Environment.enemyPoolAt(t, undefined, scene);
       let type = U.weighted(pool);
@@ -39,6 +46,7 @@ const BattleEnemies = {
     // 定时事件
     while (this.evIdx < EVENTS.length && t >= EVENTS[this.evIdx].t) {
       const ev = EVENTS[this.evIdx++];
+      const p = anchor();
       if (ev.kind !== 'boss' && ev.scene !== landscape) continue;
       if (ev.kind === 'ring') {
         const rr = R * 0.92;
@@ -64,6 +72,8 @@ const BattleEnemies = {
   },
 
   spawnEnemy(type, x, y, elite) {
+    // 联机给 Boss 留一个席位，怪潮不能让同步实体越过上限。
+    if (this.coop && type !== 'boss' && this.enemies.length >= CFG.MAX_ENEMIES - (this.boss ? 0 : 1)) return null;
     const d = ENEMIES[type], m = this.time / 60;
     const hpMul = 1 + m * 0.2 + m * m * 0.012; // 血量随时间成长
     const e = {
@@ -85,10 +95,12 @@ const BattleEnemies = {
 
   // ---------- 敌人 ----------
   updateEnemies(dt) {
-    const p = this.player, g = this.grid, cell = g.cell;
+    const g = this.grid, cell = g.cell;
     const far = this.spawnR() * 1.7, R = this.spawnR();
     for (const e of this.enemies) {
       if (e.dead) continue;
+      const p = this.coop ? this.nearestPlayer(e.x, e.y) : this.player;
+      if (!p) break;
       const def = ENEMIES[e.type], avoidsTerrain = !def.ghost && !e.boss;
       e.t += dt;
       if (e.flash > 0) e.flash -= dt;
@@ -126,7 +138,7 @@ const BattleEnemies = {
           this.fireEnemyVolley(e, def, Math.atan2(dy, dx));
         }
       } else if (e.boss) {
-        this.updateBossAttack(e, dt, mx, my, d);
+        this.updateBossAttack(e, dt, mx, my, d, p);
         if (['wind', 'sealWind', 'fanWind'].includes(e.phase)) sp = 0;
         else if (e.phase === 'charge') { mx = e.cx; my = e.cy; sp *= e.chargeSpeed; }
         else if (e.kind === 'bridalQueen' && d < 150) { mx = -mx; my = -my; }
@@ -161,7 +173,11 @@ const BattleEnemies = {
         if (e.x !== x || e.y !== y) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
       }
 
-      if (d < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e);
+      if (d < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, p);
+      if (this.coop) for (const other of this.players) {
+        if (other !== p && Math.hypot(other.x - e.x, other.y - e.y) < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, other);
+      }
+      if (this.state !== 'playing') break;
     }
   },
 
@@ -180,7 +196,9 @@ const BattleEnemies = {
   },
 
   playNearby(cue, source, range) {
-    const dx = source.x - this.player.x, dy = source.y - this.player.y;
+    const p = this.coop ? this.nearestPlayer(source.x, source.y) : this.player;
+    if (!p) return;
+    const dx = source.x - p.x, dy = source.y - p.y;
     const dist = Math.hypot(dx, dy);
     if (dist >= range) return;
     const gain = 1 - dist / range;

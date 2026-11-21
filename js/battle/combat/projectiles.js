@@ -8,14 +8,21 @@ const BattleProjectiles = {
     o.age = 0;
     o.maxLife = o.life;
     o.hit = new Set();
+    o.owner = this.player;
     this.projs.push(o);
   },
 
+  addZone(o) {
+    o.owner = this.player;
+    this.zones.push(o);
+  },
+
   updateProjs(dt) {
-    const p = this.player, arr = this.projs;
+    const arr = this.projs;
     let n = 0;
     for (let i = 0; i < arr.length; i++) {
       const b = arr[i];
+      const p = b.owner || this.player;
       b.life -= dt; b.age += dt;
       if (b.mode === 'boomer') {
         // 持续反向加速:飞出去再折返
@@ -53,14 +60,14 @@ const BattleProjectiles = {
           if (b.life <= 0 || rebounded) return;
           if (b.rehit) { if (!this.canHit(e, b.uid, b.rehit)) return; }
           else { if (b.hit.has(e.id)) return; b.hit.add(e.id); }
-          this.damageEnemy(e, b.dmg, b.wid, b.mode === 'spiral' ? e.x - p.x : b.vx, b.mode === 'spiral' ? e.y - p.y : b.vy, b.kb);
+          this.damageEnemy(e, b.dmg, b.wid, b.mode === 'spiral' ? e.x - p.x : b.vx, b.mode === 'spiral' ? e.y - p.y : b.vy, b.kb, p);
           if (b.blast) {
-            this.aoe(b.x, b.y, b.blast, b.dmg * 0.6, b.wid, 80);
+            this.aoe(b.x, b.y, b.blast, b.dmg * 0.6, b.wid, 80, p);
             this.fx.push({ type: 'boom', x: b.x, y: b.y, r: b.blast, life: 0.25, max: 0.25, c: b.color });
             if (b.sauce) {
               this.zones.push({
                 type: 'fire', look: b.look, x: b.x, y: b.y, r: b.blast, life: b.sauce, tk: 0.25,
-                dmg: b.dmg * 0.45, wid: b.wid, color: b.color, slow: b.spillSlow,
+                dmg: b.dmg * 0.45, wid: b.wid, color: b.color, slow: b.spillSlow, owner: p,
               });
               this.play('splash');
             }
@@ -102,13 +109,13 @@ const BattleProjectiles = {
         if (z.t <= 0) {
           const meteor = z.type === 'meteor';
           keep = false;
-          this.aoe(z.x, z.y, z.r, z.dmg, z.wid, z.kb ?? (meteor ? 220 : 75));
+          this.aoe(z.x, z.y, z.r, z.dmg, z.wid, z.kb ?? (meteor ? 220 : 75), z.owner);
           this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: meteor ? '#ff9f6b' : z.color });
           this.burst(z.x, z.y, meteor ? '#ffb36b' : z.color, 8);
           if (z.type === 'watermelon') this.burst(z.x, z.y, '#80c48b', 6);
           this.shake = Math.max(this.shake, meteor ? 6 : 2);
           this.play(z.impactSound ?? (meteor ? 'boom' : z.type === 'watermelon' ? 'splash' : 'land'));
-          if (z.burn) arr.push({ type: 'fire', x: z.x, y: z.y, r: z.r * 0.9, life: z.burn, tk: 0.3, dmg: z.dmg * 0.3, wid: z.wid });
+          if (z.burn) arr.push({ type: 'fire', x: z.x, y: z.y, r: z.r * 0.9, life: z.burn, tk: 0.3, dmg: z.dmg * 0.3, wid: z.wid, owner: z.owner });
         }
       } else if (z.type === 'ricecake') {
         keep = this.updateRicecake(z, dt);
@@ -117,7 +124,7 @@ const BattleProjectiles = {
         if (z.tk <= 0) {
           z.tk = 0.5;
           this.eachEnemyNear(z.x, z.y, z.r, e => {
-            this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0);
+            this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0, z.owner);
             if (z.slow && !e.dead) this.slowEnemy(e, z.slow, 0.65);
           });
         }
@@ -127,7 +134,7 @@ const BattleProjectiles = {
         this.eachEnemyNear(z.x, z.y, z.r, e => {
           if (z.hit.has(e.id)) return;
           z.hit.add(e.id);
-          this.damageEnemy(e, z.dmg, z.wid, e.x - z.x, e.y - z.y, z.kb ?? 60);
+          this.damageEnemy(e, z.dmg, z.wid, e.x - z.x, e.y - z.y, z.kb ?? 60, z.owner);
           if (z.freeze && !e.boss) e.frozen = z.freeze;
           if (z.slow) this.slowEnemy(e, z.slow, z.freeze + 2);
         });
@@ -145,7 +152,7 @@ const BattleProjectiles = {
     this.eachEnemyNear(z.x, z.y, z.trigger, () => { steppedOn = true; });
     if (!steppedOn) return true;
     this.eachEnemyNear(z.x, z.y, z.r, e => {
-      this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0);
+      this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0, z.owner);
       if (!e.dead) this.slowEnemy(e, z.slow, z.chill);
     });
     this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.3, max: 0.3, c: z.color });
@@ -156,14 +163,16 @@ const BattleProjectiles = {
 
   // ---------- 敌方子弹 ----------
   updateBullets(dt) {
-    const p = this.player, arr = this.ebullets;
+    const arr = this.ebullets;
     let n = 0;
     for (let i = 0; i < arr.length; i++) {
       const b = arr[i];
       b.life -= dt;
       b.x += b.vx * dt; b.y += b.vy * dt;
+      const p = this.coop ? this.nearestPlayer(b.x, b.y) : this.player;
+      if (!p) break;
       const dx = b.x - p.x, dy = b.y - p.y, rr = b.r + CFG.PLAYER_R;
-      if (dx * dx + dy * dy < rr * rr) { this.hurtPlayer(b.dmg, null); continue; }
+      if (dx * dx + dy * dy < rr * rr) { this.hurtPlayer(b.dmg, null, p); continue; }
       if (b.life > 0) arr[n++] = b;
     }
     arr.length = n;

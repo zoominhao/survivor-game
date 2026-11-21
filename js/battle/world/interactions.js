@@ -16,23 +16,26 @@ const WorldInteractions = {
 
   // 交互由走位触发，手机不用增加按钮；点亮、治疗分别记录，满血不会浪费治疗。
   step(g) {
-    const p = g.player, run = g.environment;
+    const run = g.environment;
     const landscape = Environment.landscape(Environment.forBattle(g));
     for (const [key, end] of run.reeds) if (end <= g.time) run.reeds.delete(key);
     const reach = 42;
-    Terrain.forEachProp(p.x - reach, p.y - reach, p.x + reach, p.y + reach, prop => {
-      const dist = Math.hypot(p.x - prop.x, p.y - prop.y), key = this.key(prop, landscape);
-      if (Object.hasOwn(Environment.lights, prop.kind) && dist <= 36) this.visitLight(g, prop, key);
-      if (Object.hasOwn(this.landmarks, prop.kind) && dist <= 34) this.visitLandmark(g, prop, key);
-      if (prop.kind === 'reeds' && p.moving && dist <= 24 && !run.reeds.has(key)) {
-        run.reeds.set(key, g.time + 0.95);
-        g.burst(prop.x, prop.y, '#a3b66c', 5);
-        g.play('rustle');
-      }
-    }, landscape);
+    for (const p of g.players) {
+      if (p.hp <= 0) continue;
+      Terrain.forEachProp(p.x - reach, p.y - reach, p.x + reach, p.y + reach, prop => {
+        const dist = Math.hypot(p.x - prop.x, p.y - prop.y), key = this.key(prop, landscape);
+        if (Object.hasOwn(Environment.lights, prop.kind) && dist <= 36) this.visitLight(g, prop, key, p);
+        if (Object.hasOwn(this.landmarks, prop.kind) && dist <= 34) this.visitLandmark(g, prop, key, p);
+        if (prop.kind === 'reeds' && p.moving && dist <= 24 && !run.reeds.has(key)) {
+          run.reeds.set(key, g.time + 0.95);
+          g.burst(prop.x, prop.y, '#a3b66c', 5);
+          g.play('rustle');
+        }
+      }, landscape);
+    }
   },
 
-  visitLandmark(g, prop, key) {
+  visitLandmark(g, prop, key, p = g.player) {
     const ready = g.environment.landmarkReady;
     if ((ready.get(key) ?? 0) > g.time) return;
     const def = this.landmarks[prop.kind];
@@ -58,18 +61,18 @@ const WorldInteractions = {
       }
       if (!gathered) return;
     } else if (prop.kind === 'supplyBox') {
-      const coins = g.player.coins;
-      g.player.coins += def.coins * g.player.st.greed;
+      const coins = p.coins;
+      p.coins += def.coins * p.st.greed;
       g.gainXp(def.xp);
-      message = `+${Math.floor(g.player.coins) - Math.floor(coins)} 金币 · +${Number((def.xp * g.player.st.growth).toFixed(1))} 经验`;
+      message = `+${Math.floor(p.coins) - Math.floor(coins)} 金币 · +${Number((def.xp * p.st.growth).toFixed(1))} 经验`;
     } else if (prop.kind === 'warmingShrine') {
-      const p = g.player, healed = Math.min(p.st.maxHp - p.hp, Math.round(p.st.maxHp * def.heal));
+      const healed = Math.min(p.st.maxHp - p.hp, Math.round(p.st.maxHp * def.heal));
       if (healed < 1) return;
       p.hp += healed;
       message = `+${Math.round(healed)} 生命`;
     } else if (prop.kind === 'dawnAltar') {
       if (!g.nearestEnemy(prop.x, prop.y, def.radius)) return;
-      g.player.iframe = Math.max(g.player.iframe, 2.4);
+      p.iframe = Math.max(p.iframe, 2.4);
       message = '朝阳护身';
     }
     ready.set(key, g.time + def.cd);
@@ -79,8 +82,8 @@ const WorldInteractions = {
     g.play(def.sound);
   },
 
-  visitLight(g, prop, key) {
-    const p = g.player, run = g.environment;
+  visitLight(g, prop, key, p = g.player) {
+    const run = g.environment;
     if (!run.lit.has(key)) {
       const light = Environment.lights[prop.kind];
       run.lit.add(key);

@@ -75,6 +75,11 @@
   .stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
 }
 
+@media (max-width: 380px) {
+  .roster-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .roster-actions .primary { grid-column: 1 / -1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   button, #xpfill { transition: none; }
   .char.deny { animation: none; }
