@@ -69,7 +69,7 @@ const Environment = {
   forBattle(g) {
     const arena = g.boss?.arena;
     if (arena) return this.transition(arena.id, arena.from, g.boss.arrivedAt, g.time);
-    const scheduled = this.sceneAt(g.time, g.openingScene);
+    const scheduled = RouteFork.scene(g) || this.sceneAt(g.time, g.openingScene);
     // 门关着直到 Boss 倒下。若轮到新地图，破晓余光期间平滑接回路线。
     if (g.lastBossArena && g.time - g.bossClearAt < 5 && g.lastBossArena !== this.landscape(scheduled)) {
       return this.transition(this.landscape(scheduled), g.lastBossArena, g.bossClearAt, g.time);

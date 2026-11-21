@@ -38,7 +38,7 @@ const EVENTS = [
   { t: 150, scene: 'rain', kind: 'ring', enemy: 'swarm', n: 26 },
   { t: 168, scene: 'rain', kind: 'arrival', enemy: 'bride', msg: '雨里的红盖头下传来一声：「我冤呐！」', sound: 'brideArrival' },
   { t: 193, scene: 'snow', kind: 'arrival', enemy: 'snowEnvoy', msg: '雪地现出一道白影', sound: 'envoyCall' },
-  { t: 390, scene: 'bamboo', kind: 'ring', enemy: 'moth', n: 34 },
+  { t: 390, scene: 'bamboo', kind: 'ring', enemy: 'moth', n: 34, alternateFork: true },
   { t: 630, scene: 'night', kind: 'ring', enemy: 'wraith', n: 30 },
   { t: 840, scene: 'dawn', kind: 'ring', enemy: 'brute', n: 36, msg: '镇墓石兽合围，最后一分钟' },
   ...Object.entries(Environment.scenes).filter(([, map]) => map.boss)

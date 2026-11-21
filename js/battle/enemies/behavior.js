@@ -48,16 +48,9 @@ const BattleEnemies = {
       const event = EVENTS[this.evIdx++];
       const ev = event.opening ? OPENING_ROUTES[this.openingScene]?.arrival ?? event : event;
       const p = anchor();
-      if (ev.kind !== 'boss' && ev.scene !== landscape) continue;
+      if (ev.kind !== 'boss' && (ev.scene !== landscape || ev.alternateFork && this.fork)) continue;
       if (ev.kind === 'ring') {
-        const rr = R * 0.92;
-        for (let i = 0; i < ev.n; i++) {
-          const a = i / ev.n * TAU;
-          this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
-        }
-        this.emit('banner', ev.msg || `${ENEMIES[ev.enemy].name}正在合围！`);
-        this.deferVoice(ENEMIES[ev.enemy].voice);
-        this.play(ev.sound || 'siegeArrival');
+        this.spawnRing(ev, p);
       } else if (ev.kind === 'arrival') {
         const a = Math.random() * TAU, rr = R * 0.78;
         this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
@@ -72,6 +65,17 @@ const BattleEnemies = {
     if (this.state === 'playing' && !this.boss && this.pendingBosses.length && t - this.bossClearAt >= BOSS_REWARD_BEAT) {
       this.offerBossDecision(this.pendingBosses.shift());
     }
+  },
+
+  spawnRing(ev, p) {
+    const rr = this.spawnR() * 0.92;
+    for (let i = 0; i < ev.n; i++) {
+      const a = i / ev.n * TAU;
+      this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
+    }
+    this.emit('banner', ev.msg || `${ENEMIES[ev.enemy].name}正在合围！`);
+    this.deferVoice(ENEMIES[ev.enemy].voice);
+    this.play(ev.sound || 'siegeArrival');
   },
 
   spawnEnemy(type, x, y, elite) {

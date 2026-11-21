@@ -15,6 +15,7 @@ const BattleDrops = {
   // ---------- 掉落物 ----------
   gainXp(v) {
     // 经验共享，装备和升级选择各自独立；倒下的队友也保留所得经验。
+    if (RouteFork.active(this, 'rain')) v *= ROUTE_BRANCHES.rain.xp;
     for (const p of this.players) {
       p.xp += v * p.st.growth;
       while (p.xp >= p.xpNeed) {

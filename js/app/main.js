@@ -4,6 +4,7 @@
 const battleViews = {
   levelup: () => UI.showLevelUp(),
   decision: () => { Input.endJoy(); UI.showBossDecision(); },
+  route: () => { Input.endJoy(); UI.showRouteFork(); },
   chest: () => UI.showChest(),
   result: () => UI.showResult(),
   resume: () => UI.show(null),
@@ -166,6 +167,12 @@ const App = {
       if (code === 'Digit1' || code === 'Numpad1') Game.chooseBossPlan('ward');
       else if (code === 'Digit2' || code === 'Numpad2') Game.chooseBossPlan('challenge');
       else if (code === 'Escape') Game.chooseBossPlan('normal');
+      return;
+    }
+    if (s === 'route') {
+      if (Lan.guest) return;
+      if (['Digit1', 'Numpad1', 'Escape'].includes(code)) Game.chooseFork('bamboo');
+      else if (['Digit2', 'Numpad2'].includes(code)) Game.chooseFork('rain');
       return;
     }
     if (code === 'Escape' && ['shop', 'contracts'].includes(UI.overlayId)) { UI.showMenu(); return; }

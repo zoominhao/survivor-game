@@ -5,6 +5,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
   return {
     ...BattleProgression, ...BattleEnemies, ...NightmareBattle, ...BossBattle, ...BossDecisions,
     ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle, ...BattleCoop, ...BattleContracts, ...CoopSupport,
+    ...RouteFork.battle,
     save, emit, play, uid: 0,
     state: 'menu', view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
 
@@ -27,6 +28,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.contract = this.startContract(data);
       this.openingScene = !this.coop && Environment.canOpen(data, data.startScene) ? data.startScene : 'dusk';
       this.sceneId = this.landscape = this.openingScene;
+      this.fork = null;
       this.spawnAcc = 0;
       this.evIdx = 0;
       this.eliteT = 45;
@@ -82,6 +84,8 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       if (this.partner) this.movePlayer(this.partner, this.robot ? RobotPartner.input(this) : partnerInput, dt);
       this.stepBond();
       this.spawn(dt);
+      if (this.state !== 'playing') return;
+      this.stepRouteFork();
       if (this.state !== 'playing') return;
 
       // 重建空间网格

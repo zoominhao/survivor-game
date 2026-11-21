@@ -28,7 +28,7 @@ const UI = {
     on('btnContractsBack', () => this.showMenu());
     on('btnClearContract', () => this.selectContract(null));
     on('btnReroll', () => Game.reroll());
-    on('btnNormalFight', () => Game.chooseBossPlan('normal'));
+    on('btnNormalFight', () => Game.state === 'route' ? Game.chooseFork('bamboo') : Game.chooseBossPlan('normal'));
     on('btnChestOk', () => Game.closeChest());
     on('btnResume', () => App.resume());
     on('btnQuit', () => Lan.guest ? Lan.leave() : Game.finish(false));

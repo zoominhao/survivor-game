@@ -257,7 +257,7 @@ const Lan = {
 
   applyFrame(data) {
     const { panel, slot, turn } = data;
-    if (!['playing', 'levelup', 'decision', 'paused', 'audio', 'victory', 'gameover'].includes(panel) ||
+    if (!['playing', 'levelup', 'decision', 'route', 'paused', 'audio', 'victory', 'gameover'].includes(panel) ||
         !LanState.integer(turn, this.turn, 20000)) return;
     const f = LanState.readFrame(data.frame);
     if (!f || f.player.char !== this.char || (this.running && f.time < Game.time)) return;
@@ -317,6 +317,7 @@ const Lan = {
     else if (Game.result) UI.showResult();
     else if (state === 'levelup') UI.showLanWait('等候房主选卡', '房主正在选择升级，本局暂时暂停。');
     else if (state === 'decision') UI.showLanWait('守夜抉择', '等房主决定如何迎战 Boss。');
+    else if (state === 'route') UI.showLanWait('灯尽逢岔路', '等房主选择竹径或雨庭。');
     else UI.showLanWait('巡夜暂停', '房主暂停了战斗，等待继续。');
   },
 

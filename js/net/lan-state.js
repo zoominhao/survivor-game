@@ -83,6 +83,7 @@ const LanState = (() => {
     const b = g.boss, e = g.environment;
     return {
       clock: pack(g, 'time bossClearAt lastBossArena shake'), players: g.players.map(p => packPlayer(p, g.pendingFor(p))),
+      fork: g.fork && pack(g.fork, 'id from since'),
       boss: b && [pack(b, bossFields), b.arena && [b.arena.id, b.arena.from], b.seals?.map(s => pack(s, 'x y r'))],
       enemies: g.enemies.filter(e => !e.dead && e !== b).map(e => [typeKeys.indexOf(e.type), ...pack(e, enemyFields)]),
       projs: bound(g.projs, 400).map(p => pack(p, projs)), bullets: bound(g.ebullets, 120).map(p => pack(p, bullets)),
@@ -103,6 +104,9 @@ const LanState = (() => {
     if (!players.every(Boolean) || !clock || !number(clock.time, 0, CFG.RUN_TIME + 1)) return null;
     const [partner, player] = players;
     const frame = { ...clock, player, partner, players, boss: null, bossClearAt: clock.bossClearAt ?? -Infinity, lastBossArena: clock.lastBossArena ?? null };
+    const fork = s.fork;
+    frame.fork = Array.isArray(fork) && own(ROUTE_BRANCHES, fork[0]) && own(Environment.scenes, fork[1]) &&
+      number(fork[2], FORK_WINDOW.start, Math.min(FORK_WINDOW.last, clock.time)) ? { id: fork[0], from: fork[1], since: fork[2] } : null;
     frame.bond = CoopBonds.forPair(player.char, partner.char);
     frame.bondActive = s.bondActive === true && players.every(p => p.hp > 0);
     frame.rescue = Array.isArray(s.rescue) && typeof s.rescue[0] === 'boolean' && number(s.rescue[1], 0, RESCUE_SECONDS) ?

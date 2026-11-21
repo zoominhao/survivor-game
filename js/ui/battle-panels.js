@@ -15,20 +15,36 @@ const BattlePanelsUI = {
     this.$('decisionTitle').textContent = `${info.name}将至`;
     this.$('decisionScene').textContent = `${info.scene} · 选择只影响这一场 Boss 战`;
     this.$('decisionCoins').textContent = info.coins;
-    const box = this.$('decisionCards');
-    box.replaceChildren();
-    const cards = [
+    this.$('decisionWallet').classList.remove('hidden');
+    this.$('btnNormalFight').textContent = '照常迎战 · 不花金币';
+    this.drawDecision([
       { plan: 'ward', icon: 'armor', name: '布符镇守', tag: `花 ${info.cost} 金币`, cls: 'passive',
+        disabled: info.missing > 0,
         desc: info.wardEffect + (info.missing ? `\n还差 ${info.missing} 金币` : '') },
       { plan: 'challenge', icon: 'coin', name: '揭符悬赏', tag: `击败后 +${info.bounty} 金币`, cls: 'evo', desc: info.challengeEffect },
-    ];
+    ], plan => Game.chooseBossPlan(plan));
+  },
+
+  showRouteFork() {
+    this.$('decisionTitle').textContent = '灯尽逢岔路';
+    this.$('decisionScene').textContent = '支路持续到 7:25，随后会合到雪岭。';
+    this.$('decisionWallet').classList.add('hidden');
+    this.$('btnNormalFight').textContent = '走竹径 · Esc';
+    const cards = Object.entries(ROUTE_BRANCHES).map(([plan, route]) => ({ ...route, plan,
+      cls: plan === 'bamboo' ? 'passive' : 'evo', desc: route.notes }));
+    this.drawDecision(cards, plan => Game.chooseFork(plan));
+  },
+
+  drawDecision(cards, choose) {
+    const box = this.$('decisionCards');
+    box.replaceChildren();
     cards.forEach((card, i) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = `card ${card.cls}`;
-      b.disabled = card.plan === 'ward' && info.missing > 0;
+      b.disabled = !!card.disabled;
       b.setAttribute('aria-keyshortcuts', String(i + 1));
       b.innerHTML = this.cardHtml(card, i + 1);
-      b.addEventListener('click', () => { Sfx.play('click'); Game.chooseBossPlan(card.plan); });
+      b.addEventListener('click', () => { Sfx.play('click'); choose(card.plan); });
       box.appendChild(b);
     });
     this.show('decision');

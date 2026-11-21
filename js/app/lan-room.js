@@ -1,6 +1,6 @@
 'use strict';
 
-const LAN_ROOM_VERSION = 3;
+const LAN_ROOM_VERSION = 4;
 const LanRoom = {
   clearRoom() {
     this.guestReady = false;
