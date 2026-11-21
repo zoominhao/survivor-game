@@ -40,6 +40,67 @@ test('跟随路线被近处山石挡住时，机器人会先向侧面绕开', ()
   assert.ok(Math.hypot(g.partner.x - g.player.x, g.partner.y - g.player.y) < 125);
 });
 
+test('机器人从名册随机抽取，排除玩家角色与上一局搭档', () => {
+  const { RobotPartner } = setup();
+  const pool = new Set(Array.from({ length: 24 }, (_, i) => RobotPartner.pick('ella', 'zhu', () => i / 24)));
+  assert.equal(pool.size, 6);
+  assert.ok(!pool.has('ella') && !pool.has('zhu') && pool.has('bron') && pool.has('nova'));
+  const a = RobotPartner.pick('zhu', null, () => 0);
+  assert.notEqual(RobotPartner.pick('zhu', a, () => 0), a);
+});
+
+test('机器人会预判走来的夜兽，不为赶回玩家身边穿过怪群', () => {
+  const { g, RobotPartner } = setup();
+  const run = robot => {
+    g.start('ella', 'zhu', { robot });
+    g.spawn = () => {};
+    Object.assign(g.player, { x: 220, y: 0, weapons: [] });
+    Object.assign(g.partner, { x: 0, y: 0, weapons: [] });
+    g.spawnEnemy('moth', 66, 0).speed = 116;
+    if (robot) assert.ok(Math.abs(RobotPartner.input(g).y) > 0.5);
+    for (let i = 0; i < 36; i++) g.update(1 / 60);
+    return g.partner.hp;
+  };
+  assert.ok(run(false) < 95);
+  assert.equal(run(true), 95);
+});
+
+test('机器人会避开沿途弹幕，既不掉血也没有无敌保护', () => {
+  const { g } = setup();
+  const run = robot => {
+    g.start('ella', 'zhu', { robot });
+    Object.assign(g.player, { x: -76, y: 0 });
+    Object.assign(g.partner, { x: 0, y: 0 });
+    g.spawn = () => {};
+    g.ebullets.push({ x: 55, y: 0, vx: -180, vy: 0, r: 5, dmg: 17, life: 2 });
+    for (let i = 0; i < 24; i++) g.update(1 / 60);
+    return g.partner.hp;
+  };
+  assert.equal(run(false), 78);
+  assert.equal(run(true), 95);
+  g.hurtPlayer(10, null, g.partner);
+  assert.equal(g.partner.hp, 85);
+});
+
+test('护卫与远程搭档使用不同站位，低血量会去捡安全的心形补给', () => {
+  const { g, RobotPartner } = setup();
+  const approach = id => {
+    g.start('ella', id, { robot: true });
+    Object.assign(g.player, { x: -45, y: 0 });
+    Object.assign(g.partner, { x: 0, y: 0 });
+    g.spawnEnemy('brute', 144, 0).frozen = 1;
+    return RobotPartner.input(g).x;
+  };
+  assert.ok(approach('bron') > 0.5);
+  assert.ok(approach('zhu') < 0.5);
+  g.start('ella', 'zhu', { robot: true });
+  g.spawn = () => {};
+  g.partner.hp = 14;
+  g.pickups.push({ type: 'heart', x: g.partner.x + 46, y: 0 });
+  for (let i = 0; i < 35; i++) g.update(0.02);
+  assert.ok(g.partner.hp > 35 && g.pickups.length === 0);
+});
+
 test('机器人自动选卡，不会替玩家选卡或卡住升级暂停', () => {
   const { g, events } = setup();
   g.start('ella', 'zhu', { robot: true });

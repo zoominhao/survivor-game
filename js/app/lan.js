@@ -176,7 +176,9 @@ const Lan = {
         (this.role === 'guest' && this.phase === 'connected')) return false;
     this.close();
     this.role = 'bot';
-    this.begin(this.char === 'zhu' ? 'xiaoxiao' : 'zhu', true);
+    const partner = RobotPartner.pick(this.char, this.lastBotChar);
+    this.lastBotChar = partner;
+    this.begin(partner, true);
     UI.banner(message);
     return true;
   },

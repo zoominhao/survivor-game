@@ -13,7 +13,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.time = 0;
       this.coop = !!partnerChar;
       this.robot = this.coop && robot;
-      this.robotBrain = this.robot ? { next: 0, move: { x: 0, y: 0 } } : null;
+      this.robotBrain = this.robot ? RobotPartner.start(partnerChar) : null;
       this.signals = this.coop ? [null, null] : null;
       this.rescue = this.coop ? { used: false, progress: 0 } : null;
       this.assisted = false;
