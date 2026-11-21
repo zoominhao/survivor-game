@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="back" x2="0" y2="1"><stop stop-color="#a58381"/><stop offset="1" stop-color="#6e827a"/></linearGradient>
+    <linearGradient id="ridge" x2="0" y2="1"><stop stop-color="#4a685d"/><stop offset="1" stop-color="#1c3530"/></linearGradient>
+    <linearGradient id="water" x2="0" y2="1"><stop stop-color="#d4a987" stop-opacity=".8"/><stop offset="1" stop-color="#2f4b44" stop-opacity=".1"/></linearGradient>
+    <pattern id="grain" width="33" height="28" patternUnits="userSpaceOnUse"><path d="M1 4h7m9 8h5m-15 6h4m15 5h4M11 25h4" stroke="#ead1ac" stroke-opacity=".19" stroke-width=".7"/></pattern>
+    <path id="pine" d="M0-63-12-41h8L-19-24h13L-25-9h21v10h8V-9h21L6-24h13L4-41h8Z"/>
+  </defs>
+  <path fill="url(#back)" d="M0 239 71 211 107 218 157 182 188 186 243 145 274 152 318 202 384 228 424 218 496 256 533 232 592 239 633 217 678 235 742 207 789 217 831 183 858 185 911 130 950 142 996 193 1049 179 1090 198 1125 174 1165 205 1200 192v328H0z"/>
+  <path d="M7 238l64-23 38 6 49-34 34 3 51-42 32 7 45 51 62 25m412-10 39-33 26-1 52-54 38 10 46 51" fill="none" stroke="#e9b594" opacity=".56" stroke-width="2.5"/>
+  <path fill="#82958a" d="M0 268l70-27 21 4 49-25 59 23 38 7 45 29 56-2 23 14 57-24 46 2 47 14 71-15 23 11 45-13 45 8 57-19 36 12 62-30 75-26 27 15 43-19 40 15 28 19 61-23 76 13v310H0z"/>
+  <path fill="#55786a" d="M0 310l65-27 44 10 46-25 39 22 55-5 43 33 60 6 69 21 59-13 58 28 60 1 71-23 53 3 45-22 35 8 63-42 46-7 37 5 45-32 52 17 42-15 43 17v250H0z"/>
+  <path fill="#587b70" d="M0 375q150-73 273-27t291 29q108-18 228-42t279 10q48 9 129-21v196H0z"/>
+  <path fill="url(#water)" d="M355 376q151-48 319-30t171 23q-22 18-122 23t-211 31q42 13 222-3 82-6 130 22-111 31-331 24t-177 30q106 9 392 24H304q-24-31 55-52t118-10q-71-19-76-38 51-20 132-24t123-19q-128-16-301-1z"/>
+  <g fill="none" stroke="#ead0a1" opacity=".55" stroke-linecap="round"><path d="M312 365h95m25 0h25m71 25h120m20 1h31m40-17h72m-261 63h64m20 0h58m-367 7h52m365-26h43"/></g>
+  <path fill="url(#ridge)" d="M0 337l65 2 44 22 53-4 46 23 45 1 76 58 45 1 65 46 41 1 62 33H0zm1200-27-73 43-46-3-61 48-41-1-58 20-52 32-79 10-62 35-72 26h544z"/>
+  <path fill="url(#grain)" d="M0 285h1200v235H0z"/>
+  <g fill="#203e35"><use href="#pine" x="91" y="353"/><use href="#pine" x="122" y="369" transform="translate(12 30) scale(.9)"/><use href="#pine" x="269" y="418"/><use href="#pine" x="986" y="417"/><use href="#pine" x="1118" y="369"/><use href="#pine" x="1152" y="360"/></g>
+  <g fill="#27443a" stroke="#d6b181" stroke-width="2" stroke-linejoin="round"><path d="M137 437q22-8 42-25h34q18 17 42 25-59 10-118 0z"/><path d="M158 440h76v43h-76z"/><path d="M148 489h96l-7-6h-82zM173 441v42m45-42v42"/></g>
+  <circle cx="195" cy="460" r="6" fill="#ffcb81"/><path d="M195 444v7m0 18v7" stroke="#ffd39a" stroke-width="1.5"/>
+  <g fill="none" stroke="#aabf9a" stroke-opacity=".42" stroke-linecap="round"><path d="M14 373l54 4 43 19 58-3m7 13 67 5 64 42m727-32 73-43 43 1 41-28M836 485l49-20 54-6"/></g>
+</svg>

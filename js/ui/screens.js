@@ -2,7 +2,7 @@
 // ===== 界面:菜单、强化商店、升级选卡、宝箱、暂停、结算、HUD(均为 DOM) =====
 
 const UI = {
-  ...MenuUI, ...BattlePanelsUI, ...HudUI, ...UtilityUI, ...LanUI, ...ContractUI, ...CoopUI,
+  ...MenuUI, ...BattlePanelsUI, ...ResultUI, ...HudUI, ...UtilityUI, ...LanUI, ...ContractUI, ...CoopUI,
   cache: {},
   overlayId: null,
   $(id) { return document.getElementById(id); },
@@ -36,6 +36,7 @@ const UI = {
     on('btnResume', () => App.resume());
     on('btnQuit', () => Lan.guest ? Lan.leave() : Game.finish(false));
     on('btnRetry', () => App.startRun());
+    on('btnDawnSkip', () => this.finishDawn());
     on('btnMenu', () => Lan.running ? Lan.leave() : this.showMenu());
     on('btnPause', () => App.pause());
     this.initUtilities(on);
@@ -56,7 +57,7 @@ const UI = {
     }
     if (id === 'decision' && id !== previous) this.decisionFocus = this.$('hud').contains(document.activeElement) ? document.activeElement : null;
     for (const o of document.querySelectorAll('.overlay')) o.classList.toggle('hidden', o.id !== id);
-    const inRun = !!Game.player && !['menu', 'intro', 'practiceSetup'].includes(Game.state);
+    const inRun = !!Game.player && !['menu', 'intro', 'practiceSetup', 'victory', 'gameover'].includes(Game.state);
     const hud = this.$('hud');
     hud.classList.toggle('hidden', !inRun);
     hud.inert = !inRun || !!id;

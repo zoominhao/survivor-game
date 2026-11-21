@@ -1,0 +1,95 @@
+/* 黎明演出独立于 Canvas：只播一次，结算前不重新计算奖励。 */
+#dawn { background: var(--night-deep); }
+.dawn-frame {
+  --dawn-night: #182f34; --dawn-rose: #ad7868; --dawn-amber: #ffd49a; --dawn-white: #fff0c9;
+  position: relative; isolation: isolate; overflow: hidden;
+  width: min(1120px, 100%); min-height: min(78vh, 660px); margin: auto;
+  border: 1px solid var(--binding); box-shadow: var(--shadow); background: var(--dawn-night);
+}
+.dawn-frame::after { content: ''; position: absolute; inset: 8px; border: 1px solid var(--binding); pointer-events: none; }
+.dawn-sky {
+  position: absolute; inset: 0; z-index: -4;
+  background: linear-gradient(180deg, var(--dawn-night), var(--dawn-rose) 42%, var(--dawn-amber) 57%, var(--night-glow) 85%);
+  animation: dawn-brighten 2s ease-out both;
+}
+.dawn-sun {
+  position: absolute; z-index: -3; top: 36%; left: 50%; width: clamp(105px, 17vw, 205px); aspect-ratio: 1;
+  border-radius: 50%; background: var(--dawn-white); border: 3px solid var(--dawn-amber);
+  box-shadow: 0 0 65px 18px var(--dawn-amber); animation: dawn-sunrise 2.1s .1s ease-out both;
+}
+.dawn-ridges { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.dawn-mist {
+  position: absolute; z-index: -1; inset: 28% -25% 10%; pointer-events: none;
+  background: radial-gradient(ellipse at 30% 58%, var(--dawn-white), transparent 48%);
+  animation: dawn-mist-clears 2.55s ease-out both;
+}
+.dawn-mist-far { background-position: 43vw 0; animation-name: dawn-mist-drifts; }
+.dawn-copy {
+  position: absolute; inset-inline: 0; bottom: 15%; padding: 16px 16px 24px; text-align: center;
+  background: linear-gradient(90deg, transparent, var(--scrim), transparent);
+  animation: dawn-unveil 1.12s .55s ease-out both;
+}
+.dawn-copy .chapter { color: var(--dawn-amber); }
+.dawn-copy h2 { margin: 4px 0 6px; color: var(--dawn-white); font: 850 clamp(62px, 13vw, 130px)/1.04 var(--display); letter-spacing: .08em; text-shadow: 0 3px 18px var(--night-deep); }
+.dawn-copy h2:focus { outline: none; }
+.dawn-copy > p:last-child { margin: 0; color: var(--dawn-white); font: 700 clamp(14px, 2.4vw, 20px)/1.5 var(--display); letter-spacing: .17em; }
+#btnDawnSkip { position: absolute; right: 16px; bottom: 16px; background: var(--bg); color: var(--text); border-color: var(--binding); }
+#btnDawnSkip kbd { margin-left: 4px; color: var(--gold); }
+@keyframes dawn-brighten { from { opacity: .24; } to { opacity: 1; } }
+@keyframes dawn-sunrise { from { opacity: .32; transform: translate(-50%, 48%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes dawn-mist-clears { from { opacity: .82; transform: translateX(0); } to { opacity: .04; transform: translateX(-38%); } }
+@keyframes dawn-mist-drifts { from { opacity: .6; transform: translateX(0); } to { opacity: .05; transform: translateX(42%); } }
+@keyframes dawn-unveil { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 战报：先显示结果和实际入账，再放置战斗统计。 */
+.result-panel { width: min(665px, 100%); }
+.result-heading { position: relative; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 3px double var(--line); }
+.result-heading .sub { margin: 0; }
+.result-heading h2 { margin: 7px 0; color: var(--chapter-ink); }
+.result-stage { display: block; margin-top: 8px; color: var(--dim); font-size: 12px; letter-spacing: .07em; }
+.win .result-heading { padding: 14px 14px 16px; border: 1px solid var(--line); background:
+  linear-gradient(90deg, var(--paper-face) 0%, var(--paper-face) 38%, transparent 95%),
+  url('../art/dawn-vista.svg') 64% 64% / cover no-repeat,
+  radial-gradient(circle at 83% 25%, var(--paper-face) 0 13%, transparent 14%), var(--surface); }
+.win .result-heading h2 { font-size: clamp(39px, 8vw, 62px); letter-spacing: .08em; }
+.win .result-heading .sub { max-width: 25em; color: var(--ink); }
+.result-rewards h3, .result-damage h3 { margin: 0 0 8px; color: var(--chapter-ink); font: 800 17px var(--display); }
+.reward-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.reward-card { padding: 8px 12px; background: var(--paper-face); border: 1px solid var(--line); border-inline-start: 3px double var(--gold); }
+.reward-card p { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; color: var(--gold); font-weight: 750; }
+.reward-card b { margin-inline-start: auto; color: var(--chapter-ink); font: 800 clamp(19px, 4.8vw, 28px) var(--display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.reward-card dl { margin: 4px 0 0; padding-top: 4px; border-top: 1px solid var(--line); color: var(--dim); font-size: 12px; }
+.reward-card dl > div { display: flex; justify-content: space-between; gap: 4px; margin: 2px 0; }
+.reward-card dd { margin: 0; color: var(--gold); font-weight: 650; font-variant-numeric: tabular-nums; }
+#resNoRewards { padding: 6px 8px; border-inline-start: 2px solid var(--chapter-ink); background: var(--paper-tint); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 12px; background: var(--paper-tint); border-block: 3px double var(--line); text-align: center; }
+.stats div { padding: 8px 4px; }
+.stats div + div { border-left: 1px solid var(--line); }
+.stats .sigil { color: var(--gold); font-size: 15px; }
+.stats b { display: block; color: var(--chapter-ink); font: 800 23px var(--display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stats small { color: var(--dim); font-size: 11px; }
+.result-damage { margin-top: 12px; }
+.dmg { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 20vh; overflow-y: auto; }
+.dmg li { display: grid; grid-template-columns: minmax(92px, 1.2fr) minmax(16px, 2fr) auto; align-items: center; gap: 8px; padding: 4px 0; }
+.dmg li + li { border-top: 1px solid var(--paper-tint); }
+.dmg i { height: 5px; background: var(--paper-tint); }
+.dmg u { display: block; height: 100%; background: var(--chapter-ink); }
+.dmg em { font-style: normal; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 480px) {
+  .dawn-copy { bottom: 21%; }
+  .reward-card { padding-inline: 6px; }
+  .reward-card p { font-size: 13px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats div:nth-child(3) { border-left: none; }
+  .stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (max-height: 460px) {
+  .dawn-frame { min-height: max(270px, 91vh); }
+  .dawn-copy h2 { font-size: clamp(48px, 12vh, 66px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dawn-sky, .dawn-sun, .dawn-mist, .dawn-copy { animation: none; }
+  .dawn-sun { transform: translate(-50%, -50%); }
+  .dawn-mist { display: none; }
+}

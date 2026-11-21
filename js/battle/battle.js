@@ -119,11 +119,15 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       const p = this.player, d = this.save.data;
       const ranked = !this.coop && !this.assisted;
       const time = Math.min(this.duration, this.time);
-      const newBest = ranked && this.time > d.best;
+      const newBest = ranked && time > d.best;
       const contract = this.settleContract(ranked);
-      const earned = ranked ? Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0) + (contract?.coins ?? 0) : 0;
-      const earnedSeals = ranked ? Math.floor(time / SEAL_REWARDS.interval) + this.bossesDefeated * SEAL_REWARDS.boss +
-        (win ? SEAL_REWARDS.dawn : 0) + (contract?.seals ?? 0) : 0;
+      const rewards = ranked ? {
+        coins: { loot: Math.floor(p.coins), time: Math.floor(time / 10), victory: win ? 200 : 0, contract: contract?.coins ?? 0 },
+        seals: { time: Math.floor(time / SEAL_REWARDS.interval), bosses: this.bossesDefeated * SEAL_REWARDS.boss,
+          victory: win ? SEAL_REWARDS.dawn : 0, contract: contract?.seals ?? 0 },
+      } : null;
+      const total = parts => parts ? Object.values(parts).reduce((sum, amount) => sum + amount, 0) : 0;
+      const earned = total(rewards?.coins), earnedSeals = total(rewards?.seals);
       if (ranked) {
         d.coins += earned;
         d.seals = (d.seals ?? 0) + earnedSeals;
@@ -133,7 +137,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
         if (newBest) d.best = time;
         this.save.write();
       }
-      this.result = { win, earned, earnedSeals, time, kills: p.kills + (this.partner?.kills ?? 0), level: p.level, newBest,
+      this.result = { win, earned, earnedSeals, rewards, time, kills: p.kills + (this.partner?.kills ?? 0), level: p.level, newBest, bosses: this.bossesDefeated,
         assisted: this.assisted, coop: this.coop, contract };
       this.state = win ? 'victory' : 'gameover';
       if (win) {

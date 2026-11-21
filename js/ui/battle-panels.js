@@ -1,6 +1,6 @@
 'use strict';
 
-// 战斗浮层：升级、战前抉择、宝箱、暂停和结算。
+// 战斗浮层：升级、战前抉择、宝箱和暂停。
 const BattlePanelsUI = {
   cardHtml(info, key) {
     return `<span class="card-layout"><span class="ico">${Icons.html(info.icon)}</span>` +
@@ -115,30 +115,4 @@ const BattlePanelsUI = {
     this.show('pause');
   },
 
-  // ---------- 结算 ----------
-  showResult() {
-    const r = Game.result, p = Game.player;
-    this.$('resTitle').textContent = r.win ? '天亮了' : '长夜吞没了你';
-    this.$('resSub').textContent = r.coop ? `${Game.robot ? '机器人搭档' : '双人战报'} · 小队击杀合计，不影响单人战绩和存档。` :
-      r.assisted ? '本局使用了练习功能，不计战绩、金币或守夜印。' :
-      r.win ? '你守到了黎明,夜兽在晨光中消散。' : '提灯熄灭了,但余烬仍在。';
-    this.$('result').classList.toggle('win', r.win);
-    this.$('resSeals').classList.toggle('hidden', r.coop || r.assisted);
-    this.$('resSealCount').textContent = r.earnedSeals ?? 0;
-    this.showContractResult(r);
-    this.$('resStats').innerHTML =
-      `<div><b>${U.fmtTime(r.time)}</b><small>坚持时间${r.newBest ? ' · 新纪录' : ''}</small></div>` +
-      `<div><b>${r.level}</b><small>等级</small></div>` +
-      `<div><b>${r.kills}</b><small>击杀</small></div>` +
-      `<div><b>${Icons.html('coin')} ${r.earned}</b><small>获得金币</small></div>`;
-    // 各武器伤害占比
-    const rows = Object.entries(p.dmgBy).sort((a, b) => b[1] - a[1]);
-    const top = rows.length ? rows[0][1] : 1;
-    this.$('resDmg').innerHTML = rows.map(([id, v]) => {
-      const d = WEAPONS[id] ?? PAPER_SKILLS[id];
-      return `<li><span>${Icons.html(WEAPONS[id] ? id : d ? 'wardPaper' : 'lantern')} ${d ? d.name : '余烬'}</span><i><u style="width:${(v / top * 100).toFixed(1)}%"></u></i><em>${v}</em></li>`;
-    }).join('');
-    this.$('btnRetry').textContent = r.coop ? '重新组队' : '再来一局';
-    this.show('result');
-  },
 };

@@ -6,7 +6,7 @@ const battleViews = {
   decision: () => { Input.endJoy(); UI.showBossDecision(); },
   route: () => { Input.endJoy(); UI.showRouteFork(); },
   chest: () => UI.showChest(),
-  result: () => UI.showResult(),
+  result: () => UI.presentResult(),
   resume: () => UI.show(null),
   banner: text => UI.banner(text),
 };
@@ -150,6 +150,7 @@ const App = {
 
   onKey(code, shift = false) {
     const s = Game.state;
+    if (UI.overlayId === 'dawn' && ['Enter', 'Space', 'Escape'].includes(code)) { UI.finishDawn(); return; }
     if (UI.overlayId === 'lanLeaveConfirm') {
       if (code === 'Escape') UI.cancelLanLeave();
       return;
@@ -231,6 +232,7 @@ const App = {
     Sfx.syncMusic(musicState, bossTheme, landscape);
     Render.draw(dt, Game);
     UI.updateHud();
+    if (UI.overlayId === 'dawn') UI.tickDawn(now);
     requestAnimationFrame(t => this.frame(t));
   },
 };

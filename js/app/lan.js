@@ -227,7 +227,7 @@ const Lan = {
     const message = { t: 'frame', panel, turn: this.turn, slot, frame: LanState.packFrame(Game), events: this.events.slice(-48) };
     if (panel === 'levelup' && slot === 1) { message.choices = Game.choices; message.pending = Game.partner.pending; }
     if (Game.result) {
-      message.result = { win: Game.result.win, kills: Game.result.kills };
+      message.result = { win: Game.result.win, kills: Game.result.kills, bosses: Game.result.bosses };
       message.dmg = Game.partner.dmgBy;
     }
     if (this.link.send(message)) {
@@ -294,7 +294,8 @@ const Lan = {
     const p = Game.player;
     const stats = data.dmg && typeof data.dmg === 'object' ? data.dmg : {};
     for (const id of [...Object.keys(WEAPONS), 'revive']) if (LanState.number(stats[id], 0)) p.dmgBy[id] = stats[id];
-    Game.result = { win: Game.state === 'victory', earned: 0, time: Game.time, level: p.level,
+    Game.result ??= { win: Game.state === 'victory', earned: 0, rewards: null, time: Game.time, level: p.level,
+      bosses: LanState.integer(data.result?.bosses, 0, 3) ? data.result.bosses : null,
       kills: LanState.integer(data.result?.kills, 0, 1e8) ? data.result.kills : p.kills || 0, coop: true };
   },
 
@@ -320,7 +321,7 @@ const Lan = {
     Input.endJoy();
     if (state === 'playing') UI.show(null);
     else if (state === 'levelup' && turn) UI.showLevelUp();
-    else if (Game.result) UI.showResult();
+    else if (Game.result) UI.presentResult();
     else if (state === 'levelup') UI.showLanWait('等候房主选卡', '房主正在选择升级，本局暂时暂停。');
     else if (state === 'decision') UI.showLanWait('守夜抉择', '等房主决定如何迎战 Boss。');
     else if (state === 'route') UI.showLanWait('夜巡变阵', '等房主选择镇守或诱敌。');

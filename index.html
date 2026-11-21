@@ -6,8 +6,9 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css?v=handscroll1">
-  <link rel="stylesheet" href="css/screens.css?v=skill-stock1">
-  <link rel="stylesheet" href="css/responsive.css?v=handscroll2">
+  <link rel="stylesheet" href="css/screens.css?v=dawn1">
+  <link rel="stylesheet" href="css/responsive.css?v=dawn1">
+  <link rel="stylesheet" href="css/results.css?v=dawn1">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -404,16 +405,51 @@
     </div>
   </section>
 
-  <!-- 结算 -->
+  <!-- 黎明胜利演出与结算 -->
+  <section id="dawn" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dawnTitle">
+    <div class="dawn-frame">
+      <div class="dawn-sky" aria-hidden="true"></div>
+      <div class="dawn-sun" aria-hidden="true"></div>
+      <img class="dawn-ridges" src="art/dawn-vista.svg" width="1200" height="520" alt="">
+      <div class="dawn-mist dawn-mist-near" aria-hidden="true"></div>
+      <div class="dawn-mist dawn-mist-far" aria-hidden="true"></div>
+      <div class="dawn-copy">
+        <p id="dawnStage" class="chapter"></p>
+        <h2 id="dawnTitle">天亮了</h2>
+        <p>长夜已尽 · 守望未熄</p>
+      </div>
+      <button id="btnDawnSkip" type="button" aria-keyshortcuts="Escape">查看战报 <kbd>Esc</kbd></button>
+    </div>
+  </section>
+
   <section id="result" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="panel">
-      <p class="chapter"><span data-icon="moon"></span>守夜纪事</p>
-      <h2 id="resTitle"></h2>
-      <p class="sub" id="resSub"></p>
-      <div id="resStats" class="stats"></div>
-      <p id="resSeals" class="control-note hidden"><span data-icon="watchSeal"></span> 获得守夜印 <b id="resSealCount">0</b> 枚</p>
+    <div class="panel result-panel">
+      <header class="result-heading">
+        <p class="chapter"><span data-icon="moon"></span>守夜纪事</p>
+        <span id="resStage" class="result-stage"></span>
+        <h2 id="resTitle"></h2>
+        <p class="sub" id="resSub"></p>
+      </header>
+      <section id="resRewards" class="result-rewards" aria-labelledby="resRewardTitle">
+        <h3 id="resRewardTitle">本局入账</h3>
+        <div class="reward-cards">
+          <div class="reward-card">
+            <p><span data-icon="coin"></span> 金币 <b id="resCoinTotal"></b></p>
+            <dl id="resCoinBreakdown"></dl>
+          </div>
+          <div class="reward-card">
+            <p><span data-icon="watchSeal"></span> 守夜印 <b id="resSealCount"></b></p>
+            <dl id="resSealBreakdown"></dl>
+          </div>
+        </div>
+      </section>
+      <p id="resNoRewards" class="control-note hidden"></p>
       <p id="resContract" class="control-note contract-summary hidden"></p>
-      <ul id="resDmg" class="dmg"></ul>
+      <div id="resStats" class="stats"></div>
+      <section id="resDamage" class="result-damage hidden" aria-labelledby="resDamageTitle">
+        <h3 id="resDamageTitle">伤害明细</h3>
+        <ul id="resDmg" class="dmg"></ul>
+      </section>
       <div class="row">
         <button id="btnRetry" class="primary">再来一局</button>
         <button id="btnMenu">返回主菜单</button>
@@ -455,7 +491,7 @@
   <script src="js/battle/combat/active-skills.js?v=skill-stock1"></script>
   <script src="js/battle/coop.js?v=paper-shop1"></script>
   <script src="js/battle/contracts.js?v=stage-model1"></script>
-  <script src="js/battle/battle.js?v=stage-model1"></script>
+  <script src="js/battle/battle.js?v=dawn1"></script>
 
   <script src="js/platform/save.js?v=skill-stock1"></script>
   <script src="js/audio/horror-data.js?v=night-audio1"></script>
@@ -493,14 +529,15 @@
   <script src="js/ui/route-training.js?v=stage-model1"></script>
   <script src="js/ui/skill-shop.js?v=skill-stock1"></script>
   <script src="js/ui/menu.js?v=paper-shop1"></script>
-  <script src="js/ui/battle-panels.js?v=skill-stock1"></script>
+  <script src="js/ui/battle-panels.js?v=dawn1"></script>
+  <script src="js/ui/result.js?v=dawn1"></script>
   <script src="js/ui/hud.js?v=skill-stock1"></script>
   <script src="js/ui/utilities.js?v=practice-menu1"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
   <script src="js/ui/lan.js?v=stage-model1"></script>
   <script src="js/ui/coop-support.js?v=emotes1"></script>
   <script src="js/ui/contracts.js?v=stage-model1"></script>
-  <script src="js/ui/screens.js?v=skill-stock1"></script>
+  <script src="js/ui/screens.js?v=dawn1"></script>
   <script src="js/vendor/qrcode-generator-2.0.4.min.js"></script>
   <script src="js/vendor/jsqr-1.4.0.min.js"></script>
   <script src="js/net/lan-code.js?v=lan-qr2"></script>
@@ -509,7 +546,7 @@
   <script src="js/net/lan-state.js?v=stage-model1"></script>
   <script src="js/app/input.js?v=practice2"></script>
   <script src="js/app/lan-room.js?v=stage-model1"></script>
-  <script src="js/app/lan.js?v=stage-model1"></script>
-  <script src="js/app/main.js?v=stage-model1"></script>
+  <script src="js/app/lan.js?v=dawn1"></script>
+  <script src="js/app/main.js?v=dawn1"></script>
 </body>
 </html>

@@ -73,9 +73,6 @@
   .card .nm { font-size: 16px; }
   .card .tag { flex: none; padding-inline: 4px; white-space: nowrap; }
   .card kbd { display: none; }
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .stats div:nth-child(3) { border-left: none; }
-  .stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
 }
 
 @media (prefers-reduced-motion: reduce) {
