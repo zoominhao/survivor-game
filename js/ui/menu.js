@@ -88,7 +88,10 @@ const MenuUI = {
       const active = key === section;
       this.$(tab).setAttribute('aria-pressed', String(active));
       this.$(panel).classList.toggle('hidden', !active);
-      if (active) this[draw](message);
+      if (active) {
+        this.$('shopSectionTitle').textContent = this.$(tab).getAttribute('aria-label');
+        this[draw](message);
+      }
     }
     this.show('shop');
   },

@@ -47,7 +47,8 @@ const UtilityUI = {
       this.$(output).value = `${level}%`;
     }
     const silent = Sfx.muted || (!Sfx.levels.music && !Sfx.levels.effects);
-    for (const id of ['btnAudio', 'btnAudioMenu']) this.$(id).innerHTML = Icons.html(silent ? 'mute' : 'sound');
+    const icon = Icons.html(silent ? 'mute' : 'sound');
+    for (const id of ['btnAudio', 'btnAudioMenu']) this.$(id).innerHTML = icon;
     this.$('btnMute').setAttribute('aria-pressed', String(Sfx.muted));
     this.$('audioStatus').textContent = Sfx.muted ? '总静音已开启，解除后恢复滑杆音量。' :
       '两条音量独立，调到 0% 可单独静音。';

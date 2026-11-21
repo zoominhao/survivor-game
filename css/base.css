@@ -14,6 +14,11 @@
   --vermillion: #8f392b;
   --vermillion-hover: #a34532;
   --red-light: #ffb3a0;
+  --night-deep: #0e1919;
+  --night-glow: #39584b;
+  --night-grain: #ebdcbb09;
+  --night-selected: #2d4035;
+  --binding: #897a58;
   --scrim: rgb(9 16 15 / 72%);
   --shadow: 0 20px 64px #050a0a99;
   --display: "Songti SC", STSong, "Noto Serif CJK SC", "SimSun", serif;
@@ -76,7 +81,7 @@ button.primary:hover:not(:disabled) { background-color: var(--vermillion-hover);
 .icon-button .sigil { width: 22px; height: 22px; }
 
 /* ---------- HUD ---------- */
-#hud { position: fixed; inset: 0; pointer-events: none; }
+#hud { --skill-size: 68px; position: fixed; inset: 0; pointer-events: none; }
 
 #xpbar {
   position: absolute; left: 0; right: 0; top: env(safe-area-inset-top, 0px);
@@ -84,21 +89,23 @@ button.primary:hover:not(:disabled) { background-color: var(--vermillion-hover);
   background: var(--scrim);
   border-bottom: 1px solid var(--line);
 }
-#xpfill { height: 100%; width: 0; background: repeating-linear-gradient(120deg, #578570 0 8px, #61927b 8px 9px); transition: width .16s; }
+#xpfill { height: 100%; width: 0; background: repeating-linear-gradient(120deg, var(--night-glow) 0 8px, var(--jade) 8px 9px); transition: width .16s; }
 #lvl {
   position: absolute; right: max(10px, env(safe-area-inset-right)); top: 0;
-  padding: 0 8px; background: var(--bg); color: var(--jade);
+  padding: 0 8px; background: var(--bg); color: var(--jade); border-inline: 3px double var(--binding);
   font-size: 11px; line-height: 16px; font-weight: 700;
 }
 
 .watch-time {
   position: absolute; top: calc(26px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 10px; padding: 4px 14px 5px;
-  min-width: 110px; border: 1px solid var(--line); background: var(--bg); color: var(--gold);
+  min-width: 110px; border: 1px solid var(--binding); border-radius: 20px 20px 4px 4px;
+  background: var(--bg); color: var(--gold); box-shadow: inset 0 0 0 2px var(--night-deep), inset 0 0 0 3px var(--binding);
   pointer-events: auto; touch-action: manipulation;
 }
 .watch-time:active:not(:disabled) { transform: translate(-50%, 1px); }
-.watch-time .sigil { font-size: 23px; }
+.watch-time [data-icon] { display: grid; place-items: center; width: 28px; height: 28px; border-right: 1px solid var(--line); }
+.watch-time .sigil { font-size: 20px; }
 .watch-time small { display: block; color: var(--dim); font-size: 10px; letter-spacing: .1em; }
 #timer { display: block; color: var(--text); font: 700 22px/1.15 var(--display); font-variant-numeric: tabular-nums; }
 
@@ -123,8 +130,8 @@ button.primary:hover:not(:disabled) { background-color: var(--vermillion-hover);
   display: grid; place-items: center;
   font-size: 17px; color: var(--gold);
   background: var(--bg);
-  border: 1px solid var(--line);
-  box-shadow: inset 0 0 0 2px var(--bg), inset 0 0 0 3px #d8b77f29;
+  border: 1px solid var(--line); border-radius: 8px 8px 2px 2px;
+  box-shadow: inset 0 0 0 2px var(--bg), inset 0 0 0 3px var(--binding);
 }
 #pslots .slot { color: var(--jade); }
 .slot i {
@@ -137,7 +144,8 @@ button.primary:hover:not(:disabled) { background-color: var(--vermillion-hover);
 .slot.max i { color: var(--gold); }
 
 #hudBtns { position: absolute; top: calc(26px + env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 4px; pointer-events: auto; }
-#hudBtns button { color: var(--gold); background-color: var(--bg); }
+#hudBtns button { color: var(--gold); background-color: var(--bg); border-bottom: 3px double var(--binding); }
+#hudBtns button:hover { background-color: var(--surface-hover); }
 
 #bossbar {
   position: absolute; top: calc(107px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
@@ -145,14 +153,16 @@ button.primary:hover:not(:disabled) { background-color: var(--vermillion-hover);
   text-align: center; font-size: 12px; font-weight: 700; color: var(--red-light);
   text-shadow: 0 1px 2px #000;
 }
-#bossbar > div { height: 7px; margin-top: 4px; background: var(--scrim); border: 1px solid var(--vermillion); }
+#bossName { padding: 2px 8px; background: var(--bg); border-inline: 3px double var(--vermillion); }
+#bossbar > div { height: 8px; margin-top: 4px; padding: 1px; background: var(--bg); border: 1px solid var(--vermillion); }
 #bossfill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--vermillion), var(--red-light)); }
 
 #banner {
   position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
-  padding: 8px 24px; border-block: 1px solid var(--gold); background: var(--scrim);
+  max-width: calc(100vw - 20px); width: max-content; padding: 8px 16px; text-align: center;
+  border-block: 3px double var(--binding); background: linear-gradient(90deg, var(--scrim), var(--night-deep), var(--scrim));
   font: 800 clamp(20px, 4.5vw, 34px) var(--display); letter-spacing: .1em;
-  color: var(--gold); white-space: nowrap;
+  color: var(--gold); overflow-wrap: anywhere;
   opacity: 0;
 }
 #banner.show { animation: banner 2.6s ease-out forwards; }

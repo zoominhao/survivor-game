@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="paper" x2=".65" y2="1">
+      <stop stop-color="#fff0bc"/><stop offset=".58" stop-color="#e9bc72"/><stop offset="1" stop-color="#b47c40"/>
+    </linearGradient>
+  </defs>
+  <path d="M6 44c12 11 36 13 52-1M8 23c7-9 41-14 49-1M10 34c0-10 7-17 14-20m29 14c4 9 0 17-8 22" fill="none" stroke="#e6b16c" stroke-width="1.3" stroke-linecap="round" opacity=".61"/>
+  <path d="m10 26 2 2-2 2-2-2zm44 9 2 2-2 2-2-2z" fill="#f5db96"/>
+  <g transform="rotate(10 32 32)">
+    <path d="M20 9h25l-1 45-7-2-6 3-8-2-4 2z" fill="url(#paper)" stroke="#f3d590" stroke-width="1.4"/>
+    <path d="M22 12h20v38m-20-4v-30" fill="none" stroke="#9c5436" stroke-width="1" opacity=".55"/>
+    <path d="m25 24 7-7 6 7m-12 1h12m-6-8v20m-6-8 6 5 6-5m-11 11 5-4 5 4" fill="none" stroke="#823625" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M28 44h8v5h-8zm1.5 1.5h5v2h-5z" fill="#9e4431" fill-rule="evenodd"/>
+    <path d="M30 10V7q2-4 4 0v3" fill="none" stroke="#eec888" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>

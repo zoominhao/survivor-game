@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css?v=emotes1">
-  <link rel="stylesheet" href="css/responsive.css?v=ambience1">
+  <link rel="stylesheet" href="css/base.css?v=handscroll1">
+  <link rel="stylesheet" href="css/screens.css?v=handscroll3">
+  <link rel="stylesheet" href="css/responsive.css?v=handscroll2">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -42,10 +42,12 @@
       <div class="battle-actions">
         <div id="activeDock" class="active-dock hidden" role="group" aria-label="主动技能">
           <button id="btnDash" type="button" aria-label="疾步" aria-describedby="btnDashState" aria-keyshortcuts="Space" title="疾步 · 空格：沿移动方向短冲，短暂无敌，冷却 6 秒">
-            <span data-icon="dash"></span><small id="btnDashState">空格</small>
+            <span class="skill-emblem" aria-hidden="true"><img src="art/skill-dash.svg" alt="" width="42" height="42"></span>
+            <small id="btnDashState">空格</small>
           </button>
           <button id="btnWard" type="button" aria-label="镇夜符" aria-describedby="btnWardState" aria-keyshortcuts="E" title="镇夜符 · E：消耗 1 张符纸清弹、减速；击败精英和 Boss 可补充">
-            <span data-icon="wardPaper"></span><small id="btnWardState">E · 1/3</small>
+            <span class="skill-emblem" aria-hidden="true"><img src="art/skill-ward.svg" alt="" width="42" height="42"></span>
+            <small id="btnWardState">E · 1/3</small>
           </button>
         </div>
         <button id="btnSignal" class="icon-button hidden" type="button" aria-label="表情" aria-expanded="false" aria-controls="signalActions" aria-keyshortcuts="Q">
@@ -64,8 +66,10 @@
       <header class="watch-cover">
         <div class="cover-title">
           <span class="chapter">荒原夜巡录</span>
-          <h1 id="gameTitle">长夜守望</h1>
-          <img class="cover-seal" src="art/watch-seal.svg" alt="" width="38" height="38">
+          <div class="cover-wordmark">
+            <h1 id="gameTitle">长夜守望</h1>
+            <img class="cover-seal" src="art/watch-seal.svg" alt="" width="38" height="38">
+          </div>
           <p>提灯入荒原，守过十五分钟，直到天明。</p>
         </div>
       </header>
@@ -74,9 +78,9 @@
           <div class="chapter">守夜名册</div>
           <h2 id="rosterTitle">择一人，入夜</h2>
           <dl class="ledger">
-            <div><dt><span data-icon="coin"></span> 金币</dt><dd id="menuCoins">0</dd></div>
-            <div><dt>最佳守夜</dt><dd id="menuBest">--:--</dd></div>
-            <div><dt>守到天明</dt><dd id="menuWins">0</dd></div>
+            <div><dt title="金币"><span data-icon="coin"></span><span class="sr-only">金币</span></dt><dd id="menuCoins">0</dd></div>
+            <div><dt title="最佳守夜"><span data-icon="haste"></span><span class="sr-only">最佳守夜</span></dt><dd id="menuBest">--:--</dd></div>
+            <div><dt title="守到天明"><span data-icon="dawn"></span><span class="sr-only">守到天明</span></dt><dd id="menuWins">0</dd></div>
           </dl>
         </div>
         <div class="roster-groups" role="group" aria-label="角色类别">
@@ -84,8 +88,6 @@
           <button id="btnFolkRoster" type="button" aria-pressed="false" aria-controls="charList">江湖客</button>
           <span id="rosterCurrent"></span>
         </div>
-        <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
-        <p id="charNotice" class="char-notice" role="status"></p>
         <div class="roster-actions">
           <div class="mode-actions" role="group" aria-label="守夜模式">
             <button id="btnStart" class="primary" type="button" aria-label="单人守夜"><span data-icon="lantern"></span> 单人</button>
@@ -100,6 +102,8 @@
         <div class="roster-note">
           <span id="menuRoute"></span><span id="contractMenuState">未接委托</span>
         </div>
+        <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
+        <p id="charNotice" class="char-notice" role="status"></p>
         <p class="hint">方向键 / WASD 移动 · 触屏拖动 · 自动攻击</p>
       </div>
     </div>
@@ -107,31 +111,31 @@
 
   <section id="contracts" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="contractsTitle">
     <div class="panel">
-      <p class="chapter">夜巡札记</p>
+      <p class="chapter"><span data-icon="watchSeal"></span>夜巡札记</p>
       <h2 id="contractsTitle">守夜委托</h2>
       <p class="control-note">正式单人每局可接一项。完成就发奖励，不必活到黎明；每项奖励只领一次。</p>
       <div class="contract-filters" role="group" aria-label="委托类别">
-        <button id="btnContractAll" type="button" aria-controls="contractList" aria-pressed="true">全部</button>
-        <button id="btnContractMap" type="button" aria-controls="contractList" aria-pressed="false">地图</button>
-        <button id="btnContractFight" type="button" aria-controls="contractList" aria-pressed="false">战斗</button>
+        <button id="btnContractAll" class="icon-button" type="button" aria-label="全部委托" title="全部委托" aria-controls="contractList" aria-pressed="true" data-icon="growth"></button>
+        <button id="btnContractMap" class="icon-button" type="button" aria-label="地图委托" title="地图委托" aria-controls="contractList" aria-pressed="false" data-icon="mapScroll"></button>
+        <button id="btnContractFight" class="icon-button" type="button" aria-label="战斗委托" title="战斗委托" aria-controls="contractList" aria-pressed="false" data-icon="kills"></button>
         <span id="contractTally"></span>
       </div>
       <div id="contractList" class="shop-stack"></div>
       <div class="row">
         <button id="btnClearContract" type="button">不接委托</button>
-        <button id="btnContractsBack" type="button">返回</button>
+        <button id="btnContractsBack" class="icon-button" type="button" aria-label="返回主菜单" title="返回主菜单" data-icon="back"></button>
       </div>
     </div>
   </section>
 
   <section id="lan" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanTitle">
     <div class="panel lan-panel">
-      <p class="chapter">结伴巡夜</p>
+      <p class="chapter"><span data-icon="partners"></span>结伴巡夜</p>
       <h2 id="lanTitle">双人守夜</h2>
       <p id="lanStatus" class="sub" role="status"></p>
       <div id="lanModes" class="row">
-        <button id="btnLanHost" class="primary" type="button">创建邀请</button>
-        <button id="btnLanJoin" type="button">加入朋友</button>
+        <button id="btnLanHost" class="primary" type="button"><span data-icon="qrSeal"></span>创建邀请</button>
+        <button id="btnLanJoin" type="button"><span data-icon="scan"></span>加入朋友</button>
       </div>
       <figure id="lanQrOut" class="lan-qr-out hidden">
         <canvas id="lanQrCode" role="img"></canvas>
@@ -140,7 +144,7 @@
       </figure>
       <section id="lanQrIn" class="lan-qr-in hidden" aria-labelledby="lanQrScanTitle">
         <h3 id="lanQrScanTitle"></h3>
-        <div class="row"><button id="btnLanScan" type="button">打开相机</button><button id="btnLanImage" type="button">读取二维码图片</button></div>
+        <div class="row"><button id="btnLanScan" type="button"><span data-icon="scan"></span>打开相机</button><button id="btnLanImage" type="button"><span data-icon="picture"></span>读取二维码图片</button></div>
         <input id="lanQrFile" type="file" accept="image/*" hidden>
         <video id="lanQrVideo" class="hidden" playsinline muted aria-label="本机相机预览"></video>
         <p id="lanQrStatus" class="control-note" role="status"></p>
@@ -155,7 +159,7 @@
         <button id="btnLanAccept" class="primary hidden" type="button" disabled>生成应答二维码</button>
         <button id="btnLanReady" class="primary hidden" type="button" aria-pressed="false">准备</button>
         <button id="btnLanStart" class="primary hidden" type="button" disabled>开始</button>
-        <button id="btnLanBot" type="button">和机器人开局</button>
+        <button id="btnLanBot" type="button"><span data-icon="maskEcho"></span>和机器人开局</button>
         <button id="btnLanBack" type="button">返回主菜单</button>
       </div>
     </div>
@@ -163,7 +167,7 @@
 
   <section id="lanWait" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanWaitTitle">
     <div class="panel">
-      <p class="chapter">结伴巡夜</p>
+      <p class="chapter"><span data-icon="haste"></span>结伴巡夜</p>
       <h2 id="lanWaitTitle">等候队友</h2>
       <p id="lanWaitNote" class="sub" role="status"></p>
       <div class="row"><button id="btnLanLeave" type="button">退出联机</button></div>
@@ -172,7 +176,7 @@
 
   <section id="lanLeaveConfirm" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanLeaveTitle" aria-describedby="lanLeaveNote">
     <div class="panel">
-      <p class="chapter">结伴巡夜</p>
+      <p class="chapter"><span data-icon="partners"></span>结伴巡夜</p>
       <h2 id="lanLeaveTitle">退出这场联机？</h2>
       <p id="lanLeaveNote" class="sub">退出会结束双方的本局，无法重新加入。</p>
       <div class="row">
@@ -208,17 +212,20 @@
   <section id="shop" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="panel">
       <header class="shop-heading">
-        <div><p class="chapter">砺器册</p><h2 id="shopTitle">局外成长</h2></div>
+        <div><p class="chapter"><span data-icon="growth"></span>砺器册</p><h2 id="shopTitle">局外成长</h2></div>
         <div class="wallet shop-wallet">
-          <span><span data-icon="coin"></span> 金币 <b id="shopCoins">0</b></span>
-          <span><span data-icon="watchSeal"></span> 守夜印 <b id="shopSeals">0</b></span>
+          <span title="金币"><span data-icon="coin"></span><span class="sr-only">金币</span> <b id="shopCoins">0</b></span>
+          <span title="守夜印"><span data-icon="watchSeal"></span><span class="sr-only">守夜印</span> <b id="shopSeals">0</b></span>
         </div>
       </header>
-      <div class="shop-sections" role="group" aria-label="商店分类">
-        <button id="btnShopMeta" type="button" aria-pressed="true" aria-controls="shopList">永久强化</button>
-        <button id="btnShopSkills" type="button" aria-pressed="false" aria-controls="skillShopPanel">购买技能</button>
-        <button id="btnShopRoutes" type="button" aria-pressed="false" aria-controls="routeShopPanel">巡夜场景</button>
-        <button id="btnShopTraining" type="button" aria-pressed="false" aria-controls="trainingShopPanel">英雄修炼</button>
+      <div class="shop-toolbar">
+        <h3 id="shopSectionTitle">永久强化</h3>
+        <div class="shop-sections" role="group" aria-label="商店分类">
+          <button id="btnShopMeta" class="icon-button" type="button" aria-label="永久强化" title="永久强化" aria-pressed="true" aria-controls="shopList" data-icon="armor"></button>
+          <button id="btnShopSkills" class="icon-button" type="button" aria-label="购买技能" title="购买技能" aria-pressed="false" aria-controls="skillShopPanel" data-icon="wardPaper"></button>
+          <button id="btnShopRoutes" class="icon-button" type="button" aria-label="巡夜场景" title="巡夜场景" aria-pressed="false" aria-controls="routeShopPanel" data-icon="mapScroll"></button>
+          <button id="btnShopTraining" class="icon-button" type="button" aria-label="英雄修炼" title="英雄修炼" aria-pressed="false" aria-controls="trainingShopPanel" data-icon="watchSeal"></button>
+        </div>
       </div>
       <div id="shopList"></div>
       <div id="skillShopPanel" class="hidden">
@@ -244,14 +251,14 @@
         <div id="trainingList" class="shop-stack"></div>
         <p id="trainingShopStatus" class="control-note shop-status" role="status"></p>
       </div>
-      <div class="row"><button id="btnShopBack">返回</button></div>
+      <div class="row"><button id="btnShopBack" class="icon-button" type="button" aria-label="返回主菜单" title="返回主菜单" data-icon="back"></button></div>
     </div>
   </section>
 
   <!-- 升级选卡 -->
   <section id="levelup" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lvTitle">
     <div class="panel wide">
-      <p class="chapter">择符</p>
+      <p class="chapter"><span data-icon="wardPaper"></span>择符</p>
       <h2 id="lvTitle">修为精进</h2>
       <p id="lvAdvice" class="level-advice" hidden></p>
       <div id="cards" class="cards"></div>
@@ -262,7 +269,7 @@
   <!-- Boss 战前抉择 -->
   <section id="decision" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="decisionTitle" aria-describedby="decisionScene">
     <div class="panel">
-      <p class="chapter">守夜抉择</p>
+      <p class="chapter"><span data-icon="lantern"></span>守夜抉择</p>
       <h2 id="decisionTitle"></h2>
       <p class="sub" id="decisionScene"></p>
       <div id="decisionWallet" class="wallet"><span data-icon="coin"></span> 本局金币 <b id="decisionCoins">0</b></div>
@@ -274,7 +281,7 @@
   <!-- 宝箱 -->
   <section id="chest" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="chestTitle">
     <div class="panel wide">
-      <p class="chapter">启匣</p>
+      <p class="chapter"><span data-icon="coin"></span>启匣</p>
       <h2 id="chestTitle">发现宝箱</h2>
       <div class="wallet"><span data-icon="coin"></span> 金币 <b id="chestCoins">+0</b></div>
       <div id="chestCards" class="cards"></div>
@@ -285,10 +292,13 @@
   <!-- 暂停 -->
   <section id="pause" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
     <div class="panel">
-      <p class="chapter">整备</p>
+      <p class="chapter"><span data-icon="pause"></span>整备</p>
       <h2 id="pauseTitle">巡夜暂停</h2>
       <div id="pauseBuild"></div>
-      <p class="control-note">疾步（空格）：短冲闪避，冷却 6 秒。镇夜符（E）：消耗 1 张符纸清弹、减速；精英和 Boss 会掉落符纸。</p>
+      <ul class="skill-guide" aria-label="主动技能">
+        <li><img src="art/skill-dash.svg" alt="" width="36" height="36"><span><b>疾步 <kbd>空格</kbd></b><small>短冲闪避，冷却 6 秒。</small></span></li>
+        <li><img src="art/skill-ward.svg" alt="" width="36" height="36"><span><b>镇夜符 <kbd>E</kbd></b><small>消耗 1 张符纸清弹、减速。精英和 Boss 会掉落符纸。</small></span></li>
+      </ul>
       <div class="row">
         <button id="btnResume" class="primary">继续</button>
         <button id="btnAudioPause" type="button">声音设置</button>
@@ -299,29 +309,31 @@
 
   <section id="audio" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="audioTitle">
     <div class="panel">
-      <p class="chapter">调弦</p>
+      <p class="chapter"><span data-icon="sound"></span>调弦</p>
       <h2 id="audioTitle">声音设置</h2>
       <div class="mix-group">
         <div class="mix-channel">
-          <label for="volumeMusic">背景音乐</label><output id="valueMusic" for="volumeMusic">80%</output>
+          <label for="volumeMusic" title="背景音乐"><span data-icon="music"></span><span class="sr-only">背景音乐</span></label>
           <input id="volumeMusic" type="range" min="0" max="100" value="80">
+          <output id="valueMusic" for="volumeMusic">80%</output>
         </div>
         <div class="mix-channel">
-          <label for="volumeEffects">游戏音效</label><output id="valueEffects" for="volumeEffects">100%</output>
+          <label for="volumeEffects" title="游戏音效"><span data-icon="sound"></span><span class="sr-only">游戏音效</span></label>
           <input id="volumeEffects" type="range" min="0" max="100" value="100">
+          <output id="valueEffects" for="volumeEffects">100%</output>
         </div>
       </div>
       <p id="audioStatus" class="control-note" role="status"></p>
       <div class="row">
-        <button id="btnMute" type="button" aria-pressed="false">总静音</button>
-        <button id="btnCloseAudio" class="primary" type="button">返回</button>
+        <button id="btnMute" class="icon-button" type="button" aria-label="总静音" title="总静音" aria-pressed="false" data-icon="mute"></button>
+        <button id="btnCloseAudio" class="icon-button primary" type="button" aria-label="返回" title="返回" data-icon="back"></button>
       </div>
     </div>
   </section>
 
   <section id="practice" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="practiceTitle" aria-describedby="practiceNote">
     <div class="panel">
-      <p class="chapter">秘符</p>
+      <p class="chapter"><span data-icon="lock"></span>秘符</p>
       <h2 id="practiceTitle">作弊面板</h2>
       <p id="practiceNote" class="sub">使用作弊后不计战绩和奖励。仅试听不会影响本局。</p>
       <p id="practiceStatus" class="control-note" role="status">
@@ -338,10 +350,11 @@
       </div>
       <fieldset class="mix-previews">
         <legend>声音测试</legend>
-        <div class="preview-row" role="group" aria-label="鬼怪音效">
+        <div class="preview-row effects-previews" role="group" aria-label="鬼怪音效">
           <button id="btnBrideSample" type="button" data-sound-sample="sampleBride">新娘喊冤</button>
           <button id="btnCorpseSample" type="button" data-sound-sample="sampleCorpse">僵尸嘶吼</button>
           <button id="btnAudioSample" type="button" data-sound-sample="sampleArrival">纸扎童子</button>
+          <button type="button" data-sound-sample="sampleCoffin">尸王拖棺</button>
         </div>
         <div class="preview-row" role="group" aria-label="Boss 配乐">
           <button type="button" data-music-sample="nightmare">夜魇曲</button>
@@ -356,9 +369,8 @@
 
   <!-- 结算 -->
   <section id="result" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-          <button type="button" data-sound-sample="sampleCoffin">尸王拖棺</button>
     <div class="panel">
-      <p class="chapter">守夜纪事</p>
+      <p class="chapter"><span data-icon="moon"></span>守夜纪事</p>
       <h2 id="resTitle"></h2>
       <p class="sub" id="resSub"></p>
       <div id="resStats" class="stats"></div>
@@ -438,12 +450,12 @@
   <script src="js/render/enemies/draw.js"></script>
   <script src="js/render/coop-signals.js?v=emotes1"></script>
   <script src="js/render/renderer.js?v=late1"></script>
-  <script src="js/ui/icons.js?v=emotes1"></script>
+  <script src="js/ui/icons.js?v=handscroll3"></script>
   <script src="js/ui/route-training.js"></script>
-  <script src="js/ui/menu.js?v=folk2"></script>
+  <script src="js/ui/menu.js?v=handscroll2"></script>
   <script src="js/ui/battle-panels.js?v=fork1"></script>
-  <script src="js/ui/hud.js?v=skill-icons1"></script>
-  <script src="js/ui/utilities.js?v=practice-roster1"></script>
+  <script src="js/ui/hud.js?v=handscroll1"></script>
+  <script src="js/ui/utilities.js?v=handscroll2"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
   <script src="js/ui/lan.js?v=leave-confirm1"></script>
   <script src="js/ui/coop-support.js?v=emotes1"></script>

@@ -16,10 +16,15 @@ const HudUI = {
     this.set('activeDock', 'hidden', g.state !== 'playing' || g.player.hp <= 0);
     if (g.state !== 'playing' || g.player.hp <= 0) return;
     for (const [id, button, shortcut] of ACTIVE_HUD) {
-      const remaining = Math.max(0, Math.ceil((g.player.activeReady[id] ?? 0) - g.time));
+      const wait = Math.max(0, (g.player.activeReady[id] ?? 0) - g.time);
+      const remaining = Math.ceil(wait);
       const ready = g.canUseActive(g.player.slot, id);
       this.set(button, 'disabled', !ready);
       const ward = g.player.wardCharges;
+      // 只更新有限个刻度，避免每帧重绘整个技能图章。
+      const charge = id === 'ward' ? ward / ACTIVE_SKILLS.ward.capacity :
+        Math.floor(Math.max(0, 1 - wait / ACTIVE_SKILLS.dash.cooldown) * 48) / 48;
+      this.set(button, 'charge', `${charge * 100}%`);
       const label = id === 'ward' ? `${ready ? shortcut + ' · ' : ''}${ward}/${ACTIVE_SKILLS.ward.capacity}` :
         remaining > 0 ? `${remaining} 秒` : shortcut;
       this.set(button + 'State', 'text', label);
@@ -45,6 +50,7 @@ const HudUI = {
     else if (prop === 'width') el.style.width = v;
     else if (prop === 'hidden') el.classList.toggle('hidden', v);
     else if (prop === 'disabled') el.setAttribute('aria-disabled', String(v));
+    else if (prop === 'charge') el.style.setProperty('--charge', v);
   },
 
   updateHud() {
