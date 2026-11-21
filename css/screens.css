@@ -208,8 +208,10 @@
 .shop-sections button[aria-pressed="true"] { border-color: var(--vermillion); color: var(--vermillion); box-shadow: inset 0 -2px var(--vermillion); }
 #shopList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: 56vh; overflow-y: auto; padding: 2px; scrollbar-gutter: stable; }
 .shop-stack { display: grid; gap: 8px; }
-.skill-shop-stock { max-height: min(60vh, 540px); overflow-y: auto; padding: 3px; scrollbar-gutter: stable; }
-.skill-shop-stock section + section { margin-top: 16px; padding-top: 12px; border-top: 3px double var(--line); }
+.skill-shop-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; }
+.skill-shop-filters button { display: flex; align-items: center; justify-content: center; gap: 4px; padding-inline: 4px; color: var(--gold); font-size: 13px; }
+.skill-shop-filters button[aria-pressed="true"] { color: var(--pine-ink); border-color: var(--pine-ink); box-shadow: inset 0 -2px var(--pine-ink); }
+.skill-shop-stock { max-height: min(46vh, 500px); overflow-y: auto; padding: 3px; scrollbar-gutter: stable; }
 .skill-shop-stock h3 { margin: 0; color: var(--chapter-ink); font: 800 18px var(--display); }
 .skill-shop-stock .control-note { margin: 4px 0 8px; }
 .shopRow .paper-shop-icon { background: var(--surface); }
@@ -260,9 +262,10 @@
   color: var(--text); border-color: var(--skill-ink); border-radius: 50%;
 }
 #btnDash { border-color: transparent; }
-#btnWard { --skill-ink: var(--gold); --charge: 33.3333%; }
-#btnWard[data-paper-skill="lure"] { --skill-ink: var(--jade); }
+#btnWard { --skill-ink: var(--gold); --charge: 33.3333%; --paper-max: 3; }
+#btnWard:is([data-paper-skill="lure"], [data-paper-skill="lifePaper"]) { --skill-ink: var(--jade); }
 #btnWard[data-paper-skill="seal"] { --skill-ink: var(--red-light); }
+#btnWard[data-paper-skill="frostBind"] { --skill-ink: var(--text); }
 .skill-emblem { position: relative; display: grid; width: 46px; height: 46px; place-items: center; }
 .skill-emblem img { display: block; }
 #btnDash::before {
@@ -273,7 +276,10 @@
 #btnWard .skill-emblem img { align-self: start; width: 39px; height: 39px; }
 #btnWard .skill-emblem::after {
   content: ""; position: absolute; bottom: 2px; left: 9px; width: 30px; height: 3px;
-  background: repeating-linear-gradient(90deg, transparent 0 8px, var(--bg) 8px 10px), linear-gradient(90deg, var(--skill-ink) var(--charge), var(--line) 0);
+  --paper-step: calc(100% / var(--paper-max));
+  --paper-gap: calc(var(--paper-step) - 2px);
+  background: repeating-linear-gradient(90deg, transparent 0 var(--paper-gap), var(--bg) var(--paper-gap) var(--paper-step)),
+    linear-gradient(90deg, var(--skill-ink) var(--charge), var(--line) 0);
 }
 .active-dock small { font-size: 11px; font-weight: 750; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .active-dock button:hover:not([aria-disabled="true"]) { background: var(--surface-hover); }

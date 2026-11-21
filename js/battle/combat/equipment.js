@@ -369,4 +369,7 @@ const PASSIVES = {
   regen:  { name: '晨露',     max: 5, desc: '每秒回复 0.3 生命' },
   magnet: { name: '引星磁石', max: 5, desc: '拾取范围 +30%' },
   wisdom: { name: '智慧之冠', max: 5, desc: '经验获取 +8%' },
+  jossBox: { name: '朱砂匣', max: 2, unlockCost: 125, step: 1, desc: '每级符纸携带上限 +1，开局仍只有 1 张。' },
+  drumKnot: { name: '更鼓坠', max: 3, unlockCost: 155, step: 0.6, desc: '每级疾步冷却减少 0.6 秒，不影响武器冷却。' },
+  lanternKnot: { name: '归灯结', max: 3, unlockCost: 175, step: 0.04, desc: '首次点亮一盏灯时，每级额外回复 4% 最大生命。' },
 };

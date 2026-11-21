@@ -15,7 +15,7 @@ function setup(oldSave = {}) {
   Save.load();
   const game = createBattle({ save: Save });
   game.start('ella');
-  return { Save, game, WEAPONS, PASSIVES, writes: () => writes };
+  return { Save, game, WEAPONS, PASSIVES, math: vm.runInContext('Math', context), writes: () => writes };
 }
 
 const ids = ['soulCoin', 'incenseWard', 'boneMirror'];
@@ -69,6 +69,28 @@ test('旧档默认未购，畸形值不会被当成购买记录', () => {
   assert.deepEqual(Object.keys(setup().Save.data.skills), []);
   const { Save } = setup({ skills: { soulCoin: true, incenseWard: 'true', boneMirror: 1, spark: true } });
   assert.deepEqual(Object.keys(Save.data.skills), ['soulCoin']);
+});
+
+test('被动仅购买后进入单人升级与宝箱池，第 2 级优先提供，旧档兼容', () => {
+  const { Save, game: g, PASSIVES, math } = setup({ coins: 500, skills: { jossBox: 'true', drumKnot: true, lanternKnot: 1 } });
+  assert.deepEqual(Object.keys(Save.data.skills), ['drumKnot']);
+  assert.ok(!g.buildChoices(100).some(c => c.id === 'jossBox'));
+  assert.ok(Save.buySkill('jossBox'));
+  assert.equal(Save.buySkill('jossBox'), false);
+  assert.equal(Save.buySkill('vital'), false);
+  assert.equal(Save.data.coins, 500 - PASSIVES.jossBox.unlockCost);
+  Save.load();
+  g.start('ella');
+  assert.ok(g.buildChoices(100).some(c => c.kind === 'passive' && c.id === 'jossBox'));
+  g.gainXp(5); g.nextLevelUp();
+  assert.ok(g.choices.some(c => c.kind === 'passive' && ['jossBox', 'drumKnot'].includes(c.id)));
+
+  g.start('ella');
+  math.random = () => 0.99999;
+  g.openChest(false);
+  assert.ok(g.player.passives.some(p => ['jossBox', 'drumKnot'].includes(p.id)));
+  g.start('ella', 'echo');
+  assert.ok(!g.buildChoices(100).some(c => ['jossBox', 'drumKnot', 'lanternKnot'].includes(c.id)));
 });
 
 test('购买只解锁单人升级和宝箱池，开局武器与双人池不变', () => {

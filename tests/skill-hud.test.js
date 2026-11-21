@@ -39,4 +39,12 @@ test('技能图章读出实际冷却与库存，同时保留可读的数字', ()
   assert.equal(get('btnWardIcon', 'src'), 'art/skill-lure.svg');
   assert.equal(get('btnWardState', 'text'), '3秒 · 2/3');
   assert.equal(get('btnWard', 'disabled'), true);
+
+  p.st = { paperCapacity: 5, dashCooldown: 4.8, maxHp: 1 };
+  p.wardCharges = 4;
+  g.time = 10;
+  ui.updateActiveHud(g);
+  assert.equal(get('btnWard', 'paper-max'), 5);
+  assert.equal(get('btnWard', 'charge'), '80%');
+  assert.equal(get('btnWardState', 'text'), 'E · 4/5');
 });

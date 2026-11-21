@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css?v=handscroll1">
-  <link rel="stylesheet" href="css/screens.css?v=paper-shop1">
+  <link rel="stylesheet" href="css/screens.css?v=skill-stock1">
   <link rel="stylesheet" href="css/responsive.css?v=handscroll2">
 </head>
 <body>
@@ -230,13 +230,23 @@
       </div>
       <div id="shopList"></div>
       <div id="skillShopPanel" class="hidden">
+        <div class="skill-shop-filters" role="group" aria-label="技能类别">
+          <button id="btnPaperShop" type="button" aria-pressed="true" aria-controls="paperShopSection"><span data-icon="wardPaper"></span>主动</button>
+          <button id="btnPassiveShop" type="button" aria-pressed="false" aria-controls="passiveShopSection"><span data-icon="watchSeal"></span>被动</button>
+          <button id="btnAutoSkillShop" type="button" aria-pressed="false" aria-controls="autoShopSection"><span data-icon="spark"></span>自动武器</button>
+        </div>
         <div id="skillShopStock" class="skill-shop-stock">
-          <section aria-labelledby="paperSkillHeading">
+          <section id="paperShopSection" aria-labelledby="paperSkillHeading">
             <h3 id="paperSkillHeading"><span data-icon="wardPaper"></span> 主动技能</h3>
             <p class="control-note">疾步不变。单人开战前可装备一种符纸技能，按 E 或点圆钮施放，每次消耗 1 张符纸。</p>
             <div id="paperSkillList" class="shop-stack"></div>
           </section>
-          <section aria-labelledby="autoSkillHeading">
+          <section id="passiveShopSection" class="hidden" aria-labelledby="passiveSkillHeading">
+            <h3 id="passiveSkillHeading"><span data-icon="watchSeal"></span> 被动道具</h3>
+            <p class="control-note">买下后加入单人升级和宝箱池。局内选到才生效，每次选择可叠一层。</p>
+            <div id="passiveSkillList" class="shop-stack"></div>
+          </section>
+          <section id="autoShopSection" class="hidden" aria-labelledby="autoSkillHeading">
             <h3 id="autoSkillHeading"><span data-icon="spark"></span> 自动武器</h3>
             <p class="control-note">买下后加入单人升级和宝箱池，第 2 级优先出已购武器。</p>
             <div id="skillList" class="shop-stack"></div>
@@ -311,7 +321,7 @@
       <h2 id="pauseTitle">巡夜暂停</h2>
       <div id="pauseBuild"></div>
       <ul class="skill-guide" aria-label="主动技能">
-        <li><img src="art/skill-dash.svg" alt="" width="36" height="36"><span><b>疾步 <kbd>空格</kbd></b><small>短冲闪避，冷却 6 秒。</small></span></li>
+        <li><img src="art/skill-dash.svg" alt="" width="36" height="36"><span><b>疾步 <kbd>空格</kbd></b><small id="pauseDashNote">短冲闪避，冷却 6 秒。</small></span></li>
         <li><img id="pausePaperIcon" src="art/skill-ward.svg" alt="" width="36" height="36"><span><b><span id="pausePaperName">镇夜符</span> <kbd>E</kbd></b><small id="pausePaperNote">消耗 1 张符纸清弹、减速。精英和 Boss 会掉落符纸。</small></span></li>
       </ul>
       <div class="row">
@@ -414,7 +424,7 @@
   <!-- 经典脚本保留 file:// 双击运行；依赖按层排列。 -->
   <script src="js/shared/math.js"></script>
   <script src="js/battle/rules.js?v=routes1"></script>
-  <script src="js/battle/combat/equipment.js?v=evo1"></script>
+  <script src="js/battle/combat/equipment.js?v=skill-stock1"></script>
   <script src="js/battle/characters/roster.js?v=folk2"></script>
   <script src="js/battle/world/route-fork.js?v=paper-shop1"></script>
   <script src="js/battle/world/stages.js"></script>
@@ -422,32 +432,32 @@
   <script src="js/battle/enemies/catalog.js?v=stage-model1"></script>
   <script src="js/battle/combat/grid.js?v=late1"></script>
   <script src="js/battle/world/terrain.js?v=stage-model1"></script>
-  <script src="js/battle/world/interactions.js?v=stage-model1"></script>
+  <script src="js/battle/world/interactions.js?v=skill-stock1"></script>
   <script src="js/battle/combat/ai-strike.js?v=folk1"></script>
   <script src="js/battle/combat/folk-loadouts.js?v=stage-model1"></script>
   <script src="js/battle/combat/folk-synergy.js"></script>
   <script src="js/battle/combat/weapons.js?v=evo1"></script>
   <script src="js/battle/coop-bonds.js?v=links1"></script>
-  <script src="js/battle/characters/progression.js?v=bonds1"></script>
+  <script src="js/battle/characters/progression.js?v=skill-stock1"></script>
   <script src="js/battle/enemies/behavior.js?v=paper-shop1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
   <script src="js/battle/enemies/boss-decisions.js?v=stage-model1"></script>
   <script src="js/battle/enemies/bosses.js?v=stage-model1"></script>
   <script src="js/battle/combat/damage.js?v=actives2"></script>
   <script src="js/battle/combat/projectiles.js?v=paper-shop1"></script>
-  <script src="js/battle/combat/drops.js?v=paper-shop1"></script>
+  <script src="js/battle/combat/drops.js?v=skill-stock1"></script>
   <script src="js/battle/combat/effects.js"></script>
   <script src="js/battle/practice.js?v=practice-menu1"></script>
   <script src="js/battle/coop-support.js?v=emotes1"></script>
   <script src="js/battle/robot-threats.js?v=folk1"></script>
   <script src="js/battle/robot-partner.js?v=stage-model1"></script>
   <script src="js/battle/upgrade-advice.js?v=folk1"></script>
-  <script src="js/battle/combat/active-skills.js?v=paper-shop1"></script>
+  <script src="js/battle/combat/active-skills.js?v=skill-stock1"></script>
   <script src="js/battle/coop.js?v=paper-shop1"></script>
   <script src="js/battle/contracts.js?v=stage-model1"></script>
   <script src="js/battle/battle.js?v=stage-model1"></script>
 
-  <script src="js/platform/save.js?v=paper-shop1"></script>
+  <script src="js/platform/save.js?v=skill-stock1"></script>
   <script src="js/audio/horror-data.js?v=night-audio1"></script>
   <script src="js/audio/horror-samples.js?v=night-audio1"></script>
   <script src="js/audio/music.js?v=night-audio1"></script>
@@ -479,18 +489,18 @@
   <script src="js/render/enemies/draw.js"></script>
   <script src="js/render/coop-signals.js?v=emotes1"></script>
   <script src="js/render/renderer.js?v=stage-model1"></script>
-  <script src="js/ui/icons.js?v=stages1"></script>
+  <script src="js/ui/icons.js?v=skill-stock1"></script>
   <script src="js/ui/route-training.js?v=stage-model1"></script>
-  <script src="js/ui/skill-shop.js"></script>
+  <script src="js/ui/skill-shop.js?v=skill-stock1"></script>
   <script src="js/ui/menu.js?v=paper-shop1"></script>
-  <script src="js/ui/battle-panels.js?v=paper-shop1"></script>
-  <script src="js/ui/hud.js?v=paper-shop1"></script>
+  <script src="js/ui/battle-panels.js?v=skill-stock1"></script>
+  <script src="js/ui/hud.js?v=skill-stock1"></script>
   <script src="js/ui/utilities.js?v=practice-menu1"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
   <script src="js/ui/lan.js?v=stage-model1"></script>
   <script src="js/ui/coop-support.js?v=emotes1"></script>
   <script src="js/ui/contracts.js?v=stage-model1"></script>
-  <script src="js/ui/screens.js?v=practice-menu1"></script>
+  <script src="js/ui/screens.js?v=skill-stock1"></script>
   <script src="js/vendor/qrcode-generator-2.0.4.min.js"></script>
   <script src="js/vendor/jsqr-1.4.0.min.js"></script>
   <script src="js/net/lan-code.js?v=lan-qr2"></script>

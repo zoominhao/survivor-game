@@ -106,6 +106,8 @@ const BattlePanelsUI = {
     this.$('pauseTitle').textContent = Lan.guest ? '本机菜单 · 战斗仍在继续' : '巡夜暂停';
     this.$('btnQuit').textContent = Lan.guest ? '退出联机' : '放弃本局';
     this.$('pauseBuild').innerHTML = this.buildHtml();
+    const dashCd = Number(Game.activeCooldown(Game.player, 'dash').toFixed(1));
+    this.$('pauseDashNote').textContent = `短冲闪避，冷却 ${dashCd} 秒。`;
     const paper = Game.player.paperSkill ?? 'ward', skill = Game.activeSkill(Game.player, 'ward');
     this.$('pausePaperIcon').src = `art/skill-${paper}.svg`;
     this.$('pausePaperName').textContent = skill.name;

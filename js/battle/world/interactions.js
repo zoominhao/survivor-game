@@ -85,17 +85,20 @@ const WorldInteractions = {
 
   visitLight(g, prop, key, p = g.player) {
     const run = g.environment;
+    let healRate = 0;
     if (!run.lit.has(key)) {
       const light = Environment.lights[prop.kind];
       run.lit.add(key);
       g.burst(prop.x, prop.y - light.height, light.color, 6);
       g.play('lantern');
       g.contractLit(prop.kind);
+      healRate = p.st.lanternHeal ?? 0;
     }
-    if (prop.kind !== 'lantern') return;
-    const heal = Math.min(p.st.maxHp - p.hp, Math.round(p.st.maxHp * 0.12));
-    if (heal < 1 || run.healed.has(key)) return;
-    run.healed.add(key);
+    const hasStoneHeal = prop.kind === 'lantern' && !run.healed.has(key);
+    if (hasStoneHeal) healRate += 0.12;
+    const heal = Math.min(p.st.maxHp - p.hp, Math.round(p.st.maxHp * healRate));
+    if (heal < 1) return;
+    if (hasStoneHeal) run.healed.add(key);
     p.hp += heal;
     g.texts.push({ x: p.x, y: p.y - 27, s: '+' + Math.round(heal), life: 0.8, c: '#a9e8ad' });
     g.fx.push({ type: 'boom', x: prop.x, y: prop.y, r: 42, life: 0.4, max: 0.4, c: '#dbd898' });

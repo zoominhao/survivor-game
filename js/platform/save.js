@@ -20,7 +20,7 @@ const Save = {
         d.meta = Object.assign(this.defaults().meta, raw.meta || {});
         d.chars = Object.assign({ ella: true }, raw.chars || {});
         d.skills = {};
-        for (const [id, item] of Object.entries(WEAPONS)) {
+        for (const [id, item] of [...Object.entries(WEAPONS), ...Object.entries(PASSIVES)]) {
           if (item.unlockCost && raw.skills?.[id] === true) d.skills[id] = true;
         }
         d.paperSkills = Object.fromEntries(Object.keys(PAPER_SKILLS).filter(id => PAPER_SKILLS[id].cost && raw.paperSkills?.[id] === true).map(id => [id, true]));
@@ -58,7 +58,8 @@ const Save = {
     return true;
   },
   buySkill(id) {
-    const cost = typeof id === 'string' && Object.hasOwn(WEAPONS, id) ? WEAPONS[id].unlockCost : null;
+    const cost = typeof id !== 'string' ? null : Object.hasOwn(WEAPONS, id) ? WEAPONS[id].unlockCost :
+      Object.hasOwn(PASSIVES, id) ? PASSIVES[id].unlockCost : null;
     const d = this.data;
     if (!cost || !d || d.skills[id] === true || !Number.isFinite(d.coins) || d.coins < cost) return false;
     d.coins -= cost;

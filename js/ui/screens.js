@@ -39,6 +39,7 @@ const UI = {
     on('btnMenu', () => Lan.running ? Lan.leave() : this.showMenu());
     on('btnPause', () => App.pause());
     this.initUtilities(on);
+    this.initSkillShop(on);
     this.initLan(on);
     this.initSignals(on);
     this.initActives();

@@ -22,6 +22,9 @@ const BattleProgression = {
       magnet: 70 * (1 + (c.magnet || 0) + 0.15 * m.magnet + 0.3 * L('magnet')),
       growth: 1 + 0.05 * m.growth + 0.08 * L('wisdom'),
       greed: 1 + 0.1 * m.greed,
+      paperCapacity: ACTIVE_SKILLS.ward.capacity + L('jossBox') * PASSIVES.jossBox.step,
+      dashCooldown: ACTIVE_SKILLS.dash.cooldown - L('drumKnot') * PASSIVES.drumKnot.step,
+      lanternHeal: L('lanternKnot') * PASSIVES.lanternKnot.step,
     };
   },
 
@@ -69,6 +72,8 @@ const BattleProgression = {
     }
     if (p.passives.length < CFG.MAX_PASSIVES) {
       for (const id in PASSIVES) {
+        const d = PASSIVES[id];
+        if (d.unlockCost && (this.coop || this.save.data.skills?.[id] !== true)) continue;
         if (!p.passives.some(q => q.id === id)) pool.push({ kind: 'passive', id, lv: 1, wt: 2 });
       }
     }
@@ -76,14 +81,17 @@ const BattleProgression = {
     if (n > 1) {
       const reserve = match => {
         if (out.length >= n) return;
-        const choices = pool.filter(c => c.kind === 'weapon' && c.lv === 1 && match(WEAPONS[c.id]));
+        const choices = pool.filter(c => c.lv === 1 && match(c));
         if (!choices.length) return;
         const chosen = choices[U.randInt(0, choices.length - 1)];
         out.push(...pool.splice(pool.indexOf(chosen), 1));
       };
-      reserve(d => d.exclusive === p.char);
+      reserve(c => c.kind === 'weapon' && WEAPONS[c.id].exclusive === p.char);
       const pending = this.pendingFor(p);
-      if (!this.coop && pending > 0 && p.level - pending === 1) reserve(d => d.unlockCost);
+      if (!this.coop && pending > 0 && p.level - pending === 1) {
+        reserve(c => c.kind === 'weapon' && WEAPONS[c.id].unlockCost);
+        reserve(c => c.kind === 'passive' && PASSIVES[c.id].unlockCost);
+      }
     }
     // 按权重不放回抽取
     while (out.length < n && pool.length) {

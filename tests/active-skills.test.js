@@ -8,7 +8,7 @@ const { battleScript, loadGame } = require('./fixtures/load-game');
 function setup(partner) {
   const scope = vm.createContext({});
   loadGame(scope, f => battleScript(f) || f.endsWith('/save.js') || f.endsWith('/lan-state.js'));
-  const data = vm.runInContext('({ g: createBattle({ save: { data: Save.defaults() } }), ACTIVE_SKILLS, LanState })', scope);
+  const data = vm.runInContext('({ g: createBattle({ save: { data: Save.defaults() } }), ACTIVE_SKILLS, LanState, WorldInteractions })', scope);
   data.g.start('ella', partner);
   return data;
 }
@@ -106,6 +106,65 @@ test('朱砂印留在原地延时爆发，只伤圈内夜兽且不消弹', () =>
   assert.ok(near.hp < near.maxHp && p.dmgBy.seal > 0);
   assert.equal(far.hp, far.maxHp);
   assert.equal(g.ebullets.length, 1);
+});
+
+test('霜缚符冻结普通怪、减速精英，不碰弹幕或 Boss', () => {
+  const { g } = setup();
+  Object.assign(g.save.data, { paperSkills: { frostBind: true }, paperSkill: 'frostBind' });
+  g.start('ella');
+  const normal = g.spawnEnemy('spitter', 75, 0), elite = g.spawnEnemy('shade', 70, 20, true);
+  const boss = g.summonBoss('nightmare', 0, 85, 0), far = g.spawnEnemy('shade', 250, 0);
+  g.ebullets.push({ x: 30, y: 0, r: 5 });
+  assert.ok(g.useActive(0, 'ward'));
+  assert.ok(normal.frozen > 0 && elite.slow > 0);
+  assert.equal(elite.frozen, 0);
+  for (const e of [boss, far]) assert.deepEqual([e.frozen, e.slow], [0, 0]);
+  assert.equal(g.ebullets.length, 1);
+});
+
+test('续命符满血不耗纸，受伤时恢复 18% 上限，不附加无敌', () => {
+  const { g } = setup();
+  Object.assign(g.save.data, { paperSkills: { lifePaper: true }, paperSkill: 'lifePaper' });
+  g.start('ella');
+  const p = g.player;
+  assert.equal(g.useActive(0, 'ward'), false);
+  assert.equal(p.wardCharges, 1);
+  p.hp = p.st.maxHp - 32;
+  assert.ok(g.useActive(0, 'ward'));
+  assert.equal(p.hp, p.st.maxHp - 14);
+  assert.equal(p.wardCharges, 0);
+  assert.equal(p.iframe, 0);
+});
+
+test('穿魂符按走位方向射出，可以先后命中同一线上的两只怪', () => {
+  const { g } = setup();
+  Object.assign(g.save.data, { paperSkills: { ghostPierce: true }, paperSkill: 'ghostPierce' });
+  g.start('ella');
+  const near = g.spawnEnemy('brute', 0, -58), far = g.spawnEnemy('brute', 0, -118), side = g.spawnEnemy('brute', 85, -58);
+  for (const e of [near, far, side]) g.grid.insert(e);
+  assert.ok(g.useActive(0, 'ward', { x: 0, y: -1 }));
+  for (let i = 0; i < 18; i++) g.updateProjs(0.02);
+  assert.ok(near.hp < near.maxHp && far.hp < far.maxHp && g.player.dmgBy.ghostPierce > 0);
+  assert.equal(side.hp, side.maxHp);
+});
+
+test('符匣扩库存，更鼓减少疾步冷却，归灯结只在同一盏灯首次点亮时回血', () => {
+  const { g, WorldInteractions } = setup();
+  const p = g.player;
+  for (const id of ['jossBox', 'drumKnot', 'lanternKnot']) g.applyChoice({ kind: 'passive', id, lv: 1 });
+  p.wardCharges = 3;
+  const item = { x: p.x, y: p.y };
+  assert.ok(g.pickupWardPaper(item));
+  assert.equal(p.wardCharges, 4);
+  assert.equal(g.pickupWardPaper(item), false);
+  assert.ok(g.useActive(0, 'dash'));
+  assert.equal(p.activeReady.dash, 5.4);
+  p.hp = p.st.maxHp - 20;
+  const light = { kind: 'brazier', x: p.x, y: p.y };
+  WorldInteractions.visitLight(g, light, 'key', p);
+  assert.equal(p.hp, p.st.maxHp - 16);
+  WorldInteractions.visitLight(g, light, 'key', p);
+  assert.equal(p.hp, p.st.maxHp - 16);
 });
 
 test('每位守夜人独立计算冷却，倒下不能施法，局域网快照只读房主时间戳', () => {

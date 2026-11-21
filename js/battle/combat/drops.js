@@ -37,7 +37,7 @@ const BattleDrops = {
   pickupWardPaper(item) {
     // 满额的守夜人不拦截符纸，附近还有空位的队友仍然能拾取。
     const p = this.nearestPlayer(item.x, item.y, member =>
-      member.wardCharges < ACTIVE_SKILLS.ward.capacity && !(this.robot && member === this.partner) ? 24 : 0);
+      member.wardCharges < this.paperCapacity(member) && !(this.robot && member === this.partner) ? 24 : 0);
     if (!p) return false;
     p.wardCharges++;
     this.texts.push({ x: item.x, y: item.y - 15, s: '符纸 +1', life: 0.85, c: PAPER_SKILLS.ward.color });
