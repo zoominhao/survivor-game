@@ -53,8 +53,39 @@ function setup(AudioContext = AudioContextStub) {
   const save = { data: {}, count: 0, write() { this.count++; } };
   const context = vm.createContext({ window: { AudioContext }, Save: save, setTimeout() {}, atob });
   loadGame(context, file => file.startsWith('js/audio/'));
-  return { Sfx: vm.runInContext('Sfx', context), save };
+  return { ...vm.runInContext('({ Sfx, warmHorrorAudio, horrorSample })', context), save };
 }
+
+test('内置配乐跨地图续播；登场素材走音效总线并按完整长度压低配乐', async () => {
+  class SampleContext extends AudioContextStub {
+    decodes = 0;
+    async decodeAudioData(bytes) {
+      this.decodes++;
+      assert.ok(bytes.byteLength > 1000);
+      return { duration: bytes.byteLength > 100000 ? 28.8 : 3 };
+    }
+  }
+  const { Sfx, warmHorrorAudio, horrorSample } = setup(SampleContext);
+  Sfx.unlock();
+  const ctx = Sfx.ctx;
+  await warmHorrorAudio(ctx);
+  assert.equal(ctx.decodes, 3);
+  Sfx.syncMusic('playing', null, 'night');
+  const bed = Sfx.music.bed;
+  assert.equal(bed.source.loop, true);
+  assert.equal(bed.source.buffer, horrorSample(ctx, 'nightBed'));
+  Sfx.syncMusic('playing', null, 'rain');
+  assert.equal(Sfx.music.bed, bed);
+  Sfx.play('sampleArrival', 0.8, -0.5);
+  assert.equal(ctx.bufferSources.at(-1).buffer, horrorSample(ctx, 'paperChildArrival'));
+  assert.equal(ctx.panners.at(-1).pan.value, -0.5);
+  assert.equal(Sfx.arrivalUntil, 3);
+  Sfx.setVolume('music', 0);
+  assert.equal(Sfx.music.bed, null);
+  assert.ok(bed.source.endsAt > 0);
+  Sfx.play('coffinKingArrival');
+  assert.equal(ctx.bufferSources.at(-1).buffer, horrorSample(ctx, 'coffinKingArrival'));
+});
 
 test('音乐等待解锁，开场、战斗和夜魇使用对应段落', () => {
   const { Sfx } = setup();

@@ -40,6 +40,7 @@ const ARRIVAL_SOUNDS = {
 
 // 试听另记冷却，不会吞掉接下来战斗里的实际登场声。
 ARRIVAL_SOUNDS.sampleArrival = ARRIVAL_SOUNDS.paperChildArrival;
+ARRIVAL_SOUNDS.sampleCoffin = ARRIVAL_SOUNDS.coffinKingArrival;
 ARRIVAL_SOUNDS.sampleBride = [1.8, BRIDE_CALL];
 ARRIVAL_SOUNDS.sampleCorpse = [0.95, CORPSE_CALL];
 

@@ -2,10 +2,9 @@
 // 现场合成的夜巡配乐。MIDI 音符 0 表示休止；八步为一小节。
 const NIGHT_SCORE = {
   menu: {
-    bpm: 80, gain: 0.66,
-    lead: [69, 0, 71, 74, 0, 71, 69, 0, 66, 0, 64, 66, 69, 0, 64, 0,
-           62, 0, 66, 69, 0, 71, 74, 0, 76, 74, 0, 69, 66, 0, 62, 0],
-    roots: [50, 47, 43, 45], drum: [], tick: [4],
+    bpm: 67, gain: 0.66,
+    lead: [0, 0, 62, 0, 0, 0, 0, 0, 0, 0, 61, 0, 0, 0, 55, 0],
+    roots: [38, 37], drum: [], tick: [5], drone: 1.018, tone: 'sine', bend: 0.96,
   },
   battle: {
     bpm: 91, gain: 0.65, lead: [50, 0, 0, 51, 0, 0, 44, 0, 0, 50, 0, 0, 49, 0, 44, 0],
@@ -57,6 +56,11 @@ const NIGHT_SCORE = {
 
 const BOSS_SCORES = new Set(['nightmare', 'coffinKing', 'bridalQueen']);
 const LANDSCAPE_SCORES = new Set(['night', 'rain', 'snow']);
+// 同一条底床跨场景接续播放，场景和 Boss 的合成主题仍然独立。
+const HORROR_BED_LEVEL = {
+  menu: 0.52, battle: 1.1, night: 1.1, rain: 0.76, snow: 0.76,
+  paper: 0.75, corpses: 0.75, bride: 0.65, boss: 0.58, nightmare: 0.65, coffinKing: 0.64, bridalQueen: 0.56,
+};
 // [曲目, 保持秒数, 优先级]：重要登场压过普通近身叫声，不按每只怪物所在帧切曲。
 const MUSIC_OMENS = {
   paperChildArrival: ['paper', 7, 2], corpseAmbush: ['corpses', 8, 2], corpseSnarl: ['corpses', 6.5, 1],
@@ -74,6 +78,11 @@ class NightMusic {
   }
 
   stop(fade = 0.035) {
+    this.stopScore(fade);
+    this.syncBed(null);
+  }
+
+  stopScore(fade) {
     if (!this.track) return;
     const bus = this.bus, now = this.ctx.currentTime;
     bus.gain.cancelScheduledValues(now);
@@ -86,8 +95,9 @@ class NightMusic {
 
   sync(track, mix = 1) {
     const now = this.ctx.currentTime;
+    const hasBed = this.syncBed(track, mix);
     if (track !== this.track) {
-      this.stop(track ? 0.13 : 0.035);
+      this.stopScore(track ? 0.13 : 0.035);
       if (!track) return;
       this.track = track;
       this.bus = this.ctx.createGain();
@@ -99,7 +109,7 @@ class NightMusic {
     }
     if (!track) return;
     const score = NIGHT_SCORE[track];
-    const volume = score.gain * mix;
+    const volume = score.gain * mix * (hasBed && (track === 'battle' || track === 'night') ? 0.49 : 1);
     if (volume !== this.volume) {
       const fade = this.volume >= 0 && volume < this.volume ? 0.033 : 0.15;
       this.volume = volume;
@@ -114,6 +124,39 @@ class NightMusic {
       this.step = (this.step + 1) % score.lead.length;
       this.next += interval;
     }
+  }
+
+  syncBed(track, mix = 1) {
+    const now = this.ctx.currentTime;
+    let bed = this.bed;
+    const level = (HORROR_BED_LEVEL[track] ?? 0) * mix;
+    if (!level) {
+      if (!bed) return false;
+      bed.bus.gain.cancelScheduledValues(now);
+      bed.bus.gain.setTargetAtTime(0, now, 0.035);
+      bed.source.stop(now + 0.21);
+      this.bed = null;
+      return false;
+    }
+    if (!bed) {
+      const buffer = horrorSample(this.ctx, 'nightBed');
+      if (!buffer) return false;
+      const source = this.ctx.createBufferSource(), bus = this.ctx.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      bus.gain.value = 0;
+      source.connect(bus);
+      bus.connect(this.output);
+      source.onended = () => { source.disconnect(); bus.disconnect(); };
+      source.start(now);
+      bed = this.bed = { source, bus, level: -1 };
+    }
+    if (level !== bed.level) {
+      bed.level = level;
+      bed.bus.gain.cancelScheduledValues(now);
+      bed.bus.gain.setTargetAtTime(level, now, 0.19);
+    }
+    return true;
   }
 
   playStep(score, interval) {

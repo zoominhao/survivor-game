@@ -1,5 +1,5 @@
 'use strict';
-// ===== Web Audio 混音与程序音效，不依赖音频文件 =====
+// ===== Web Audio 混音、内置素材与程序音效 =====
 
 // 每层为 [波形, 起始频率, 结束频率, 时长, 音量, 延迟, 可选低通]。
 const SOUNDS = {
@@ -140,6 +140,7 @@ const Sfx = {
         this.effectsGain = this.makeGain(this.master, this.levels.effects / 100);
         this.routineGain = this.makeGain(this.effectsGain, 1);
         this.music = new NightMusic(this.ctx, this.musicDuck);
+        warmHorrorAudio(this.ctx);
       } catch (e) { this.ctx = null; return; }
     }
     this.resumeAudio();
@@ -182,7 +183,9 @@ const Sfx = {
     if (now - (this.last[name] ?? -Infinity) < cue[0]) return;
     this.last[name] = now;
     if (arrival) {
-      this.focusArrival(now, now + playArrival(this.ctx, this.effectsGain, now, cue, gain, pan));
+      const length = playHorrorArrival(this.ctx, this.effectsGain, now, name, gain, pan) ||
+        playArrival(this.ctx, this.effectsGain, now, cue, gain, pan);
+      this.focusArrival(now, now + length);
       return;
     }
     for (let i = 1; i < cue.length; i++) {
