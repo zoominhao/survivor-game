@@ -15,7 +15,6 @@ const Lan = {
     this.char = Save.data.lastChar;
     this.phase = 'pick';
     this.status = message || `已选 ${CHARS[this.char].name}。同一 Wi-Fi 的好友可扫码加入；没人时可由机器人补位。`;
-    UI.$('lanIn').value = '';
     UI.show('lan');
     UI.refreshLan();
   },
@@ -23,20 +22,20 @@ const Lan = {
   openHashInvite() {
     const code = lanInviteFromHash(location.hash);
     if (!code) return;
-    // 链接只填表，不自动连接；刷新时不反复消费同一份邀请。
+    // 扫码打开链接后仍由来客确认应答；刷新时不反复消费同一份邀请。
     try { history.replaceState(history.state, '', location.pathname + location.search); } catch { /* 本地文件可能不允许改历史记录。 */ }
     this.open();
     this.select('guest');
     if (this.phase === 'offer-in') {
-      UI.$('lanIn').value = code;
-      this.statusText('邀请已填好，点击「生成应答二维码」。');
+      this.inviteCode = code;
+      this.statusText('已收到邀请，点击「生成应答二维码」。');
       UI.$('btnLanAccept').focus();
     }
   },
 
   close() {
     UI.stopLanScan();
-    UI.$('lanManual').open = false;
+    this.inviteCode = null;
     const link = this.link;
     this.link = null;
     link?.close();
@@ -82,7 +81,7 @@ const Lan = {
     if (role === 'host') this.makeLink();
     else {
       this.phase = 'offer-in';
-      this.statusText('扫描房主的邀请二维码，或粘贴房主发来的邀请。');
+      this.statusText('扫描房主的邀请二维码，或读取二维码图片。');
       (UI.$('btnLanScan').disabled ? UI.$('btnLanImage') : UI.$('btnLanScan')).focus();
     }
   },
@@ -121,13 +120,14 @@ const Lan = {
       const code = await link.localCode('offer', true);
       if (this.link !== link || this.phase !== 'answer-in') return;
       this.out = code;
-      this.statusText('已切换兼容码，请让好友重新扫描或复制。');
+      this.statusText('已切换为兼容二维码，请让好友重新扫描。');
     } catch (e) {
       if (this.link === link) this.statusText(e.message);
     }
   },
 
   async accept(code) {
+    if (!code) return;
     if (this.phase === 'offer-in') { await this.makeLink(code); return; }
     if (this.phase !== 'answer-in') return;
     const link = this.link;
@@ -139,7 +139,7 @@ const Lan = {
       if (link !== this.link) return;
       this.fallbackAt = deadline;
       this.phase = 'answer-in';
-      this.statusText(e instanceof DOMException ? '这不是当前邀请的应答码，请重新扫描或复制。' : e.message);
+      this.statusText(e instanceof DOMException ? '这不是当前邀请的应答，请重新扫描应答二维码。' : e.message);
     }
   },
 

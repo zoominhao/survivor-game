@@ -27,10 +27,10 @@ function lanSdp(type, sdp) {
 }
 
 function lanWrongCode(type) {
-  return new Error(type === 'offer' ? '请粘贴房主的邀请码。' : '请粘贴队友生成的应答码。');
+  return new Error(type === 'offer' ? '请扫描房主的邀请二维码。' : '请扫描队友的应答二维码。');
 }
 
-// 兼容旧长码和没有压缩 API 的浏览器。
+// 兼容旧编码和没有压缩 API 的浏览器。
 function lanDescription(code, type) {
   const text = code.trim();
   if (text.length > LAN_CODE_LIMIT || !LEGACY_LAN_CODE.test(text)) throw new Error('连接码不完整或版本不同。');
@@ -48,7 +48,7 @@ function lanInviteFromHash(hash) {
   } catch { return null; }
 }
 
-// 连接码只作本地读取，从来不向被粘贴的链接发请求。
+// 连接数据只在本地读取，不会向二维码里的网址发请求。
 function normalizeLanCode(input) {
   if (typeof input !== 'string' || input.length > LAN_CODE_LIMIT) throw new Error('连接码太长或不完整。');
   const text = input.trim();
@@ -93,7 +93,7 @@ async function decodeLanCode(input, type) {
   const text = normalizeLanCode(input), packed = SHORT_LAN_CODE.exec(text);
   if (!packed) return lanDescription(text, type);
   if (packed[1] !== (type === 'offer' ? 'I' : 'A')) throw lanWrongCode(type);
-  if (typeof DecompressionStream !== 'function') throw new Error('浏览器不支持压缩码，请让房主使用兼容码或更新浏览器。');
+  if (typeof DecompressionStream !== 'function') throw new Error('浏览器不支持压缩，请让房主改用兼容二维码或更新浏览器。');
   let sdp;
   try {
     const bytes = Uint8Array.from(atob(packed[2].replaceAll('-', '+').replaceAll('_', '/')), c => c.charCodeAt(0));

@@ -54,7 +54,7 @@ test('压缩码保留原连接参数，区分邀请和应答，聊天链接可�
   assert.equal((await decodeLanCode(`https://game.invalid/survivor/#invite=${encodeURIComponent(invite)}`, 'offer')).sdp, sdp);
   assert.equal((await decodeLanCode(`${answer.slice(0, 12)}\n ${answer.slice(12)}`, 'answer')).sdp, sdp);
   assert.equal(lanInviteFromHash('#invite=' + answer), null);
-  await assert.rejects(decodeLanCode(invite, 'answer'), /应答码/);
+  await assert.rejects(decodeLanCode(invite, 'answer'), /应答二维码/);
   const oversized = 'I2-' + deflateSync('v=0\r\n'.repeat(5000)).toString('base64url');
   await assert.rejects(decodeLanCode(oversized, 'offer'), /损坏或不完整/);
 });
@@ -186,7 +186,7 @@ test('连接码限本地候选，非法角色、选项、信令不进入战斗',
   const sdp = `v=0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n${candidate}\r\n`;
   const offer = 'NW1-' + btoa(JSON.stringify({ type: 'offer', sdp }));
   assert.equal(lanDescription(offer, 'offer').sdp, sdp);
-  assert.throws(() => lanDescription(offer, 'answer'), /应答码/);
+  assert.throws(() => lanDescription(offer, 'answer'), /应答二维码/);
   assert.throws(() => lanDescription('0'.repeat(24001), 'offer'), /不完整/);
   assert.equal(LanState.choices([{ kind: 'weapon', id: 'constructor', lv: 1 }, { kind: 'weapon', id: 'mouse', lv: 999 }]).length, 0);
   const malformed = LanState.packFrame(game);

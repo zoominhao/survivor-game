@@ -30,7 +30,7 @@ const LanQrUI = {
     const drawn = LanQr.paint(canvas, payload);
     canvas.classList.toggle('hidden', !drawn);
     canvas.setAttribute('aria-label', host ? '邀请二维码' : '应答二维码');
-    this.$('lanQrCaption').textContent = !drawn ? '连接码太长，请展开下方的备用长码。' : !host ?
+    this.$('lanQrCaption').textContent = !drawn ? '连接信息超出二维码容量。请关闭不用的网络连接后重新创建邀请。' : !host ?
       '② 请房主在原页面扫描这个应答二维码。' : /^https?:$/.test(location.protocol) ?
         '① 好友用手机相机扫码打开邀请，或在游戏里扫描。' : '① 好友在游戏里扫描这个邀请二维码。';
   },
@@ -77,7 +77,7 @@ const LanQrUI = {
     } catch {
       if (session !== this.qrEpoch) return;
       this.stopLanScan();
-      this.$('lanQrStatus').textContent = '无法打开相机，可改用二维码图片或备用长码。';
+      this.$('lanQrStatus').textContent = '无法打开相机，可以改用「读取二维码图片」。';
     }
   },
 
@@ -103,7 +103,6 @@ const LanQrUI = {
     const code = type && LanQr.scanned(text, type);
     if (!code) return false;
     this.stopLanScan();
-    this.$('lanIn').value = code;
     Lan.accept(code);
     return true;
   },
