@@ -190,7 +190,7 @@
 }
 .contract-summary { margin-top: 8px; padding: 5px 8px; border-inline-start: 2px solid var(--vermillion); }
 .lan-hud {
-  position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 52px);
+  position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 64px);
   display: grid; gap: 4px; justify-items: start; max-width: min(45vw, 280px);
 }
 .lan-hud > span {
@@ -204,10 +204,17 @@
 }
 .battle-actions, .active-dock { display: flex; align-items: end; gap: 4px; }
 .battle-dock button { pointer-events: auto; min-width: 66px; padding-inline: 8px; color: var(--text); background: var(--bg); font-size: 13px; }
-.active-dock button { display: grid; align-content: center; gap: 1px; min-width: 74px; min-height: 44px; line-height: 1.2; border-color: var(--jade); }
-.active-dock button:nth-child(2) { border-color: var(--gold); }
-.active-dock small { color: var(--jade); font-size: 11px; font-variant-numeric: tabular-nums; }
-.active-dock button[aria-disabled="true"] { border-color: var(--line); color: var(--dim); cursor: default; }
+.active-dock button {
+  --skill-ink: var(--jade);
+  display: grid; place-content: center; justify-items: center; gap: 4px;
+  width: 56px; height: 56px; min-width: 0; padding: 0; line-height: 1;
+  color: var(--skill-ink); border-color: var(--skill-ink);
+}
+#btnWard { --skill-ink: var(--gold); }
+.active-dock .sigil { display: block; width: 24px; height: 24px; }
+.active-dock small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.active-dock button[aria-disabled="true"] { border-color: var(--line); background: var(--bg); color: var(--dim); cursor: default; }
+.active-dock button[aria-disabled="true"] .sigil { opacity: .55; }
 .signal-dock { display: grid; justify-items: end; }
 .signal-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
 #btnSignal kbd { color: var(--gold); }

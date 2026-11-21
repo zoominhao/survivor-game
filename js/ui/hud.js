@@ -20,8 +20,8 @@ const HudUI = {
       const ready = g.canUseActive(g.player.slot, id);
       this.set(button, 'disabled', !ready);
       const ward = g.player.wardCharges;
-      const label = id === 'ward' ? `${ward === 0 ? '缺符' : ready ? shortcut : '回气'} · ${ward}/${ACTIVE_SKILLS.ward.capacity}` :
-        remaining > 0 ? `冷却 ${remaining} 秒` : shortcut;
+      const label = id === 'ward' ? `${ready ? shortcut + ' · ' : ''}${ward}/${ACTIVE_SKILLS.ward.capacity}` :
+        remaining > 0 ? `${remaining} 秒` : shortcut;
       this.set(button + 'State', 'text', label);
     }
   },
