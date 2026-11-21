@@ -6,15 +6,16 @@ const ZhuFigure = (() => {
   const lens = { x: 16.6, y: -17.2, radius: 6.4 };
   const paths = {
     face: new Path2D('M-19 -14 Q-15 -25 1 -24 Q16 -24 20 -12 L19 7 Q17 17 8 23 Q2 28 -5 24 Q-15 21 -19 12 Q-22 1 -19 -14 Z'),
-    hair: new Path2D('M-20 0 Q-25 -8 -21 -18 Q-21 -27 -11 -32 Q-6 -36 1 -38 Q15 -37 20 -28 Q26 -22 23 -8 L21 1 L18 -1 L17 -12 Q14 -21 9 -22 Q4 -24 -2 -22 Q-11 -20 -16 -13 L-18 0 Z'),
-    hairShine: new Path2D('M-19 -16 Q-16 -28 -5 -31 M-10 -28 Q-1 -35 10 -31 Q16 -29 18 -25 M2 -27 Q10 -29 14 -24'),
-    brows: new Path2D('M-15 -5 Q-11 -7 -5 -4.6 M5 -4.9 Q11 -7.2 16 -5.5'),
+    hair: new Path2D('M-20.3 -6 L-22 -13 Q-21 -20 -17 -25 Q-12 -29.5 -5 -30 L4 -30 Q15 -29.5 20 -24 Q23 -20 22 -14 L21 -6 L18 -7 L16.8 -14 L14 -19 Q8 -22 0 -22 Q-9 -22 -15 -17 L-17.8 -12 L-18.8 -6 Z'),
+    templeFade: new Path2D('M-20.4 -6 L-21.3 -13 Q-20 -17 -17 -20 L-16.4 -16 L-18.1 -11 L-18.8 -6 Z M17.1 -15 L18.6 -19 L21.5 -17 L21 -6 L18.8 -7 Z'),
+    hairShine: new Path2D('M-16 -23 l4 -2 M-12 -26 l5 -1.7 M-6 -27 l5 -1 M0 -27.4 l4.8 0 M5 -27.2 l4.8 1 M10 -25.8 l4.4 1.6 M-15 -21 l4.1 -1.7 M-8 -24 l4.6 -1'),
+    brows: new Path2D('M-15 -4.8 Q-11.5 -7.3 -5.4 -4.8 M5.3 -5 Q11 -7.6 16 -5.9'),
     lids: new Path2D('M-14 2.4 Q-10 -0.6 -6 1.9 M6 2.2 Q11 -0.7 15 1.7'),
     noseMouth: new Path2D('M3.1 5.1 Q1.6 8.8 4.4 9.7 L6.2 9.1 M-5.5 15.5 Q1 16.5 8 14.3'),
     shadow: new Path2D('M20 -4 Q15 0 15 10 Q13 18 7 23 Q15 20 18 10 Z'),
-    crownWebbing: new Path2D('M-13 -32 Q-10 -36 -6 -37 Q4 -34 10 -26 L13 -19 L6 -17 Q5 -27 -13 -32 Z'),
+    crownWebbing: new Path2D('M-8.3 -29.9 Q-4.5 -31.5 0.5 -30.4 Q9.4 -28.4 12.7 -22 L14 -18.5 L8.1 -17.5 Q6.5 -25 -8.3 -29.9 Z'),
     browWebbing: new Path2D('M-23 -12 Q-13 -19 5 -17 Q14 -18 22 -15 L23 -9 Q10 -12 0 -11 Q-13 -11 -22 -6 Z'),
-    strapStitch: new Path2D('M-12 -32 Q-1 -34 8 -23 M-21 -11 Q-12 -16 5 -15 Q14 -16 21 -13 M-21 -8 Q-12 -13 2 -12'),
+    strapStitch: new Path2D('M-6.3 -29.7 Q4 -29.9 10.9 -21 M-21 -11 Q-12 -16 5 -15 Q14 -16 21 -13 M-21 -8 Q-12 -13 2 -12'),
     lampBracket: new Path2D('M5 -17 L23 -16 L25 -11 L23 -8 L7 -9 L3 -12 Z'),
     lampCase: new Path2D('M8 -24 L22 -24 L27 -20 L27 -15 L23 -11 L8 -11 L5 -14 L5 -21 Z'),
     caseBevel: new Path2D('M7 -21 L9 -23 L22 -23 L25 -20 M7 -13 L10 -12 L22 -12'),
@@ -67,8 +68,9 @@ const ZhuFigure = (() => {
     light.addColorStop(0, '#efc49a'); light.addColorStop(0.57, '#d6a480'); light.addColorStop(1, '#b77f60');
     spot(ctx, -19, 3, 3.1, 6.5, '#ba805f'); spot(ctx, 20, 3, 2.9, 6.2, skin);
     fill(ctx, paths.face, light, '#946247'); fill(ctx, paths.hair, '#17191f', '#10151b');
+    fill(ctx, paths.templeFade, '#404146');
     fill(ctx, paths.shadow, '#aa71544d');
-    ctx.strokeStyle = '#3a414b'; ctx.lineWidth = 1.15; ctx.stroke(paths.hairShine);
+    ctx.strokeStyle = '#59616a'; ctx.lineWidth = 0.9; ctx.stroke(paths.hairShine);
     ctx.strokeStyle = '#664c3d'; ctx.lineWidth = 1.4; ctx.stroke(paths.brows);
     for (const side of [-1, 1]) {
       const ex = side * 10;
