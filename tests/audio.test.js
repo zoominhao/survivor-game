@@ -207,7 +207,7 @@ test('民俗音效能合成多层声音，落地声声道偏移且限制连发',
 test('登场声立即压低配乐和常规音效，尾声结束后回升，不重启曲目', () => {
   const { Sfx } = setup();
   Sfx.unlock();
-  for (const [name, isBoss] of [['paperChildArrival', false], ['boss', true]]) {
+  for (const [name, isBoss] of [['sampleArrival', false], ['boss', true]]) {
     Sfx.syncMusic('playing', isBoss);
     const bus = Sfx.music.bus, full = Sfx.music.volume, count = Sfx.ctx.starts.length;
     const now = Sfx.ctx.currentTime;
@@ -225,6 +225,52 @@ test('登场声立即压低配乐和常规音效，尾声结束后回升，不�
     assert.equal(Sfx.music.volume, full);
     Sfx.ctx.currentTime = Sfx.arrivalUntil + 0.05;
   }
+});
+
+test('鬼怪换曲与音效音量独立，切曲后不逐帧重启，Boss 主题优先', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.syncMusic('playing', null, 'rain');
+  assert.equal(Sfx.music.track, 'rain');
+  const base = Sfx.music.bus;
+  Sfx.setVolume('effects', 0);
+  const before = Sfx.ctx.starts.length;
+  Sfx.play('brideArrival');
+  assert.equal(Sfx.ctx.starts.length, before);
+  Sfx.syncMusic('playing', null, 'rain');
+  assert.equal(Sfx.music.track, 'bride');
+  assert.deepEqual(base.gain.events.at(-1), [0, 0]);
+  const omen = Sfx.music.bus;
+  Sfx.ctx.currentTime = 0.4;
+  Sfx.play('corpseSnarl'); // 次要近身声不能立刻抢掉特殊登场。
+  Sfx.syncMusic('playing', null, 'rain');
+  assert.equal(Sfx.music.bus, omen);
+  for (const boss of ['nightmare', 'coffinKing', 'bridalQueen']) {
+    Sfx.syncMusic('playing', boss, 'rain');
+    assert.equal(Sfx.music.track, boss);
+  }
+  Sfx.ctx.currentTime = 12;
+  Sfx.syncMusic('playing', null, 'snow');
+  assert.equal(Sfx.music.track, 'snow');
+});
+
+test('作弊面板的配乐试听会到期或随返回停止，试听鬼叫不触发实战换曲', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.play('sampleBride');
+  Sfx.syncMusic('playing', null, 'night');
+  assert.equal(Sfx.music.track, 'night');
+  assert.equal(Sfx.previewTrack('invalid'), false);
+  assert.ok(Sfx.previewTrack('coffinKing'));
+  Sfx.syncMusic('practice');
+  assert.equal(Sfx.music.track, 'coffinKing');
+  Sfx.syncMusic('playing', null, 'night');
+  assert.equal(Sfx.music.track, 'night');
+  assert.ok(Sfx.previewTrack('nightmare'));
+  Sfx.syncMusic('practice');
+  Sfx.ctx.currentTime = 8.01;
+  Sfx.syncMusic('practice');
+  assert.equal(Sfx.music.track, null);
 });
 
 test('试听与鬼怪共用噪声素材，重叠登场不会让混音提早回升', () => {

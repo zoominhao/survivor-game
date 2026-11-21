@@ -1,5 +1,5 @@
 'use strict';
-// 原创五声旋律。每个数字是一枚 MIDI 音符，0 是休止；八步为一小节。
+// 现场合成的夜巡配乐。MIDI 音符 0 表示休止；八步为一小节。
 const NIGHT_SCORE = {
   menu: {
     bpm: 80, gain: 0.66,
@@ -8,10 +8,32 @@ const NIGHT_SCORE = {
     roots: [50, 47, 43, 45], drum: [], tick: [4],
   },
   battle: {
-    bpm: 110, gain: 0.67,
-    lead: [62, 65, 67, 0, 69, 67, 65, 0, 60, 62, 65, 67, 0, 69, 72, 0,
-           74, 0, 72, 69, 67, 65, 67, 0, 69, 72, 69, 67, 65, 0, 62, 0],
-    roots: [38, 36, 43, 45], drum: [0, 4], tick: [2, 6, 7],
+    bpm: 91, gain: 0.65, lead: [50, 0, 0, 51, 0, 0, 44, 0, 0, 50, 0, 0, 49, 0, 44, 0],
+    roots: [38, 37], drum: [0, 4], tick: [1, 6], drone: 1.013, bend: 0.987,
+  },
+  night: {
+    bpm: 78, gain: 0.66, lead: [55, 0, 0, 0, 54, 0, 61, 0, 0, 0, 55, 51, 0, 0, 0, 0],
+    roots: [31, 37], drum: [0, 6], tick: [2, 5], drone: 1.414, tone: 'sine', bend: 0.976,
+  },
+  rain: {
+    bpm: 75, gain: 0.66, lead: [66, 0, 0, 65, 0, 0, 59, 0, 61, 0, 0, 60, 0, 0, 54, 0],
+    roots: [42, 41], drum: [0], tick: [3, 6], drone: 1.02, tone: 'sine', bend: 0.949,
+  },
+  snow: {
+    bpm: 70, gain: 0.67, lead: [45, 0, 0, 0, 46, 0, 0, 0, 51, 0, 0, 0, 45, 0, 0, 0],
+    roots: [33, 34], drum: [0, 1, 5], tick: [6], drone: 1.011, bend: 0.975, pulse: 94,
+  },
+  paper: {
+    bpm: 108, gain: 0.67, lead: [71, 0, 70, 0, 65, 0, 0, 69, 0, 0, 72, 0, 66, 0, 70, 0],
+    roots: [35, 34], drum: [1, 4], tick: [0, 3, 7], drone: 1.414, bend: 0.94,
+  },
+  corpses: {
+    bpm: 100, gain: 0.67, lead: [48, 0, 0, 0, 49, 0, 43, 0, 49, 0, 0, 0, 48, 0, 43, 0],
+    roots: [36, 37], drum: [0, 2, 5, 7], tick: [4], drone: 1.02, bend: 0.92, pulse: 104,
+  },
+  bride: {
+    bpm: 80, gain: 0.69, lead: [74, 0, 73, 0, 0, 67, 0, 0, 68, 0, 67, 0, 62, 0, 0, 0],
+    roots: [38, 37], drum: [0, 5], tick: [7], drone: 1.42, tone: 'sine', bend: 0.947,
   },
   boss: {
     bpm: 136, gain: 0.72,
@@ -19,6 +41,27 @@ const NIGHT_SCORE = {
            62, 65, 69, 72, 74, 72, 69, 0, 67, 69, 65, 62, 60, 62, 65, 0],
     roots: [38, 36, 38, 33], drum: [0, 3, 4, 6], tick: [2, 5, 7],
   },
+  nightmare: {
+    bpm: 144, gain: 0.73, lead: [50, 51, 0, 44, 50, 0, 49, 0, 50, 0, 56, 0, 44, 45, 0, 49],
+    roots: [38, 32], drum: [0, 2, 3, 5, 7], tick: [1, 6], drone: 1.414, bend: 0.924, pulse: 138,
+  },
+  coffinKing: {
+    bpm: 102, gain: 0.72, lead: [48, 0, 0, 54, 49, 0, 0, 47, 48, 0, 0, 42, 49, 0, 42, 0],
+    roots: [36, 37], drum: [0, 1, 4, 6], tick: [2, 7], drone: 1.014, bend: 0.935, pulse: 102,
+  },
+  bridalQueen: {
+    bpm: 118, gain: 0.71, lead: [77, 0, 76, 70, 0, 76, 0, 69, 75, 0, 74, 0, 69, 0, 68, 0],
+    roots: [41, 40], drum: [0, 4, 7], tick: [2, 5], drone: 1.414, tone: 'sine', bend: 0.96, pulse: 119,
+  },
+};
+
+const BOSS_SCORES = new Set(['nightmare', 'coffinKing', 'bridalQueen']);
+const LANDSCAPE_SCORES = new Set(['night', 'rain', 'snow']);
+// [曲目, 保持秒数, 优先级]：重要登场压过普通近身叫声，不按每只怪物所在帧切曲。
+const MUSIC_OMENS = {
+  paperChildArrival: ['paper', 7, 2], corpseAmbush: ['corpses', 8, 2], corpseSnarl: ['corpses', 6.5, 1],
+  brideArrival: ['bride', 11, 3], brideAccuse: ['bride', 10.8, 1], umbrellaOpen: ['rain', 7, 2],
+  envoyCall: ['snow', 7, 2], siegeArrival: ['corpses', 7, 2],
 };
 
 const noteHz = note => 440 * 2 ** ((note - 69) / 12);
@@ -30,13 +73,13 @@ class NightMusic {
     this.track = null;
   }
 
-  stop() {
+  stop(fade = 0.035) {
     if (!this.track) return;
     const bus = this.bus, now = this.ctx.currentTime;
     bus.gain.cancelScheduledValues(now);
-    bus.gain.setTargetAtTime(0, now, 0.035);
+    bus.gain.setTargetAtTime(0, now, fade);
     // 淡出这一路已排程的音符，新场景使用独立线路。
-    setTimeout(() => bus.disconnect(), 210);
+    setTimeout(() => bus.disconnect(), Math.ceil(fade * 6000));
     this.track = null;
     this.bus = null;
   }
@@ -44,7 +87,7 @@ class NightMusic {
   sync(track, mix = 1) {
     const now = this.ctx.currentTime;
     if (track !== this.track) {
-      this.stop();
+      this.stop(track ? 0.13 : 0.035);
       if (!track) return;
       this.track = track;
       this.bus = this.ctx.createGain();
@@ -75,19 +118,21 @@ class NightMusic {
 
   playStep(score, interval) {
     const withinBar = this.step % 8;
-    const root = score.roots[Math.floor(this.step / 8)];
+    const root = score.roots[Math.floor(this.step / 8) % score.roots.length];
     const note = score.lead[this.step];
-    const play = (wave, from, to, dur, vol, cutoff) => audioTone(this.ctx, this.bus, this.next, wave, from, to, dur, vol, cutoff);
+    const play = (wave, from, to, dur, vol, cutoff, attack) => audioTone(this.ctx, this.bus, this.next, wave, from, to, dur, vol, cutoff, 0, attack);
     if (note) {
       const f = noteHz(note);
-      play('triangle', f, f * 0.998, interval * 1.9, 0.14, 2300);
-      play('sine', f * 2.014, f * 2, interval * 0.72, 0.035);
+      const bend = score.bend ?? 0.998;
+      play(score.tone || 'triangle', f, f * bend, interval * 2.25, 0.14, score.drone ? 1450 : 2300);
+      play('sine', f * 2.014, f * (score.drone ? 1.994 : 2), interval * 0.86, 0.035);
     }
     if (withinBar === 0 || withinBar === 4) {
       const f = noteHz(withinBar === 0 ? root : root + 7);
-      play('sine', f, f, interval * 4, withinBar === 0 ? 0.14 : 0.08);
+      play(score.drone ? 'triangle' : 'sine', f, f, interval * 4, withinBar === 0 ? 0.14 : 0.08, 720);
+      if (score.drone && withinBar === 0) play('triangle', f * score.drone, f * score.drone * 0.994, interval * 8, 0.105, 830, 0.19);
     }
-    if (score.drum.includes(withinBar)) play('sine', 113, 43, 0.19, 0.19);
+    if (score.drum.includes(withinBar)) play('sine', score.pulse || 113, 43, 0.19, 0.19);
     if (score.tick.includes(withinBar)) play('triangle', 510, 231, 0.063, 0.044, 1600);
   }
 }

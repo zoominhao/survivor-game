@@ -30,6 +30,7 @@ const App = {
     Render.init((hw, hh) => { Game.view.hw = hw; Game.view.hh = hh; });
     Input.init();
     UI.init();
+    Lan.openHashInvite();
     // 切到后台时自动暂停
     document.addEventListener('visibilitychange', () => {
       Sfx.setHidden(document.hidden);
@@ -199,8 +200,9 @@ const App = {
       Game.update(dt, Input);
     }
     const boss = Game.boss;
-    const bossActive = !!boss && !boss.dead;
-    Sfx.syncMusic(Game.state === 'audio' ? 'playing' : Game.state, bossActive);
+    const landscape = Game.player && Game.state !== 'menu' ? Environment.landscape(Environment.forBattle(Game)) : null;
+    const bossTheme = boss && !boss.dead ? boss.kind ?? 'boss' : null;
+    Sfx.syncMusic(Game.state === 'audio' ? 'playing' : Game.state, bossTheme, landscape);
     Render.draw(dt, Game);
     UI.updateHud();
     requestAnimationFrame(t => this.frame(t));

@@ -58,7 +58,6 @@
   .char-notice { margin: 2px 0; }
   .roster-actions { gap: 6px; }
   .roster-actions button { padding-inline: 8px; }
-  .roster-actions .primary { font-size: 16px; letter-spacing: .04em; }
   #shopList, .build { grid-template-columns: minmax(0, 1fr); }
   /* 手机端让每张卡片由内容撑高，不用桌面横排的零基准 flex 尺寸。 */
   .cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
@@ -76,8 +75,8 @@
 }
 
 @media (max-width: 380px) {
-  .roster-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
-  .roster-actions .primary { grid-column: 1 / -1; }
+  .roster-actions { grid-template-columns: minmax(0, 1fr); }
+  .roster-tools { justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

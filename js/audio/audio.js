@@ -161,15 +161,18 @@ const Sfx = {
 
   play(name, gain = 1, pan = 0) {
     const arrival = Object.hasOwn(ARRIVAL_SOUNDS, name);
-    const cue = arrival ? ARRIVAL_SOUNDS[name] : SOUNDS[name];
-    if (!cue || gain <= 0 || !this.levels.effects || this.muted || this.hidden || !this.ctx) return;
+    const cue = arrival ? ARRIVAL_SOUNDS[name] : Object.hasOwn(SOUNDS, name) ? SOUNDS[name] : null;
+    if (!cue || gain <= 0 || this.muted || this.hidden || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 听不到音效时，遭遇仍然能改变背景曲目。
+    if (gain >= 0.3 && Object.hasOwn(MUSIC_OMENS, name)) this.noteOmen(MUSIC_OMENS[name], now);
+    if (!this.levels.effects) return;
     if (this.ctx.state !== 'running') {
       if (this.resuming && (arrival || !this.pendingCue || !Object.hasOwn(ARRIVAL_SOUNDS, this.pendingCue[0]))) {
         this.pendingCue = [name, gain, pan];
       }
       return;
     }
-    const now = this.ctx.currentTime;
     if (now - (this.last[name] ?? -Infinity) < cue[0]) return;
     this.last[name] = now;
     if (arrival) {
@@ -180,6 +183,18 @@ const Sfx = {
       const [wave, from, to, dur, volume, delay = 0, cutoff] = cue[i];
       audioTone(this.ctx, this.routineGain, now + delay, wave, from, to, dur, volume * gain, cutoff, pan);
     }
+  },
+
+  noteOmen([track, duration, priority], now) {
+    const current = this.musicOmen;
+    if (current?.until > now) {
+      if (current.track === track) {
+        current.until = Math.max(current.until, now + duration);
+        return;
+      }
+      if (now - current.start < 3 && priority <= current.priority) return;
+    }
+    this.musicOmen = { track, start: now, until: now + duration, priority };
   },
 
   focusArrival(now, until) {
@@ -193,11 +208,22 @@ const Sfx = {
     }
   },
 
-  syncMusic(state, bossActive) {
+  previewTrack(track) {
+    if (!this.ctx || this.muted || this.hidden || !this.levels.music || !BOSS_SCORES.has(track)) return false;
+    this.musicPreview = { track, until: this.ctx.currentTime + 8 };
+    return true;
+  },
+
+  syncMusic(state, boss, landscape) {
     if (!this.music) return;
+    const now = this.ctx.currentTime;
+    if (state !== 'practice' || this.musicPreview?.until <= now) this.musicPreview = null;
+    if (['menu', 'intro', 'victory', 'gameover'].includes(state) || this.musicOmen?.until <= now) this.musicOmen = null;
     const quiet = state === 'levelup' || state === 'chest' || state === 'decision';
+    const field = LANDSCAPE_SCORES.has(landscape) ? landscape : 'battle';
+    const encounter = boss ? (BOSS_SCORES.has(boss) ? boss : 'boss') : this.musicOmen?.track ?? field;
     const track = !this.levels.music || this.muted || this.hidden || this.ctx.state !== 'running' ? null :
-      state === 'menu' ? 'menu' : state === 'playing' || quiet ? (bossActive ? 'boss' : 'battle') : null;
+      this.musicPreview?.track ?? (state === 'menu' ? 'menu' : state === 'playing' || quiet ? encounter : null);
     this.music.sync(track, quiet ? 0.5 : 1);
   },
 
@@ -210,7 +236,10 @@ const Sfx = {
       bus.gain.cancelScheduledValues(now);
       bus.gain.setTargetAtTime(level / 100, now, 0.025);
     }
-    if (silent || !this.levels.music) this.music.stop();
+    if (silent || !this.levels.music) {
+      this.music.stop();
+      this.musicPreview = null;
+    }
     if (silent || !this.levels.effects) {
       this.pendingCue = null;
       this.arrivalUntil = -Infinity;

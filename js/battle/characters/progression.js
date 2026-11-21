@@ -183,6 +183,7 @@ const BattleProgression = {
   openChest(boss, bossName, p = this.player) {
     const coins = Math.round((boss ? U.randInt(80, 120) : U.randInt(15, 35)) * p.st.greed);
     p.coins += coins;
+    if (boss) this.trackContract('bossChest');
     const got = [];
     for (let i = 0, n = boss ? 3 : 1; i < n; i++) {
       const c = this.buildChoices(1, p)[0];

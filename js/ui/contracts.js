@@ -3,13 +3,20 @@
 const ContractUI = {
   refreshContractMenu() {
     const id = Save.data.selectedContract;
-    this.$('contractMenuState').textContent = id ? `本局：${CONTRACTS[id].name}` : '未接委托，可直接开局';
+    this.$('contractMenuState').textContent = id ? `委托：${CONTRACTS[id].name}` : '未接委托';
+    this.$('btnContracts').dataset.picked = String(!!id);
   },
 
-  showContracts() {
+  showContracts(group = 'all') {
     const list = this.$('contractList'), data = Save.data;
+    const entries = Object.entries(CONTRACTS);
+    for (const [value, id] of [['all', 'btnContractAll'], ['map', 'btnContractMap'], ['fight', 'btnContractFight']]) {
+      this.$(id).setAttribute('aria-pressed', String(value === group));
+    }
+    this.$('contractTally').textContent = `已结算 ${entries.filter(([id]) => !contractAvailable(data, id)).length}/${entries.length}`;
     list.replaceChildren();
-    for (const [id, def] of Object.entries(CONTRACTS)) {
+    for (const [id, def] of entries) {
+      if (group !== 'all' && def.group !== group) continue;
       const picked = data.selectedContract === id, claimed = !contractAvailable(data, id);
       const { button, info } = this.growthRow(list, id, def.icon, def.name, def.desc);
       const rewards = document.createElement('small');
@@ -21,6 +28,7 @@ const ContractUI = {
       button.setAttribute('aria-label', `${button.textContent}「${def.name}」`);
       button.addEventListener('click', () => this.selectContract(id));
     }
+    list.scrollTop = 0;
     this.$('btnClearContract').disabled = !data.selectedContract;
     this.show('contracts');
   },

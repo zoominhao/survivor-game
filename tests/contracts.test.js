@@ -139,3 +139,70 @@ test('练习局和双人局不发委托奖励，也不消费首次结算资格',
   assert.equal(writes(), 0);
   assert.equal(Save.data.selectedContract, 'rainLights');
 });
+
+test('两处镇纸符才算完成；空符、同一处冷却后重用都不算', () => {
+  const { g, world } = setup({ selectedContract: 'bambooWards' });
+  g.start('ella');
+  g.time = 70; g.enterLandscape('bamboo');
+  const ward = { kind: 'paperWard', x: 10, y: 0 };
+  world.visitLandmark(g, ward, 'bamboo:10:0');
+  assert.equal(g.contract.progress, 0);
+  g.grid.insert(g.spawnEnemy('shade', 42, 0));
+  world.visitLandmark(g, ward, 'bamboo:10:0');
+  assert.equal(g.contract.progress, 1);
+  g.time += 30;
+  world.visitLandmark(g, ward, 'bamboo:10:0');
+  assert.equal(g.contract.progress, 1);
+  world.visitLandmark(g, { ...ward, x: 110 }, 'bamboo:110:0');
+  assert.ok(g.contract.done);
+});
+
+test('镇魂钟和引星符阵保留单次最高值，不累加较小的多次触发', () => {
+  const bell = setup({ selectedContract: 'pineBell' });
+  bell.g.start('ella');
+  const ring = count => {
+    bell.g.grid.clear(); bell.g.time += 37;
+    for (let i = 0; i < count; i++) bell.g.grid.insert(bell.g.spawnEnemy('shade', 10 + i * 27, 0));
+    bell.world.visitLandmark(bell.g, { kind: 'wardBell', x: 0, y: 0 }, 'night:0:0');
+  };
+  ring(3); ring(2);
+  assert.equal(bell.g.contract.progress, 3);
+  ring(4); assert.ok(bell.g.contract.done);
+
+  const sigil = setup({ selectedContract: 'rainSigil' });
+  sigil.g.start('ella');
+  const draw = count => {
+    sigil.g.time += 25;
+    sigil.g.gems = [{ x: 0, y: 3, mag: true }, { x: 800, y: 0, mag: false },
+      ...Array.from({ length: count }, (_, i) => ({ x: i * 8, y: 10, mag: false }))];
+    sigil.world.visitLandmark(sigil.g, { kind: 'starSigil', x: 0, y: 0 }, 'rain:0:0');
+  };
+  draw(5); draw(3);
+  assert.equal(sigil.g.contract.progress, 5);
+  draw(6); assert.ok(sigil.g.contract.done);
+});
+
+test('精英、Boss 宝箱和三关委托彼此独立，三关要求三位不同的 Boss', () => {
+  const elites = setup({ selectedContract: 'eliteHunt' }).g;
+  elites.start('ella');
+  elites.killEnemy(elites.spawnEnemy('shade', 40, 0));
+  elites.killEnemy(elites.summonBoss('nightmare', 0, 250, 0, 'night'));
+  assert.equal(elites.contract.progress, 0);
+  for (let i = 0; i < 3; i++) elites.killEnemy(elites.spawnEnemy('shade', 55 + i, 0, true));
+  assert.ok(elites.contract.done);
+
+  const chest = setup({ selectedContract: 'bossChest' }).g;
+  chest.start('ella');
+  chest.openChest(false);
+  assert.equal(chest.contract.progress, 0);
+  chest.closeChest();
+  chest.openChest(true, '夜魇');
+  assert.ok(chest.contract.done);
+
+  const triad = setup({ selectedContract: 'triad' }).g;
+  triad.start('ella');
+  for (const kind of ['nightmare', 'nightmare', 'coffinKing']) triad.contractBoss({ kind, plan: 'ward' });
+  assert.equal(triad.contract.progress, 2);
+  triad.contractBoss({ kind: 'bridalQueen', plan: 'normal' });
+  assert.ok(triad.contract.done);
+});

@@ -1,37 +1,8 @@
 'use strict';
 
 // 手动交换信令；只用本地 ICE 候选，不请求 STUN、TURN 或信令服务。
-const LAN_CODE_PREFIX = 'NW1-';
-const LAN_CODE_LIMIT = 24000;
 const LAN_PACKET_PART = 8000;
 const LAN_PACKET_PARTS = 24;
-
-function localLanCandidate(line) {
-  const fields = line.split(/\s+/), address = fields[4] || '';
-  if (fields[6] !== 'typ' || fields[7] !== 'host') return false;
-  if (/^[a-z0-9-]{1,63}\.local$/i.test(address)) return true;
-  if (/^(?:fe[89ab][0-9a-f]:|f[cd][0-9a-f]{2}:|::1$)/i.test(address)) return /^[0-9a-f:]+$/i.test(address);
-  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(address)) return false;
-  const [a, b, c, d] = address.split('.').map(Number);
-  return Math.max(a, b, c, d) < 256 && (a === 10 || a === 127 || (a === 192 && b === 168) ||
-    (a === 172 && b >= 16 && b <= 31) || (a === 169 && b === 254));
-}
-
-function lanDescription(code, type) {
-  const text = code.trim();
-  if (text.length > LAN_CODE_LIMIT || !/^NW1-[A-Za-z0-9+/]+={0,2}$/.test(text)) throw new Error('连接码不完整或版本不同。');
-  let d;
-  try { d = JSON.parse(atob(text.slice(LAN_CODE_PREFIX.length))); } catch { throw new Error('连接码格式不对。'); }
-  if (d?.type !== type || typeof d.sdp !== 'string' || !d.sdp.startsWith('v=0\r\n')) {
-    throw new Error(type === 'offer' ? '请粘贴房主的邀请码。' : '请粘贴队友生成的应答码。');
-  }
-  const lines = d.sdp.split('\r\n'), media = lines.filter(s => s.startsWith('m='));
-  if (media.length !== 1 || !/^m=application \d+ UDP\/DTLS\/SCTP webrtc-datachannel$/.test(media[0]) ||
-      /[\0\r\n]/.test(lines.join('')) || !lines.some(s => s.startsWith('a=candidate:') && localLanCandidate(s))) {
-    throw new Error('连接码没有可用的局域网地址。');
-  }
-  return { type, sdp: lines.filter(s => !s.startsWith('a=candidate:') || localLanCandidate(s)).join('\r\n') };
-}
 
 function waitForLanCandidates(pc) {
   if (pc.iceGatheringState === 'complete') return Promise.resolve();
@@ -70,20 +41,23 @@ class LanLink {
   }
 
   async code(type, offer = '') {
-    if (type === 'answer') await this.pc.setRemoteDescription(lanDescription(offer, 'offer'));
+    const input = type === 'answer' ? normalizeLanCode(offer) : '';
+    if (type === 'answer') await this.pc.setRemoteDescription(await decodeLanCode(input, 'offer'));
     const d = await (type === 'offer' ? this.pc.createOffer() : this.pc.createAnswer());
     await this.pc.setLocalDescription(d);
     await waitForLanCandidates(this.pc);
+    return this.localCode(type, LEGACY_LAN_CODE.test(input));
+  }
+
+  localCode(type, legacy = false) {
     const sdp = this.pc.localDescription.sdp.split('\r\n')
       .filter(s => !s.startsWith('a=candidate:') || localLanCandidate(s)).join('\r\n');
     if (!sdp.includes('\r\na=candidate:')) throw new Error('未找到可用地址，请确认已连 Wi-Fi 并允许浏览器访问本地网络。');
-    const code = LAN_CODE_PREFIX + btoa(JSON.stringify({ type, sdp }));
-    if (code.length > LAN_CODE_LIMIT) throw new Error('本机网络接口过多，连接码过长。');
-    return code;
+    return encodeLanCode(type, sdp, legacy);
   }
 
   async accept(answer) {
-    await this.pc.setRemoteDescription(lanDescription(answer, 'answer'));
+    await this.pc.setRemoteDescription(await decodeLanCode(answer, 'answer'));
     if (!this.closed && this.dc?.readyState !== 'open') this.connectTimer = setTimeout(() => this.lost(), 20000);
   }
 

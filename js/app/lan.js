@@ -3,6 +3,7 @@
 // 大厅与浏览器会话。房主应用来客输入；来客的 Game 只读权威快照，不运行战斗。
 const LAN_FALLBACK_MS = 45000;
 const Lan = {
+  ...LanRoom,
   phase: 'closed',
   fallbackAt: 0,
   get guest() { return this.running && this.role === 'guest'; },
@@ -19,6 +20,19 @@ const Lan = {
     UI.refreshLan();
   },
 
+  openHashInvite() {
+    const code = lanInviteFromHash(location.hash);
+    if (!code) return;
+    // 链接只填表，不自动连接；刷新时不反复消费同一份邀请。
+    try { history.replaceState(history.state, '', location.pathname + location.search); } catch { /* 本地文件可能不允许改历史记录。 */ }
+    this.open();
+    this.select('guest');
+    if (this.phase === 'offer-in') {
+      UI.$('lanIn').value = code;
+      this.statusText('邀请已填好，点确认生成应答码。');
+    }
+  },
+
   close() {
     const link = this.link;
     this.link = null;
@@ -30,6 +44,7 @@ const Lan = {
     this.running = false;
     this.guestPause = false;
     this.otherChar = null;
+    this.clearRoom();
     this.role = null;
     this.phase = 'closed';
     this.fallbackAt = 0;
@@ -96,6 +111,19 @@ const Lan = {
     }
   },
 
+  async useLegacyCode() {
+    if (this.role !== 'host' || this.phase !== 'answer-in' || LEGACY_LAN_CODE.test(this.out)) return;
+    const link = this.link;
+    try {
+      const code = await link.localCode('offer', true);
+      if (this.link !== link || this.phase !== 'answer-in') return;
+      this.out = code;
+      this.statusText('已切换兼容码，请重新复制发给队友。');
+    } catch (e) {
+      if (this.link === link) this.statusText(e.message);
+    }
+  },
+
   async accept(code) {
     if (this.phase === 'offer-in') { await this.makeLink(code); return; }
     if (this.phase !== 'answer-in') return;
@@ -114,8 +142,8 @@ const Lan = {
 
   connected() {
     this.phase = 'connected';
-    this.statusText(this.role === 'host' ? '已连线，正在等队友确认角色。' : '已连线，等待房主开局。');
-    if (this.role === 'guest') this.link.send({ t: 'hello', char: this.char }, true);
+    this.statusText('已连线，正在同步房间…');
+    if (this.role === 'guest') this.link.send({ t: 'hello', version: LAN_ROOM_VERSION, char: this.char }, true);
   },
 
   lost() {
@@ -132,7 +160,7 @@ const Lan = {
   },
 
   start() {
-    if (this.running || this.role !== 'host' || !this.otherChar || !this.link?.writable) return;
+    if (this.running || this.role !== 'host' || this.phase !== 'connected' || !this.otherChar || !this.guestReady || !this.link?.writable) return;
     this.begin(this.otherChar, false);
   },
 
@@ -204,12 +232,8 @@ const Lan = {
 
   receive(data) {
     if (data.t === 'bye') { this.lost(); return; }
+    if (['hello', 'ready', 'room'].includes(data.t)) { this.receiveRoom(data); return; }
     if (this.role === 'host') {
-      if (!this.running && this.phase === 'connected' && data.t === 'hello' && !this.otherChar && LanState.own(CHARS, data.char)) {
-        this.otherChar = data.char;
-        this.fallbackAt = 0;
-        this.statusText(`2 / 2 已就绪 · ${CHARS[this.char].name} / ${CHARS[this.otherChar].name}`);
-      }
       if (!this.host) return;
       if (data.t === 'move' && LanState.number(data.x, -1, 1) && LanState.number(data.y, -1, 1)) {
         this.remote = { x: data.x, y: data.y, at: performance.now() };
@@ -217,7 +241,13 @@ const Lan = {
       if (data.t === 'pick' && Game.state === 'levelup' && Game.levelPlayer?.slot === 1 &&
           data.turn === this.turn && LanState.integer(data.index, 0, Game.choices.length - 1)) Game.choose(data.index);
       if (data.t === 'signal') Game.sendSignal(1, data.id);
-    } else if (this.role === 'guest' && this.phase === 'connected' && data.t === 'frame') this.applyFrame(data);
+    } else if (this.role === 'guest' && this.phase === 'connected' && data.t === 'frame') {
+      if (this.running || this.guestReady) this.applyFrame(data);
+      else if (!this.otherChar && !this.oldRoomNotice) {
+        this.oldRoomNotice = true;
+        this.statusText('房主版本不支持准备流程，请双方刷新后重试。');
+      }
+    }
   },
 
   applyFrame(data) {

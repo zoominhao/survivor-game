@@ -40,9 +40,9 @@ const WorldInteractions = {
     if ((ready.get(key) ?? 0) > g.time) return;
     const def = this.landmarks[prop.kind];
     let message = def.name;
+    let affected = 0;
     if (prop.kind === 'wardBell' || prop.kind === 'paperWard') {
       const bell = prop.kind === 'wardBell';
-      let hit = false;
       g.eachEnemyNear(prop.x, prop.y, def.radius, e => {
         if (bell) {
           const dx = e.x - prop.x, dy = e.y - prop.y, d = Math.hypot(dx, dy) || 1;
@@ -50,16 +50,16 @@ const WorldInteractions = {
           e.kx += dx / d * push; e.ky += dy / d * push;
         }
         g.slowEnemy(e, bell ? 0.48 : 0.65, bell ? 2.4 : 3.2);
-        hit = true;
+        affected++;
       });
-      if (!hit) return; // 没有怪时不会浪费冷却。
+      if (!affected) return; // 没有怪时不会浪费冷却。
     } else if (prop.kind === 'starSigil') {
-      let gathered = false;
       for (const gem of g.gems) {
         if (gem.mag || (gem.x - prop.x) ** 2 + (gem.y - prop.y) ** 2 > def.radius ** 2) continue;
-        gem.mag = true; gathered = true;
+        gem.mag = true;
+        affected++;
       }
-      if (!gathered) return;
+      if (!affected) return;
     } else if (prop.kind === 'supplyBox') {
       const coins = p.coins;
       p.coins += def.coins * p.st.greed;
@@ -76,7 +76,7 @@ const WorldInteractions = {
       message = '朝阳护身';
     }
     ready.set(key, g.time + def.cd);
-    if (prop.kind === 'warmingShrine') g.contractWarmed();
+    g.contractLandmark(prop.kind, key, affected);
     g.texts.push({ x: prop.x, y: prop.y - 24, s: message, life: 0.95, c: def.color });
     g.fx.push({ type: 'boom', x: prop.x, y: prop.y, r: Math.min(150, def.radius ?? 48), life: 0.48, max: 0.48, c: def.color });
     g.burst(prop.x, prop.y, def.color, 8);

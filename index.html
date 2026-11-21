@@ -6,8 +6,8 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css?v=partners1">
-  <link rel="stylesheet" href="css/responsive.css?v=lan1">
+  <link rel="stylesheet" href="css/screens.css?v=invite2">
+  <link rel="stylesheet" href="css/responsive.css?v=ambience1">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -65,16 +65,20 @@
         <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
         <p id="charNotice" class="char-notice" role="status"></p>
         <div class="roster-actions">
-          <button id="btnStart" class="primary"><span data-icon="lantern"></span> 单人守夜</button>
-          <button id="btnLan" type="button">双人守夜</button>
-          <button id="btnShop">局外成长</button>
-          <button id="btnAudioMenu" class="icon-button" aria-label="声音设置" data-icon="sound"></button>
+          <div class="mode-actions" role="group" aria-label="守夜模式">
+            <button id="btnStart" class="primary" type="button" aria-label="单人守夜"><span data-icon="lantern"></span> 单人</button>
+            <button id="btnLan" type="button" aria-label="双人守夜"><span data-icon="partners"></span> 双人</button>
+          </div>
+          <div class="roster-tools" role="group" aria-label="局外工具">
+            <button id="btnShop" class="icon-button" type="button" aria-label="局外成长" title="局外成长" data-icon="growth"></button>
+            <button id="btnContracts" class="icon-button" type="button" aria-label="守夜委托" title="守夜委托" aria-describedby="contractMenuState" data-icon="watchSeal"></button>
+            <button id="btnAudioMenu" class="icon-button" type="button" aria-label="声音设置" title="声音设置" data-icon="sound"></button>
+          </div>
         </div>
-        <div class="contract-strip">
-          <button id="btnContracts" type="button"><span data-icon="watchSeal"></span> 守夜委托</button>
-          <span id="contractMenuState">未接委托，可直接开局</span>
+        <div class="roster-note">
+          <span id="menuRoute"></span><span id="contractMenuState">未接委托</span>
         </div>
-        <p class="hint"><b id="menuRoute"></b> · 方向键 / WASD 移动 · 触屏拖动 · 自动攻击 · Esc 暂停</p>
+        <p class="hint">方向键 / WASD 移动 · 触屏拖动 · 自动攻击</p>
       </div>
     </div>
   </main>
@@ -84,6 +88,12 @@
       <p class="chapter">夜巡札记</p>
       <h2 id="contractsTitle">守夜委托</h2>
       <p class="control-note">正式单人每局可接一项。完成就发奖励，不必活到黎明；每项奖励只领一次。</p>
+      <div class="contract-filters" role="group" aria-label="委托类别">
+        <button id="btnContractAll" type="button" aria-controls="contractList" aria-pressed="true">全部</button>
+        <button id="btnContractMap" type="button" aria-controls="contractList" aria-pressed="false">地图</button>
+        <button id="btnContractFight" type="button" aria-controls="contractList" aria-pressed="false">战斗</button>
+        <span id="contractTally"></span>
+      </div>
       <div id="contractList" class="shop-stack"></div>
       <div class="row">
         <button id="btnClearContract" type="button">不接委托</button>
@@ -103,15 +113,24 @@
       </div>
       <div id="lanOutBox" class="lan-code hidden">
         <label id="lanOutLabel" for="lanOut">发给朋友的码</label>
-        <div><textarea id="lanOut" rows="2" readonly spellcheck="false"></textarea><button id="btnLanCopy" type="button">复制</button></div>
+        <div class="lan-code-row"><textarea id="lanOut" rows="2" readonly spellcheck="false" autocapitalize="off"></textarea><button id="btnLanCopy" type="button">复制</button></div>
+        <div class="lan-copy-tools">
+          <button id="btnLanCopyLink" type="button" class="hidden">复制邀请链接</button>
+          <button id="btnLanLegacy" type="button" class="hidden">改用兼容码</button>
+        </div>
       </div>
       <div id="lanInBox" class="lan-code hidden">
         <label id="lanInLabel" for="lanIn">朋友发来的码</label>
-        <div><textarea id="lanIn" rows="2" maxlength="24000" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><button id="btnLanAccept" type="button">确认</button></div>
+        <div class="lan-code-row"><textarea id="lanIn" rows="2" maxlength="24000" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><button id="btnLanAccept" type="button">确认</button></div>
       </div>
+      <dl id="lanRoom" class="lan-room hidden" aria-label="房间成员">
+        <div><dt>房主</dt><dd id="lanRoomHost"></dd></div>
+        <div><dt>队友</dt><dd><span id="lanRoomGuest"></span><small id="lanRoomReady"></small></dd></div>
+      </dl>
       <p id="lanCountdown" class="control-note hidden"></p>
       <div class="row">
-        <button id="btnLanStart" class="primary hidden" type="button" disabled>两人入夜</button>
+        <button id="btnLanReady" class="primary hidden" type="button" aria-pressed="false">准备</button>
+        <button id="btnLanStart" class="primary hidden" type="button" disabled>开始</button>
         <button id="btnLanBot" type="button">和机器人开局</button>
         <button id="btnLanBack" type="button">返回主菜单</button>
       </div>
@@ -256,12 +275,6 @@
         </div>
       </div>
       <p id="audioStatus" class="control-note" role="status"></p>
-      <fieldset class="mix-previews">
-        <legend>鬼怪试听</legend>
-        <button id="btnBrideSample" type="button" data-sound-sample="sampleBride">鬼新娘喊冤</button>
-        <button id="btnCorpseSample" type="button" data-sound-sample="sampleCorpse">僵尸嘶吼</button>
-        <button id="btnAudioSample" type="button" data-sound-sample="sampleArrival">纸扎童子</button>
-      </fieldset>
       <div class="row">
         <button id="btnMute" type="button" aria-pressed="false">总静音</button>
         <button id="btnCloseAudio" class="primary" type="button">返回</button>
@@ -273,7 +286,7 @@
     <div class="panel">
       <p class="chapter">秘符</p>
       <h2 id="practiceTitle">作弊面板</h2>
-      <p id="practiceNote" class="sub">使用任一功能后，本局不计战绩，也不会把金币带出本局。</p>
+      <p id="practiceNote" class="sub">使用作弊后不计战绩和奖励。仅试听不会影响本局。</p>
       <p id="practiceStatus" class="control-note" role="status">
         <span id="practiceLife"></span> <span id="practiceCoins"></span>
         <span id="practiceLevel"></span> <span id="practiceGuard"></span>
@@ -284,6 +297,20 @@
         <button type="button" data-practice="coins">本局 +100 金币</button>
         <button type="button" data-practice="xp">+50 基础经验</button>
       </div>
+      <fieldset class="mix-previews">
+        <legend>声音测试</legend>
+        <div class="preview-row" role="group" aria-label="鬼怪音效">
+          <button id="btnBrideSample" type="button" data-sound-sample="sampleBride">新娘喊冤</button>
+          <button id="btnCorpseSample" type="button" data-sound-sample="sampleCorpse">僵尸嘶吼</button>
+          <button id="btnAudioSample" type="button" data-sound-sample="sampleArrival">纸扎童子</button>
+        </div>
+        <div class="preview-row" role="group" aria-label="Boss 配乐">
+          <button type="button" data-music-sample="nightmare">夜魇曲</button>
+          <button type="button" data-music-sample="coffinKing">尸王曲</button>
+          <button type="button" data-music-sample="bridalQueen">鬼后曲</button>
+        </div>
+        <p id="soundTestStatus" role="status"></p>
+      </fieldset>
       <div class="row"><button id="btnClosePractice" class="primary" type="button">返回</button></div>
     </div>
   </section>
@@ -314,15 +341,15 @@
   <script src="js/battle/enemies/catalog.js?v=routes1"></script>
   <script src="js/battle/combat/grid.js"></script>
   <script src="js/battle/world/terrain.js"></script>
-  <script src="js/battle/world/interactions.js?v=contracts1"></script>
+  <script src="js/battle/world/interactions.js?v=ambience1"></script>
   <script src="js/battle/combat/ai-strike.js"></script>
   <script src="js/battle/combat/weapons.js?v=skill-shop1"></script>
-  <script src="js/battle/characters/progression.js?v=routes1"></script>
+  <script src="js/battle/characters/progression.js?v=ambience1"></script>
   <script src="js/battle/enemies/behavior.js?v=routes1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
   <script src="js/battle/enemies/boss-decisions.js?v=lan1"></script>
   <script src="js/battle/enemies/bosses.js?v=contracts1"></script>
-  <script src="js/battle/combat/damage.js?v=partners1"></script>
+  <script src="js/battle/combat/damage.js?v=ambience1"></script>
   <script src="js/battle/combat/projectiles.js?v=skill-shop1"></script>
   <script src="js/battle/combat/drops.js?v=lan1"></script>
   <script src="js/battle/combat/effects.js"></script>
@@ -331,19 +358,19 @@
   <script src="js/battle/robot-partner.js"></script>
   <script src="js/battle/upgrade-advice.js"></script>
   <script src="js/battle/coop.js?v=partners1"></script>
-  <script src="js/battle/contracts.js"></script>
+  <script src="js/battle/contracts.js?v=ambience1"></script>
   <script src="js/battle/battle.js?v=partners1"></script>
 
   <script src="js/platform/save.js?v=contracts1"></script>
-  <script src="js/audio/music.js"></script>
+  <script src="js/audio/music.js?v=ambience1"></script>
   <script src="js/audio/voice-data.js"></script>
   <script src="js/audio/voices.js"></script>
   <script src="js/audio/arrivals.js?v=ghost-voice1"></script>
-  <script src="js/audio/audio.js?v=contracts1"></script>
+  <script src="js/audio/audio.js?v=ambience1"></script>
   <script src="js/render/characters/hand-light.js"></script>
   <script src="js/render/characters/echo-figure.js?v=outfits1"></script>
   <script src="js/render/characters/xiaoxiao-art.js?v=outfits1"></script>
-  <script src="js/render/characters/zhu-figure.js?v=headlamp2"></script>
+  <script src="js/render/characters/zhu-figure.js?v=shortcrop1"></script>
   <script src="js/render/characters/trail-figures.js"></script>
   <script src="js/render/characters/wardrobe.js?v=outfits1"></script>
   <script src="js/render/characters/draw.js?v=outfits1"></script>
@@ -361,20 +388,22 @@
   <script src="js/render/enemies/draw.js"></script>
   <script src="js/render/coop-signals.js"></script>
   <script src="js/render/renderer.js?v=partners1"></script>
-  <script src="js/ui/icons.js?v=routes1"></script>
+  <script src="js/ui/icons.js?v=ambience1"></script>
   <script src="js/ui/route-training.js"></script>
   <script src="js/ui/menu.js?v=contracts1"></script>
   <script src="js/ui/battle-panels.js?v=partners1"></script>
   <script src="js/ui/hud.js?v=partners1"></script>
-  <script src="js/ui/utilities.js?v=ghost-voice1"></script>
-  <script src="js/ui/lan.js?v=partners1"></script>
+  <script src="js/ui/utilities.js?v=ambience1"></script>
+  <script src="js/ui/lan.js?v=invite2"></script>
   <script src="js/ui/coop-support.js"></script>
-  <script src="js/ui/contracts.js"></script>
-  <script src="js/ui/screens.js?v=partners1"></script>
-  <script src="js/net/lan-link.js"></script>
+  <script src="js/ui/contracts.js?v=ambience1"></script>
+  <script src="js/ui/screens.js?v=ambience1"></script>
+  <script src="js/net/lan-code.js"></script>
+  <script src="js/net/lan-link.js?v=invite2"></script>
   <script src="js/net/lan-state.js?v=partners1"></script>
   <script src="js/app/input.js?v=lan1"></script>
-  <script src="js/app/lan.js?v=partners1"></script>
-  <script src="js/app/main.js?v=partners1"></script>
+  <script src="js/app/lan-room.js"></script>
+  <script src="js/app/lan.js?v=invite2"></script>
+  <script src="js/app/main.js?v=invite2"></script>
 </body>
 </html>

@@ -3,17 +3,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
+const { deflateSync } = require('node:zlib');
 const { battleScript, loadGame } = require('./fixtures/load-game');
 
 function setup() {
-  const context = vm.createContext({ btoa, atob });
-  loadGame(context, f => battleScript(f) || f.startsWith('js/net/'));
+  const context = vm.createContext({ btoa, atob, CompressionStream, DecompressionStream, Blob, TextEncoder, TextDecoder, URL });
+  loadGame(context, f => battleScript(f) || f.startsWith('js/net/') || f.endsWith('/lan-room.js'));
   return vm.runInContext(`(() => {
     const save = { data: { coins: 99, runs: 2, wins: 1, best: 80, meta: Object.fromEntries(Object.keys(META).map(k => [k, 0])) },
       write() { throw new Error('联机不能写档'); } };
     const game = createBattle({ save });
     game.start('ella', 'echo');
-    return { game, save, CFG, LanState, LanLink, lanDescription, localLanCandidate };
+    return { game, save, CFG, LanState, LanLink, lanDescription, localLanCandidate, encodeLanCode, decodeLanCode,
+      lanInviteFromHash, LanRoom, LAN_ROOM_VERSION };
   })()`, context);
 }
 
@@ -35,6 +37,54 @@ test('房主同时模拟两个人；鬼怪跟踪最近的存活玩家，延迟�
   assert.equal(p.kills, 0);
   assert.equal(q.kills, 1);
   assert.ok(q.dmgBy.mouse > 0);
+});
+
+test('压缩码保留原连接参数，区分邀请和应答，聊天链接可直接填表', async () => {
+  const { encodeLanCode, decodeLanCode, lanInviteFromHash } = setup();
+  const sdp = 'v=0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n' +
+    'a=candidate:1 1 udp 1 192.168.1.25 34567 typ host\r\n'.repeat(4) + 'a=sctp-port:5000\r\n';
+  const legacy = await encodeLanCode('offer', sdp, true);
+  const invite = await encodeLanCode('offer', sdp);
+  const answer = await encodeLanCode('answer', sdp);
+  assert.match(invite, /^I2-[A-Za-z0-9_-]+$/);
+  assert.match(answer, /^A2-[A-Za-z0-9_-]+$/);
+  assert.ok(invite.length < legacy.length * 0.8);
+  assert.equal((await decodeLanCode(invite, 'offer')).sdp, sdp);
+  assert.equal((await decodeLanCode(legacy, 'offer')).sdp, sdp);
+  assert.equal((await decodeLanCode(`https://game.invalid/survivor/#invite=${encodeURIComponent(invite)}`, 'offer')).sdp, sdp);
+  assert.equal((await decodeLanCode(`${answer.slice(0, 12)}\n ${answer.slice(12)}`, 'answer')).sdp, sdp);
+  assert.equal(lanInviteFromHash('#invite=' + answer), null);
+  await assert.rejects(decodeLanCode(invite, 'answer'), /应答码/);
+  const oversized = 'I2-' + deflateSync('v=0\r\n'.repeat(5000)).toString('base64url');
+  await assert.rejects(decodeLanCode(oversized, 'offer'), /损坏或不完整/);
+});
+
+test('房间只接受有效角色和版本，队友准备与取消都由房主确认', () => {
+  const { LanRoom, LAN_ROOM_VERSION } = setup();
+  const toGuest = [], toHost = [];
+  const state = (role, char, output) => ({ ...LanRoom, role, char, phase: 'connected', fallbackAt: 45000,
+    guestReady: false, link: { send(data) { output.push(data); return true; } }, statusText(text) { this.status = text; } });
+  const host = state('host', 'ella', toGuest), guest = state('guest', 'zhu', toHost);
+  host.receiveRoom({ t: 'hello', version: 1, char: 'zhu' });
+  assert.equal(host.otherChar, undefined);
+  host.receiveRoom({ t: 'ready', ready: true });
+  assert.equal(host.guestReady, false);
+  host.receiveRoom({ t: 'hello', version: LAN_ROOM_VERSION, char: 'zhu' });
+  assert.equal(host.fallbackAt, 0);
+  guest.receiveRoom(toGuest.shift());
+  assert.equal(guest.otherChar, 'ella');
+  assert.equal(guest.guestReady, false);
+  guest.toggleReady(); guest.toggleReady();
+  assert.equal(toHost.length, 1);
+  assert.equal(guest.readyPending, true);
+  host.receiveRoom(toHost.shift()); guest.receiveRoom(toGuest.shift());
+  assert.equal(host.guestReady, true);
+  assert.equal(guest.guestReady, true);
+  assert.equal(guest.readyPending, false);
+  guest.toggleReady();
+  host.receiveRoom(toHost.shift()); guest.receiveRoom(toGuest.shift());
+  assert.equal(host.guestReady, false);
+  assert.equal(guest.guestReady, false);
 });
 
 test('经验共享，轮流各自选卡，离队和作弊不会写单人存档', () => {

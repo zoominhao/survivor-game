@@ -48,6 +48,7 @@ const BattleDamage = {
     else if (r < 0.0595 && !this.pickups.some(k => k.type === 'vacuum')) this.pickups.push({ type: 'vacuum', x: e.x, y: e.y });
     if (e.elite || e.boss) this.pickups.push({ type: 'chest', x: e.x, y: e.y, boss: e.boss, bossName: e.name });
     if (e.boss) this.bossCleared(e, p);
+    else if (e.elite) this.trackContract('eliteHunt');
     this.burst(e.x, e.y, ENEMIES[e.type].color, e.boss ? 30 : e.elite ? 12 : 4);
     if (e.type === 'bride') this.playNearby('bridalFade', e, 310);
     else if (!e.boss) this.play('kill');
