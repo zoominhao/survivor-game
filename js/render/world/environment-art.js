@@ -101,8 +101,8 @@ const EnvironmentArt = {
     return { lights, hint };
   },
 
-  // 夜色覆盖地形与怪物，手持光和已点亮的场景灯在同一层开出视野。
-  drawLighting(ctx, render, lights, darkness, shade, player, pose, beam) {
+  // 夜色覆盖地形与怪物，角色光束和已点亮的场景灯在同一层开出视野。
+  drawLighting(ctx, render, lights, darkness, shade, player, beams) {
     const { W: w, H: h, s } = render;
     const { e, f } = ctx.getTransform();
     if (!this.shade) this.shade = document.createElement('canvas');
@@ -121,11 +121,12 @@ const EnvironmentArt = {
       this.reveal(layer, light, x * s + e, y * s + f, s);
     }
     layer.globalAlpha = 1;
-    const near = beam ? this.closeLight : this.carriedLantern;
-    this.reveal(layer, near, (player.x + (beam ? 0 : 10 * player.face)) * s + e, player.y * s + f, s);
-    if (beam) {
+    const hasBeam = beams.some(ray => ray.member === player);
+    const near = hasBeam ? this.closeLight : this.carriedLantern;
+    this.reveal(layer, near, (player.x + (hasBeam ? 0 : 10 * player.face)) * s + e, player.y * s + f, s);
+    if (beams.length) {
       layer.save(); layer.setTransform(s, 0, 0, s, e, f);
-      beam(layer, player, pose, true);
+      for (const ray of beams) ray.draw(layer, ray.member, ray.pose, true);
       layer.restore();
     }
     layer.globalCompositeOperation = 'source-over';

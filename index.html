@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css?v=lan1">
+  <link rel="stylesheet" href="css/screens.css?v=partners1">
   <link rel="stylesheet" href="css/responsive.css?v=lan1">
 </head>
 <body>
@@ -29,6 +29,13 @@
     <div id="banner"></div>
     <span id="practiceFlag" class="practice-mark hidden">练习局 · 不计战绩</span>
     <span id="lanFlag" class="practice-mark hidden"></span>
+    <span id="rescueMark" class="rescue-mark hidden"></span>
+    <div id="signalDock" class="signal-dock hidden">
+      <div id="signalActions" class="signal-actions hidden" role="group" aria-label="双人快捷信号"></div>
+      <p id="signalStatus" role="status"></p>
+      <button id="btnSignal" type="button" aria-expanded="false" aria-controls="signalActions" aria-keyshortcuts="Q">信号 <kbd>Q</kbd></button>
+    </div>
+    <span id="contractHud" class="contract-mark hidden"></span>
   </div>
 
   <!-- 虚拟摇杆 -->
@@ -59,19 +66,36 @@
         <p id="charNotice" class="char-notice" role="status"></p>
         <div class="roster-actions">
           <button id="btnStart" class="primary"><span data-icon="lantern"></span> 单人守夜</button>
-          <button id="btnLan" type="button">局域网双人</button>
-          <button id="btnShop">永久强化</button>
+          <button id="btnLan" type="button">双人守夜</button>
+          <button id="btnShop">局外成长</button>
           <button id="btnAudioMenu" class="icon-button" aria-label="声音设置" data-icon="sound"></button>
         </div>
-        <p class="hint">方向键 / WASD 移动 · 触屏拖动 · 自动攻击 · Esc 暂停</p>
+        <div class="contract-strip">
+          <button id="btnContracts" type="button"><span data-icon="watchSeal"></span> 守夜委托</button>
+          <span id="contractMenuState">未接委托，可直接开局</span>
+        </div>
+        <p class="hint"><b id="menuRoute"></b> · 方向键 / WASD 移动 · 触屏拖动 · 自动攻击 · Esc 暂停</p>
       </div>
     </div>
   </main>
 
+  <section id="contracts" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="contractsTitle">
+    <div class="panel">
+      <p class="chapter">夜巡札记</p>
+      <h2 id="contractsTitle">守夜委托</h2>
+      <p class="control-note">正式单人每局可接一项。完成就发奖励，不必活到黎明；每项奖励只领一次。</p>
+      <div id="contractList" class="shop-stack"></div>
+      <div class="row">
+        <button id="btnClearContract" type="button">不接委托</button>
+        <button id="btnContractsBack" type="button">返回</button>
+      </div>
+    </div>
+  </section>
+
   <section id="lan" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanTitle">
     <div class="panel lan-panel">
       <p class="chapter">结伴巡夜</p>
-      <h2 id="lanTitle">局域网双人</h2>
+      <h2 id="lanTitle">双人守夜</h2>
       <p id="lanStatus" class="sub" role="status"></p>
       <div id="lanModes" class="row">
         <button id="btnLanHost" class="primary" type="button">创建邀请</button>
@@ -85,8 +109,10 @@
         <label id="lanInLabel" for="lanIn">朋友发来的码</label>
         <div><textarea id="lanIn" rows="2" maxlength="24000" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><button id="btnLanAccept" type="button">确认</button></div>
       </div>
+      <p id="lanCountdown" class="control-note hidden"></p>
       <div class="row">
         <button id="btnLanStart" class="primary hidden" type="button" disabled>两人入夜</button>
+        <button id="btnLanBot" type="button">和机器人开局</button>
         <button id="btnLanBack" type="button">返回主菜单</button>
       </div>
     </div>
@@ -126,10 +152,43 @@
   <!-- 永久强化 -->
   <section id="shop" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="panel">
-      <p class="chapter">砺器册</p>
-      <h2 id="shopTitle">永久强化</h2>
-      <div class="wallet"><span data-icon="coin"></span> 现有金币 <b id="shopCoins">0</b></div>
+      <header class="shop-heading">
+        <div><p class="chapter">砺器册</p><h2 id="shopTitle">局外成长</h2></div>
+        <div class="wallet shop-wallet">
+          <span><span data-icon="coin"></span> 金币 <b id="shopCoins">0</b></span>
+          <span><span data-icon="watchSeal"></span> 守夜印 <b id="shopSeals">0</b></span>
+        </div>
+      </header>
+      <div class="shop-sections" role="group" aria-label="商店分类">
+        <button id="btnShopMeta" type="button" aria-pressed="true" aria-controls="shopList">永久强化</button>
+        <button id="btnShopSkills" type="button" aria-pressed="false" aria-controls="skillShopPanel">购买技能</button>
+        <button id="btnShopRoutes" type="button" aria-pressed="false" aria-controls="routeShopPanel">巡夜场景</button>
+        <button id="btnShopTraining" type="button" aria-pressed="false" aria-controls="trainingShopPanel">英雄修炼</button>
+      </div>
       <div id="shopList"></div>
+      <div id="skillShopPanel" class="hidden">
+        <p id="skillShopGuide" class="control-note">一次解锁，仅限单人。可从升级或宝箱习得，第 2 级优先出已购技能。</p>
+        <div id="skillList" class="shop-stack"></div>
+        <p id="skillShopStatus" class="control-note shop-status" role="status"></p>
+      </div>
+      <div id="routeShopPanel" class="hidden">
+        <p class="control-note">金币永久解锁单人开局路线。前 1 分钟从选中的场景出发，之后接回常规巡夜。普通路线仍可免费走过所有场景。</p>
+        <div id="routeList" class="shop-stack"></div>
+        <p id="routeShopStatus" class="control-note shop-status" role="status"></p>
+      </div>
+      <div id="trainingShopPanel" class="hidden">
+        <div class="shop-hero">
+          <b id="trainingHero"></b>
+          <small id="trainingStats">
+            <span>生命 <b id="trainingHp"></b></span>
+            <span>伤害 <b id="trainingMight"></b></span>
+            <span>移速 <b id="trainingSpeed"></b></span>
+          </small>
+        </div>
+        <p class="control-note">守夜印强化当前英雄的单人初始属性。普通单人每满 90 秒得 1 枚，击败 Boss 或守到黎明各加 2 枚。</p>
+        <div id="trainingList" class="shop-stack"></div>
+        <p id="trainingShopStatus" class="control-note shop-status" role="status"></p>
+      </div>
       <div class="row"><button id="btnShopBack">返回</button></div>
     </div>
   </section>
@@ -139,6 +198,7 @@
     <div class="panel wide">
       <p class="chapter">择符</p>
       <h2 id="lvTitle">修为精进</h2>
+      <p id="lvAdvice" class="level-advice" hidden></p>
       <div id="cards" class="cards"></div>
       <div class="row"><button id="btnReroll"><span data-icon="reroll"></span> <span id="rerollLabel">重掷</span></button></div>
     </div>
@@ -196,9 +256,14 @@
         </div>
       </div>
       <p id="audioStatus" class="control-note" role="status"></p>
+      <fieldset class="mix-previews">
+        <legend>鬼怪试听</legend>
+        <button id="btnBrideSample" type="button" data-sound-sample="sampleBride">鬼新娘喊冤</button>
+        <button id="btnCorpseSample" type="button" data-sound-sample="sampleCorpse">僵尸嘶吼</button>
+        <button id="btnAudioSample" type="button" data-sound-sample="sampleArrival">纸扎童子</button>
+      </fieldset>
       <div class="row">
         <button id="btnMute" type="button" aria-pressed="false">总静音</button>
-        <button id="btnAudioSample" type="button">试听登场音效</button>
         <button id="btnCloseAudio" class="primary" type="button">返回</button>
       </div>
     </div>
@@ -230,6 +295,8 @@
       <h2 id="resTitle"></h2>
       <p class="sub" id="resSub"></p>
       <div id="resStats" class="stats"></div>
+      <p id="resSeals" class="control-note hidden"><span data-icon="watchSeal"></span> 获得守夜印 <b id="resSealCount">0</b> 枚</p>
+      <p id="resContract" class="control-note contract-summary hidden"></p>
       <ul id="resDmg" class="dmg"></ul>
       <div class="row">
         <button id="btnRetry" class="primary">再来一局</button>
@@ -240,59 +307,74 @@
 
   <!-- 经典脚本保留 file:// 双击运行；依赖按层排列。 -->
   <script src="js/shared/math.js"></script>
-  <script src="js/battle/rules.js"></script>
-  <script src="js/battle/combat/equipment.js"></script>
-  <script src="js/battle/characters/roster.js"></script>
-  <script src="js/battle/world/environment.js"></script>
-  <script src="js/battle/enemies/catalog.js"></script>
+  <script src="js/battle/rules.js?v=routes1"></script>
+  <script src="js/battle/combat/equipment.js?v=skill-shop1"></script>
+  <script src="js/battle/characters/roster.js?v=routes1"></script>
+  <script src="js/battle/world/environment.js?v=routes1"></script>
+  <script src="js/battle/enemies/catalog.js?v=routes1"></script>
   <script src="js/battle/combat/grid.js"></script>
   <script src="js/battle/world/terrain.js"></script>
-  <script src="js/battle/world/interactions.js?v=lan1"></script>
-  <script src="js/battle/combat/weapons.js?v=lan1"></script>
-  <script src="js/battle/characters/progression.js?v=lan1"></script>
-  <script src="js/battle/enemies/behavior.js?v=lan1"></script>
+  <script src="js/battle/world/interactions.js?v=contracts1"></script>
+  <script src="js/battle/combat/ai-strike.js"></script>
+  <script src="js/battle/combat/weapons.js?v=skill-shop1"></script>
+  <script src="js/battle/characters/progression.js?v=routes1"></script>
+  <script src="js/battle/enemies/behavior.js?v=routes1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
   <script src="js/battle/enemies/boss-decisions.js?v=lan1"></script>
-  <script src="js/battle/enemies/bosses.js?v=lan1"></script>
-  <script src="js/battle/combat/damage.js?v=lan1"></script>
-  <script src="js/battle/combat/projectiles.js?v=lan1"></script>
+  <script src="js/battle/enemies/bosses.js?v=contracts1"></script>
+  <script src="js/battle/combat/damage.js?v=partners1"></script>
+  <script src="js/battle/combat/projectiles.js?v=skill-shop1"></script>
   <script src="js/battle/combat/drops.js?v=lan1"></script>
   <script src="js/battle/combat/effects.js"></script>
   <script src="js/battle/practice.js?v=lan1"></script>
-  <script src="js/battle/coop.js"></script>
-  <script src="js/battle/battle.js?v=lan1"></script>
+  <script src="js/battle/coop-support.js"></script>
+  <script src="js/battle/robot-partner.js"></script>
+  <script src="js/battle/upgrade-advice.js"></script>
+  <script src="js/battle/coop.js?v=partners1"></script>
+  <script src="js/battle/contracts.js"></script>
+  <script src="js/battle/battle.js?v=partners1"></script>
 
-  <script src="js/platform/save.js"></script>
+  <script src="js/platform/save.js?v=contracts1"></script>
   <script src="js/audio/music.js"></script>
-  <script src="js/audio/arrivals.js?v=lan1"></script>
-  <script src="js/audio/audio.js?v=lan1"></script>
+  <script src="js/audio/voice-data.js"></script>
+  <script src="js/audio/voices.js"></script>
+  <script src="js/audio/arrivals.js?v=ghost-voice1"></script>
+  <script src="js/audio/audio.js?v=contracts1"></script>
   <script src="js/render/characters/hand-light.js"></script>
-  <script src="js/render/characters/echo-figure.js"></script>
-  <script src="js/render/characters/xiaoxiao-art.js?v=fringe-1"></script>
-  <script src="js/render/characters/wardrobe.js"></script>
-  <script src="js/render/characters/draw.js"></script>
+  <script src="js/render/characters/echo-figure.js?v=outfits1"></script>
+  <script src="js/render/characters/xiaoxiao-art.js?v=outfits1"></script>
+  <script src="js/render/characters/zhu-figure.js?v=headlamp2"></script>
+  <script src="js/render/characters/trail-figures.js"></script>
+  <script src="js/render/characters/wardrobe.js?v=outfits1"></script>
+  <script src="js/render/characters/draw.js?v=outfits1"></script>
   <script src="js/render/combat/food-art.js"></script>
-  <script src="js/render/combat/draw.js?v=lan1"></script>
+  <script src="js/render/combat/zhu-skills.js?v=outfits1"></script>
+  <script src="js/render/combat/relic-art.js"></script>
+  <script src="js/render/combat/draw.js?v=skill-shop1"></script>
   <script src="js/render/world/map-props-art.js"></script>
   <script src="js/render/world/terrain-art.js"></script>
-  <script src="js/render/world/environment-art.js?v=lan1"></script>
+  <script src="js/render/world/environment-art.js?v=outfits1"></script>
   <script src="js/render/enemies/night-parade-art.js"></script>
   <script src="js/render/enemies/folk-enemy-art.js"></script>
   <script src="js/render/enemies/nightmare-art.js"></script>
   <script src="js/render/enemies/boss-art.js"></script>
   <script src="js/render/enemies/draw.js"></script>
-  <script src="js/render/renderer.js?v=lan1"></script>
-  <script src="js/ui/icons.js"></script>
-  <script src="js/ui/menu.js"></script>
-  <script src="js/ui/battle-panels.js?v=lan1"></script>
-  <script src="js/ui/hud.js?v=lan1"></script>
-  <script src="js/ui/utilities.js"></script>
-  <script src="js/ui/lan.js"></script>
-  <script src="js/ui/screens.js?v=lan1"></script>
+  <script src="js/render/coop-signals.js"></script>
+  <script src="js/render/renderer.js?v=partners1"></script>
+  <script src="js/ui/icons.js?v=routes1"></script>
+  <script src="js/ui/route-training.js"></script>
+  <script src="js/ui/menu.js?v=contracts1"></script>
+  <script src="js/ui/battle-panels.js?v=partners1"></script>
+  <script src="js/ui/hud.js?v=partners1"></script>
+  <script src="js/ui/utilities.js?v=ghost-voice1"></script>
+  <script src="js/ui/lan.js?v=partners1"></script>
+  <script src="js/ui/coop-support.js"></script>
+  <script src="js/ui/contracts.js"></script>
+  <script src="js/ui/screens.js?v=partners1"></script>
   <script src="js/net/lan-link.js"></script>
-  <script src="js/net/lan-state.js"></script>
+  <script src="js/net/lan-state.js?v=partners1"></script>
   <script src="js/app/input.js?v=lan1"></script>
-  <script src="js/app/lan.js"></script>
-  <script src="js/app/main.js?v=lan1"></script>
+  <script src="js/app/lan.js?v=partners1"></script>
+  <script src="js/app/main.js?v=partners1"></script>
 </body>
 </html>

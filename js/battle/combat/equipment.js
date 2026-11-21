@@ -235,6 +235,54 @@ const WEAPONS = {
     base: { heal: 0.06, cd: 8.8, dur: 3, reduce: 0.3, range: 170 },
     ups: [{ heal: 0.02 }, { dur: 0.6 }, { reduce: 0.08 }, { cd: -1 }, { heal: 0.02, cd: -0.5 }],
   },
+  codeShard: {
+    name: '代码连发', color: '#86dfbd', kind: 'bolt', look: 'code', max: 6, exclusive: 'zhu', sound: 'compileTap',
+    desc: '自动朝最近的夜兽发射代码片段。升满并持有急速沙漏后可进化。',
+    base: { dmg: 12, cd: 1.25, count: 1, pierce: 1, speed: 480, size: 7 },
+    ups: [{ count: 1 }, { dmg: 4, pierce: 1 }, { cd: -0.18 }, { dmg: 5, count: 1 }, { dmg: 7, pierce: 1 }],
+    evo: { need: 'haste', to: 'fullBuild' },
+  },
+  fullBuild: {
+    name: '全量编译', color: '#b2fff5', kind: 'bolt', look: 'code', max: 1, evolved: true, exclusive: 'zhu', sound: 'compileTap',
+    desc: '连射四枚编译指令，分打多个目标，命中时产生溅射。',
+    base: { dmg: 28, cd: 0.85, count: 4, pierce: 2, speed: 535, size: 9, spread: 3, blast: 52 },
+  },
+  boardingPass: {
+    name: '登机快线', color: '#f2d69c', kind: 'lance', look: 'ticket', max: 6, exclusive: 'zhu', sound: 'ticketRush',
+    desc: '沿最近移动的方向甩出登机牌，穿过一条线上的多只夜兽。',
+    base: { dmg: 13, cd: 2.45, count: 1, pierce: 4, speed: 580, size: 8, spreadAngle: 0.22 },
+    ups: [{ pierce: 1 }, { dmg: 6 }, { count: 1 }, { cd: -0.4 }, { dmg: 7, pierce: 2 }],
+  },
+  noodleRing: {
+    name: '长面牵绊', color: '#f2b66b', kind: 'frost', look: 'noodles', max: 6, exclusive: 'zhu', sound: 'noodleTangle',
+    desc: '夜兽靠近时甩开一圈长面，击中后造成伤害并减速，适合解围。',
+    base: { dmg: 11, cd: 5.4, radius: 106, slow: 0.44, kb: 26 },
+    ups: [{ dmg: 4 }, { radius: 15 }, { cd: -0.6 }, { radius: 16, slow: 0.08 }, { dmg: 7, cd: -0.45 }],
+  },
+  aiIntercept: {
+    name: 'AI 预判拦截', color: '#8ce7f2', kind: 'aiIntercept', max: 6, exclusive: 'zhu',
+    desc: '本地推算附近夜兽的走向，标记预计最密集的一处，稍后造成范围伤害。',
+    base: { dmg: 21, cd: 4.7, radius: 55, range: 415, delay: 0.54 },
+    ups: [{ dmg: 6 }, { radius: 9 }, { cd: -0.55 }, { radius: 11, dmg: 5 }, { dmg: 9, cd: -0.5 }],
+  },
+  soulCoin: {
+    name: '追魂铜钱', color: '#f0c679', kind: 'bolt', look: 'soulCoin', max: 6, unlockCost: 90, sound: 'soulCoin', bounceSound: 'soulCoin',
+    desc: '命中后弹向附近尚未被这枚铜钱打中的夜兽，初始可弹跳两次。',
+    base: { dmg: 13, cd: 2.2, count: 1, pierce: 1, speed: 470, size: 7, bounces: 2, bounceRange: 168 },
+    ups: [{ dmg: 4 }, { bounces: 1 }, { cd: -0.36 }, { count: 1 }, { dmg: 7, bounces: 1 }],
+  },
+  incenseWard: {
+    name: '安魂香炉', color: '#a6cfb2', kind: 'incense', max: 6, unlockCost: 140,
+    desc: '附近有夜兽时在脚下放香炉。烟圈留在原地，持续伤害并减速。',
+    base: { dmg: 6, cd: 6.6, radius: 83, range: 158, dur: 3.1, slow: 0.34 },
+    ups: [{ radius: 12 }, { dmg: 3 }, { dur: 0.9 }, { cd: -0.9, slow: 0.08 }, { dmg: 4, radius: 14 }],
+  },
+  boneMirror: {
+    name: '照骨镜', color: '#c0ebe9', kind: 'mirror', max: 6, unlockCost: 190,
+    desc: '反射下一发撞到你的敌方弹幕，之后进入冷却。不防贴身伤害。',
+    base: { dmg: 22, cd: 9, pierce: 1 },
+    ups: [{ dmg: 6 }, { cd: -0.85 }, { pierce: 1 }, { dmg: 9 }, { cd: -1.2, dmg: 11 }],
+  },
 };
 
 // ----- 被动道具 -----

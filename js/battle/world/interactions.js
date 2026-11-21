@@ -76,6 +76,7 @@ const WorldInteractions = {
       message = '朝阳护身';
     }
     ready.set(key, g.time + def.cd);
+    if (prop.kind === 'warmingShrine') g.contractWarmed();
     g.texts.push({ x: prop.x, y: prop.y - 24, s: message, life: 0.95, c: def.color });
     g.fx.push({ type: 'boom', x: prop.x, y: prop.y, r: Math.min(150, def.radius ?? 48), life: 0.48, max: 0.48, c: def.color });
     g.burst(prop.x, prop.y, def.color, 8);
@@ -89,6 +90,7 @@ const WorldInteractions = {
       run.lit.add(key);
       g.burst(prop.x, prop.y - light.height, light.color, 6);
       g.play('lantern');
+      g.contractLit(prop.kind);
     }
     if (prop.kind !== 'lantern') return;
     const heal = Math.min(p.st.maxHp - p.hp, Math.round(p.st.maxHp * 0.12));

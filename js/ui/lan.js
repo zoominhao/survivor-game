@@ -8,6 +8,7 @@ const LanUI = {
     on('btnLanAccept', () => Lan.accept(this.$('lanIn').value));
     on('btnLanCopy', () => this.copyLanCode());
     on('btnLanStart', () => Lan.start());
+    on('btnLanBot', () => Lan.startBot());
     on('btnLanBack', () => Lan.leave());
     on('btnLanLeave', () => Lan.leave());
     this.$('lanIn').addEventListener('input', () => this.refreshLan());
@@ -21,6 +22,8 @@ const LanUI = {
     const canAccept = phase === 'answer-in' || phase === 'offer-in';
     show('lanOutBox', !!Lan.out && ['answer-in', 'answer-busy', 'answer-out'].includes(phase));
     show('lanInBox', canAccept);
+    show('lanCountdown', !!Lan.fallbackAt);
+    show('btnLanBot', !Lan.otherChar && !(Lan.role === 'guest' && phase === 'connected'));
     this.$('lanInLabel').textContent = Lan.role === 'host' ? '粘贴队友的应答码' : '粘贴房主的邀请码';
     this.$('lanOutLabel').textContent = Lan.role === 'host' ? '发给队友的邀请码' : '回传房主的应答码';
     const output = this.$('lanOut');
@@ -32,6 +35,11 @@ const LanUI = {
     if (!this.$('lan').contains(document.activeElement) || !document.activeElement.getClientRects().length || document.activeElement.disabled) {
       (start && Lan.otherChar ? this.$('btnLanStart') : this.$('lanTitle')).focus({ preventScroll: true });
     }
+  },
+
+  updateLanCountdown(seconds) {
+    const text = `${seconds} 秒内没有好友就绪，将与机器人一起开局。`;
+    if (this.$('lanCountdown').textContent !== text) this.$('lanCountdown').textContent = text;
   },
 
   async copyLanCode() {

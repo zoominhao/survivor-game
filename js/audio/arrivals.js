@@ -1,6 +1,9 @@
 'use strict';
 
 // [声源, 起始频率, 结束频率, 时长, 音量, 延迟, 低通频率/噪声带通 Q, 起音时长]。
+// 人声层：[voice, 素材, 播放速率, 音量, 延迟]。
+const BRIDE_CALL = ['voice', 'bride', 1, 0.96, 0.08];
+const CORPSE_CALL = ['voice', 'corpse', 1, 0.92, 0];
 const ARRIVAL_SOUNDS = {
   // 傩锣之后是两层不协和的喉鸣和拖长的喘息。
   boss: [1.9, ['triangle', 572, 319, 0.46, 0.53, 0, 1750], ['sine', 174, 49, 0.58, 0.50],
@@ -12,23 +15,21 @@ const ARRIVAL_SOUNDS = {
     ['noise', 1840, 630, 0.22, 0.55], ['triangle', 354, 105, 0.36, 0.47, 0.25, 1000],
     ['noise', 570, 2830, 1.00, 0.78, 0.37, 0.7, 0.21], ['sawtooth', 250, 157, 0.86, 0.23, 0.43, 1050, 0.35],
     ['triangle', 318, 77, 0.50, 0.45, 0.98, 970], ['sine', 143, 36, 0.59, 0.44, 0.98]],
-  // 失调的喜铃，在轿帘后拖出哭腔般的滑音。
-  bridalQueenArrival: [1.85, ['triangle', 807, 740, 0.74, 0.46, 0, 2600], ['sine', 851, 797, 0.62, 0.33],
-    ['noise', 2980, 2040, 0.25, 0.50, 0, 1.1], ['sine', 1425, 1304, 0.51, 0.24, 0.22],
-    ['triangle', 580, 817, 0.73, 0.38, 0.35, 1920, 0.32], ['triangle', 861, 448, 0.85, 0.39, 0.74, 2040, 0.18],
-    ['noise', 1710, 720, 1.35, 0.53, 0.45, 0.9, 0.48]],
+  // 先响一记喜铃，轿帘里的声音紧跟在前景，尾音才交给不协和的铃声。
+  bridalQueenArrival: [2.6, ['voice', 'bride', 0.86, 1.0, 0.09], ['triangle', 807, 740, 0.48, 0.28, 0, 2600],
+    ['sine', 851, 797, 0.42, 0.2], ['triangle', 861, 448, 1.05, 0.30, 1.18, 2040, 0.18]],
   paperChildArrival: [1.2, ['noise', 3240, 1490, 0.40, 0.73, 0, 0.7], ['triangle', 878, 551, 0.29, 0.45],
     ['sawtooth', 1310, 970, 0.30, 0.29, 0.06, 2310, 0.035], ['noise', 2800, 970, 0.31, 0.63, 0.26, 0.8],
     ['triangle', 1220, 719, 0.27, 0.35, 0.30], ['triangle', 816, 398, 0.60, 0.31, 0.50, 1720, 0.13]],
-  corpseAmbush: [1.25, ['triangle', 371, 103, 0.37, 0.54, 0, 1070], ['noise', 2010, 650, 0.27, 0.64],
-    ['triangle', 316, 98, 0.32, 0.42, 0.20, 910], ['sine', 134, 54, 0.50, 0.42, 0.42],
-    ['noise', 946, 453, 0.74, 0.69, 0.44, 0.6, 0.14]],
+  corpseAmbush: [1.4, CORPSE_CALL, ['voice', 'corpse', 0.84, 0.42, 0.24],
+    ['triangle', 371, 103, 0.37, 0.20, 0, 1070], ['triangle', 316, 98, 0.32, 0.19, 0.47, 910]],
+  corpseSnarl: [4.5, CORPSE_CALL],
   umbrellaOpen: [1.2, ['noise', 740, 3080, 0.39, 0.77, 0, 0.65, 0.085], ['triangle', 723, 411, 0.25, 0.44],
     ['triangle', 1250, 586, 0.28, 0.38, 0.14], ['sine', 902, 624, 0.76, 0.43, 0.25],
     ['noise', 2320, 570, 0.89, 0.57, 0.28, 0.8, 0.17]],
-  brideArrival: [1.3, ['triangle', 591, 572, 0.69, 0.44, 0, 1900], ['sine', 624, 596, 0.54, 0.35],
-    ['noise', 2540, 1080, 0.26, 0.59], ['sine', 1280, 1138, 0.68, 0.30, 0.22],
-    ['triangle', 821, 505, 0.81, 0.36, 0.42, 1800, 0.21], ['noise', 1950, 625, 0.86, 0.54, 0.40, 0.8, 0.16]],
+  brideArrival: [2.5, BRIDE_CALL, ['triangle', 591, 572, 0.44, 0.21, 0, 1900],
+    ['sine', 1280, 1138, 0.68, 0.19, 1.24], ['noise', 1950, 625, 0.68, 0.21, 0.92, 0.8, 0.16]],
+  brideAccuse: [8, BRIDE_CALL],
   envoyCall: [1.35, ['triangle', 514, 207, 0.49, 0.48, 0, 1300], ['noise', 3460, 1350, 0.24, 0.68],
     ['sine', 1173, 823, 0.37, 0.25, 0.10], ['noise', 2800, 1130, 0.36, 0.71, 0.33, 1.1],
     ['sawtooth', 266, 106, 0.89, 0.40, 0.43, 1250, 0.19]],
@@ -39,6 +40,8 @@ const ARRIVAL_SOUNDS = {
 
 // 试听另记冷却，不会吞掉接下来战斗里的实际登场声。
 ARRIVAL_SOUNDS.sampleArrival = ARRIVAL_SOUNDS.paperChildArrival;
+ARRIVAL_SOUNDS.sampleBride = [1.8, BRIDE_CALL];
+ARRIVAL_SOUNDS.sampleCorpse = [0.95, CORPSE_CALL];
 
 // 一个音频上下文只生成一小段白噪声；带通扫频把它变成纸响、喘息和刮擦。
 const arrivalNoiseBuffers = new WeakMap();
@@ -63,6 +66,12 @@ function arrivalNoise(ctx) {
 function playArrival(ctx, output, now, cue, gain, pan) {
   let duration = 0;
   for (let i = 1; i < cue.length; i++) {
+    if (cue[i][0] === 'voice') {
+      const [, id, rate, volume, delay = 0] = cue[i];
+      const end = delay + playGhostVoice(ctx, output, now + delay, id, rate, volume * gain, pan);
+      duration = Math.max(duration, end);
+      continue;
+    }
     const [wave, from, to, dur, volume, delay = 0, shape, attack] = cue[i];
     const at = now + delay;
     duration = Math.max(duration, delay + dur);

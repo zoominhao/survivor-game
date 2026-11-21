@@ -60,6 +60,14 @@ const BattleCoop = {
     if (this.state !== 'playing' || this.time - this.bossClearAt < BOSS_REWARD_BEAT) return;
     const p = this.players.find(p => p.hp > 0 && this.pendingFor(p) > 0);
     if (!p) return;
+    if (this.robot && p === this.partner) {
+      while (this.pendingFor(p) > 0) {
+        const choices = this.buildChoices(3, p);
+        this.applyChoice(choices[recommendUpgrade(choices, p).index], p);
+        this.addPending(p, -1);
+      }
+      return; // 机器人用同一套升级池选卡，但不会停住双人战斗。
+    }
     this.levelPlayer = p;
     this.state = 'levelup';
     this.choices = this.buildChoices(3, p);

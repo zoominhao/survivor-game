@@ -60,6 +60,7 @@ const BattleDamage = {
     const care = p.weapons.find(w => w.id === 'skincare' && w.on > 0);
     dmg = Math.max(1, Math.round((dmg - p.st.armor) * (care ? 1 - care.s.reduce : 1)));
     p.hp -= dmg;
+    this.interruptRescue(p);
     p.iframe = src && src.boss ? 0.7 : 0.3; // 被 Boss 撞到后给更长的无敌时间,避免贴身秒杀
     this.shake = Math.max(this.shake, 5);
     this.texts.push({ x: p.x, y: p.y - 20, s: '-' + dmg, life: 0.7, c: '#ff6b6b' });
@@ -100,7 +101,9 @@ const BattleDamage = {
     p.hp = 0;
     if (this.coop && this.players.some(other => other.hp > 0)) {
       p.moving = false;
-      this.emit('banner', `${p.slot + 1} 号守夜人倒下 · 击败 Boss 可唤回队友`);
+      if (this.robot && p === this.partner) this.sendSignal(p.slot, 'help');
+      const hint = this.rescue.used ? '击败 Boss 可唤回队友' : '靠近站稳 2 秒可扶救';
+      this.emit('banner', `${p.slot + 1} 号守夜人倒下 · ${hint}`);
       return;
     }
     this.finish(false);

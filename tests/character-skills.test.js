@@ -360,9 +360,10 @@ test('只有已选完的升级才点亮装饰，重开后恢复初始造型', ()
   assert.equal(Wardrobe.stage(Game.player.level, Game.pending), 0);
 });
 
-test('妈妈·霄霄默认解锁，专属武器不会出现在其他角色的选项里', () => {
+test('川妹·霄霄保留角色 ID 和专属武器，其他角色不能抽到她的武器', () => {
   const { Game, Save, CHARS } = start('xiaoxiao', { lastChar: 'echo', coins: 34 });
-  assert.equal(CHARS.xiaoxiao.name, '妈妈·霄霄');
+  assert.equal(CHARS.xiaoxiao.name, '川妹·霄霄');
+  assert.equal(start(undefined, { lastChar: 'xiaoxiao' }).Game.player.char, 'xiaoxiao');
   assert.equal(Game.player.weapons[0].id, 'latiao');
   assert.equal(Game.player.hp, 110);
   assert.equal(Game.player.st.armor, 1);
@@ -436,4 +437,104 @@ test('水润护肤在需要时回复生命，并且只在护肤时间内减伤',
   p.iframe = 0;
   Game.hurtPlayer(31, null);
   assert.ok(Math.abs(p.hp - 45.6) < 0.001);
+});
+
+test('工程师·竹默认解锁，旧存档不切角色，代码、机票、面条和 AI 为专属技能', () => {
+  const { Game, Save, CHARS } = start('zhu', { lastChar: 'tuan', chars: { tuan: true }, coins: 52 });
+  assert.equal(CHARS.zhu.name, '工程师·竹');
+  assert.equal(Save.data.chars.zhu, true);
+  assert.equal(Save.data.lastChar, 'tuan');
+  assert.equal(Save.data.coins, 52);
+  assert.equal(Game.player.weapons[0].id, 'codeShard');
+  assert.equal(Game.player.st.cd, 0.94);
+  const exclusive = ['codeShard', 'boardingPass', 'noodleRing', 'aiIntercept'];
+  const pool = Game.buildChoices(100);
+  assert.ok(exclusive.every(id => pool.some(c => c.id === id)));
+  assert.ok(exclusive.slice(1).includes(Game.buildChoices(3)[0].id));
+  assert.ok(!start('ella').Game.buildChoices(100).some(c => exclusive.includes(c.id) || c.id === 'fullBuild'));
+});
+
+test('代码连发自动瞄准最近的怪，六级加急速沙漏可进化并溅射', () => {
+  const { Game } = start('zhu');
+  const near = stationaryEnemy(Game, 76, 0);
+  const side = stationaryEnemy(Game, 84, 34);
+  stationaryEnemy(Game, -190, 0);
+  Game.update(1 / 60);
+  assert.equal(Game.projs[0].look, 'code');
+  assert.ok(Game.projs[0].vx > 0 && Math.abs(Game.projs[0].vy) < 40);
+  for (let lv = 2; lv <= 6; lv++) Game.applyChoice({ kind: 'weapon', id: 'codeShard', lv });
+  assert.ok(!Game.buildChoices(3).some(c => c.to === 'fullBuild'));
+  Game.applyChoice({ kind: 'passive', id: 'haste', lv: 1 });
+  const evo = Game.buildChoices(3)[0];
+  assert.equal(evo.to, 'fullBuild');
+  Game.projs.length = 0;
+  Game.applyChoice(evo);
+  const hp = [near.hp, side.hp];
+  for (let i = 0; i < 10; i++) Game.update(1 / 60);
+  assert.ok(near.hp < hp[0] && side.hp < hp[1]);
+  assert.ok(Game.player.dmgBy.fullBuild > 0);
+});
+
+test('机票沿最近的移动方向飞，不追向相反一侧的敌人，并能穿透多个目标', () => {
+  const Game = foodRun('zhu', 'boardingPass');
+  Game.player.dirx = -1; Game.player.diry = 0;
+  const near = stationaryEnemy(Game, -50, 0), behind = stationaryEnemy(Game, -90, 0);
+  const opposite = stationaryEnemy(Game, 45, 0);
+  Game.update(1 / 60);
+  assert.equal(Game.projs[0].look, 'ticket');
+  assert.ok(Game.projs[0].vx < 0 && Game.projs[0].pierce > 2);
+  for (let i = 0; i < 14; i++) Game.update(1 / 60);
+  assert.ok(near.hp < near.maxHp && behind.hp < behind.maxHp);
+  assert.equal(opposite.hp, opposite.maxHp);
+});
+
+test('面条只在夜兽靠近时出手，短暂牵制近处的怪，不波及远处', () => {
+  const Game = foodRun('zhu', 'noodleRing');
+  const far = stationaryEnemy(Game, 230, 0);
+  Game.update(1 / 60);
+  assert.ok(!Game.zones.length);
+  Game.player.weapons[0].timer = 0;
+  const near = stationaryEnemy(Game, 64, 0);
+  Game.update(1 / 60);
+  assert.equal(Game.zones[0].look, 'noodles');
+  for (let i = 0; i < 22; i++) Game.update(1 / 60);
+  assert.ok(near.hp < near.maxHp && near.slow > 0.4 && near.slowT > 0);
+  assert.equal(far.hp, far.maxHp);
+  assert.equal(far.slow, 0);
+});
+
+test('AI 拦截等待来敌，预测怪群走向并优先打中更密的一群', () => {
+  const Game = foodRun('zhu', 'aiIntercept');
+  Game.update(0.02);
+  assert.equal(Game.zones.length, 0);
+  assert.ok(Game.player.weapons[0].timer < 0.4);
+  const single = stationaryEnemy(Game, 55, 0);
+  const crowd = [[205, 6], [222, -16], [230, 22]].map(([x, y]) => stationaryEnemy(Game, x, y));
+  for (const e of crowd) e.speed = 41;
+  Game.player.weapons[0].timer = 0;
+  Game.update(0.02);
+  const [scan] = Game.zones;
+  assert.equal(scan.look, 'aiScan');
+  assert.ok(scan.x > 165 && scan.x < 200);
+  assert.ok(crowd.every(e => e.hp === e.maxHp));
+  for (let i = 0; i < 29; i++) Game.update(0.02);
+  assert.ok(crowd.every(e => e.hp < e.maxHp));
+  assert.equal(single.hp, single.maxHp);
+  assert.ok(Game.player.dmgBy.aiIntercept > 0);
+});
+
+test('每名角色各有四档衣色，六景穿不同外套，联机按各自选完的卡判定', () => {
+  const { Game, CHARS, Wardrobe } = start('zhu');
+  const looks = Object.values(CHARS).map(c => c.look);
+  assert.equal(new Set(looks).size, looks.length);
+  for (const look of looks) {
+    assert.equal(new Set([0, 1, 2, 3].map(t => Wardrobe.style(look, t).main)).size, 4);
+  }
+  assert.equal(new Set(['dusk', 'night', 'bamboo', 'rain', 'snow', 'dawn'].map(s => Wardrobe.style('zhu', 1, s).layer)).size, 6);
+  Game.start('zhu', 'xiaoxiao');
+  Game.player.level = Game.partner.level = 5;
+  Game.pending = 1;
+  assert.equal(Wardrobe.forPlayer(Game, Game.player, 'zhu', 'rain').tier, 1);
+  assert.equal(Wardrobe.forPlayer(Game, Game.partner, 'xiaoxiao', 'rain').tier, 2);
+  assert.equal(Wardrobe.forPlayer(Game, Game.partner, 'xiaoxiao', 'snow').layer, 'snow');
 });

@@ -4,20 +4,30 @@
 function createBattle({ save, emit = () => {}, play = () => {} }) {
   return {
     ...BattleProgression, ...BattleEnemies, ...NightmareBattle, ...BossBattle, ...BossDecisions,
-    ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle, ...BattleCoop,
+    ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle, ...BattleCoop, ...BattleContracts, ...CoopSupport,
     save, emit, play, uid: 0,
     state: 'menu', view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
 
     // ---------- 开局 ----------
-    start(charId, partnerChar = null) {
+    start(charId, partnerChar = null, { robot = false } = {}) {
       this.time = 0;
+      this.coop = !!partnerChar;
+      this.robot = this.coop && robot;
+      this.robotBrain = this.robot ? { next: 0, move: { x: 0, y: 0 } } : null;
+      this.signals = this.coop ? [null, null] : null;
+      this.rescue = this.coop ? { used: false, progress: 0 } : null;
       this.assisted = false;
       this.practiceInvincible = false;
       this.environment = WorldInteractions.createRun();
-      this.sceneId = this.landscape = 'dusk';
+      const data = this.save.data;
+      this.contract = this.startContract(data);
+      this.openingScene = !this.coop && Environment.canOpen(data, data.startScene) ? data.startScene : 'dusk';
+      this.sceneId = this.landscape = this.openingScene;
       this.spawnAcc = 0;
       this.evIdx = 0;
       this.eliteT = 45;
+      this.voiceReady = {};
+      this.voiceQuietUntil = 0;
       this.enemies = [];
       this.projs = [];
       this.ebullets = [];
@@ -31,6 +41,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.pending = 0;   // 待处理的升级次数
       this.levelPlayer = null;
       this.boss = null;
+      this.bossesDefeated = 0;
       this.bossDecision = null;
       this.pendingBosses = [];
       this.bossClearAt = -Infinity;
@@ -42,8 +53,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.player = this.makePlayer(charId, 0);
       this.partner = partnerChar ? this.makePlayer(partnerChar, 1, 34) : null;
       this.players = this.partner ? [this.player, this.partner] : [this.player];
-      this.coop = !!this.partner;
-      if (this.partner) Terrain.move(this.partner, 0, 0, CFG.PLAYER_R, 0, this.landscape);
+      if (this.coop || this.openingScene !== 'dusk') this.enterLandscape(this.openingScene);
       this.state = 'playing';
     },
 
@@ -64,7 +74,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
 
       // 玩家移动
       this.movePlayer(this.player, input, dt);
-      if (this.partner) this.movePlayer(this.partner, partnerInput, dt);
+      if (this.partner) this.movePlayer(this.partner, this.robot ? RobotPartner.input(this) : partnerInput, dt);
       this.spawn(dt);
       if (this.state !== 'playing') return;
 
@@ -81,6 +91,8 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.updateZones(dt);
       this.updateBullets(dt);
       if (this.state !== 'playing') return;
+      this.stepRescue(dt);
+      this.stepContract(dt);
       this.updatePickups(dt);
       this.updateFx(dt);
 
@@ -111,16 +123,21 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       const ranked = !this.coop && !this.assisted;
       const time = Math.min(CFG.RUN_TIME, this.time);
       const newBest = ranked && this.time > d.best;
-      const earned = ranked ? Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0) : 0;
+      const contract = this.settleContract(ranked);
+      const earned = ranked ? Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0) + (contract?.coins ?? 0) : 0;
+      const earnedSeals = ranked ? Math.floor(time / SEAL_REWARDS.interval) + this.bossesDefeated * SEAL_REWARDS.boss +
+        (win ? SEAL_REWARDS.dawn : 0) + (contract?.seals ?? 0) : 0;
       if (ranked) {
         d.coins += earned;
+        d.seals = (d.seals ?? 0) + earnedSeals;
         d.runs++;
         d.kills += p.kills;
         if (win) d.wins++;
         if (newBest) d.best = time;
         this.save.write();
       }
-      this.result = { win, earned, time, kills: p.kills + (this.partner?.kills ?? 0), level: p.level, newBest, assisted: this.assisted, coop: this.coop };
+      this.result = { win, earned, earnedSeals, time, kills: p.kills + (this.partner?.kills ?? 0), level: p.level, newBest,
+        assisted: this.assisted, coop: this.coop, contract };
       this.state = win ? 'victory' : 'gameover';
       if (win) {
         for (const e of this.enemies) this.burst(e.x, e.y, '#ffe9a8', 2);

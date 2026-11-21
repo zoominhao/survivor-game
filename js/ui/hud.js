@@ -31,8 +31,10 @@ const HudUI = {
     this.set('kills', 'text', String(p.kills));
     this.set('coins', 'text', String(Math.floor(p.coins)));
     this.set('practiceFlag', 'hidden', !g.assisted);
+    this.updateContractHud(g);
     this.set('lanFlag', 'hidden', !g.coop);
-    if (g.coop) this.set('lanFlag', 'text', `双人 · ${p.slot + 1} 号${p.hp <= 0 ? ' · 已倒下' : ''} · 队友${g.partner.hp > 0 ? '在场' : '已倒下'}`);
+    if (g.coop) this.set('lanFlag', 'text', `双人 · ${p.slot + 1} 号${p.hp <= 0 ? ' · 已倒下' : ''} · ${g.robot ? '机器人' : '队友'}${g.partner.hp > 0 ? '在场' : '已倒下'}`);
+    this.updateCoopHud(g);
     const boss = g.boss && !g.boss.dead ? g.boss : null;
     this.set('bossbar', 'hidden', !boss);
     if (boss) {

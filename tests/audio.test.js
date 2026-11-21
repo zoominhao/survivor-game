@@ -22,18 +22,18 @@ class AudioContextStub {
     this.sampleRate = 44100;
     this.starts = [];
     this.panners = [];
-    this.noiseSources = [];
+    this.bufferSources = [];
   }
   createGain() { return { gain: new AudioParamStub(), connect() {}, disconnect() {} }; }
   createDynamicsCompressor() { return { threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, connect() {} }; }
   createBiquadFilter() { return { frequency: new AudioParamStub(), Q: new AudioParamStub(), connect() {}, disconnect() {} }; }
-  createBuffer(channels, length) {
+  createBuffer(channels, length, rate) {
     const samples = new Float32Array(length);
-    return { getChannelData: () => samples };
+    return { duration: length / rate, getChannelData: () => samples };
   }
   createBufferSource() {
-    const node = { connect() {}, disconnect() {}, start: at => this.starts.push(at), stop(at) { this.endsAt = at; } };
-    this.noiseSources.push(node);
+    const node = { playbackRate: {}, connect() {}, disconnect() {}, start: at => this.starts.push(at), stop(at) { this.endsAt = at; } };
+    this.bufferSources.push(node);
     return node;
   }
   createStereoPanner() {
@@ -51,7 +51,7 @@ class AudioContextStub {
 
 function setup(AudioContext = AudioContextStub) {
   const save = { data: {}, count: 0, write() { this.count++; } };
-  const context = vm.createContext({ window: { AudioContext }, Save: save, setTimeout() {} });
+  const context = vm.createContext({ window: { AudioContext }, Save: save, setTimeout() {}, atob });
   loadGame(context, file => file.startsWith('js/audio/'));
   return { Sfx: vm.runInContext('Sfx', context), save };
 }
@@ -213,7 +213,7 @@ test('登场声立即压低配乐和常规音效，尾声结束后回升，不�
     const now = Sfx.ctx.currentTime;
     Sfx.play(name);
     assert.ok(Sfx.ctx.starts.length > count);
-    assert.ok(Sfx.arrivalUntil >= Sfx.ctx.noiseSources.at(-1).endsAt - 0.012);
+    assert.ok(Sfx.arrivalUntil >= Sfx.ctx.bufferSources.at(-1).endsAt - 0.012);
     for (const [duck, maximum] of [[Sfx.musicDuck, 0.2], [Sfx.routineGain, 0.27]]) {
       const [drop, restore] = duck.gain.events.slice(-2);
       assert.ok(drop[0] <= maximum);
@@ -232,15 +232,48 @@ test('试听与鬼怪共用噪声素材，重叠登场不会让混音提早回�
   Sfx.unlock();
   Sfx.play('boss');
   const until = Sfx.arrivalUntil;
-  const first = Sfx.ctx.noiseSources[0];
+  const first = Sfx.ctx.bufferSources[0];
   const samples = first.buffer.getChannelData(0);
   assert.ok(samples.some(v => v > 0.5) && samples.some(v => v < -0.5));
   assert.equal(first.loop, true);
   Sfx.play('sampleArrival');
-  assert.equal(Sfx.ctx.noiseSources.at(-1).buffer, first.buffer);
+  assert.equal(Sfx.ctx.bufferSources.at(-1).buffer, first.buffer);
   assert.equal(Sfx.arrivalUntil, until);
   Sfx.setMuted(true);
   assert.equal(Sfx.arrivalUntil, -Infinity);
   assert.deepEqual(Sfx.musicDuck.gain.events.at(-1), [1, 0]);
   assert.deepEqual(Sfx.routineGain.gain.events.at(-1), [1, 0]);
+});
+
+test('鬼新娘喊冤播放预制台词并覆盖整段尾音，试听不吃掉实战喊声', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.play('sampleBride');
+  const [preview] = Sfx.ctx.bufferSources;
+  assert.equal(preview.playbackRate.value, 1);
+  assert.ok(preview.buffer.duration >= 1 && preview.buffer.duration < 3.5);
+  assert.ok(preview.buffer.getChannelData(0).some(v => Math.abs(v) > 0.4));
+  assert.ok(Sfx.arrivalUntil >= preview.buffer.duration + 0.07);
+  assert.equal(Sfx.last.brideAccuse, undefined);
+  Sfx.play('brideAccuse', 0.8, -0.6);
+  assert.equal(Sfx.ctx.bufferSources.at(-1).buffer, preview.buffer);
+  assert.equal(Sfx.ctx.panners.at(-1).pan.value, -0.6);
+  Sfx.play('bridalQueenArrival');
+  assert.equal(Sfx.ctx.bufferSources.at(-1).playbackRate.value, 0.86);
+});
+
+test('僵尸嘶吼不是落地声，合围叠放吼叫，近身嘶吼有单独的冷却', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.play('corpseHop');
+  assert.equal(Sfx.ctx.bufferSources.length, 0);
+  Sfx.play('corpseAmbush');
+  const [primary, behind] = Sfx.ctx.bufferSources;
+  assert.equal(primary.buffer, behind.buffer);
+  assert.ok(primary.buffer.getChannelData(0).some(v => Math.abs(v) > 0.46));
+  assert.ok(behind.playbackRate.value < primary.playbackRate.value);
+  Sfx.play('corpseSnarl');
+  Sfx.play('corpseSnarl');
+  assert.equal(Sfx.ctx.bufferSources.length, 3);
+  assert.equal(Sfx.ctx.bufferSources[2].buffer, primary.buffer);
 });

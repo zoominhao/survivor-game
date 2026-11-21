@@ -7,7 +7,10 @@ const UtilityUI = {
     for (const id of ['btnAudio', 'btnAudioMenu', 'btnAudioPause']) on(id, () => App.openUtility('audio'));
     for (const id of ['btnCloseAudio', 'btnClosePractice']) on(id, () => App.closeUtility());
     on('btnMute', () => App.toggleMute());
-    this.$('btnAudioSample').addEventListener('click', () => { Sfx.unlock(); Sfx.play('sampleArrival'); });
+    this.soundSamples = this.$('audio').querySelectorAll('[data-sound-sample]');
+    for (const button of this.soundSamples) {
+      button.addEventListener('click', () => { Sfx.unlock(); Sfx.play(button.dataset.soundSample); });
+    }
     for (const [channel, id] of this.mixControls) {
       const slider = this.$(id);
       const change = persist => {
@@ -38,7 +41,7 @@ const UtilityUI = {
     const silent = Sfx.muted || (!Sfx.levels.music && !Sfx.levels.effects);
     for (const id of ['btnAudio', 'btnAudioMenu']) this.$(id).innerHTML = Icons.html(silent ? 'mute' : 'sound');
     this.$('btnMute').setAttribute('aria-pressed', String(Sfx.muted));
-    this.$('btnAudioSample').disabled = Sfx.muted || !Sfx.levels.effects;
+    for (const button of this.soundSamples) button.disabled = Sfx.muted || !Sfx.levels.effects;
     this.$('audioStatus').textContent = Sfx.muted ? '总静音已开启，解除后恢复滑杆音量。' :
       !Sfx.levels.effects ? '游戏音效已关闭，调高后可试听。' : '两条音量独立，调到 0% 可单独静音。';
   },

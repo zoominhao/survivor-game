@@ -65,6 +65,11 @@ const App = {
     if (Game.state !== 'intro' || document.hidden) return;
     Game.state = 'playing';
     UI.show(null);
+    if (Game.openingScene !== 'dusk') {
+      const scene = Environment.scenes[Game.openingScene];
+      UI.banner(scene.name);
+      if (scene.sound) Sfx.play(scene.sound, 0.78);
+    }
   },
 
   pause() {
@@ -141,6 +146,13 @@ const App = {
       return;
     }
     if (UI.overlayId === 'lan') { if (code === 'Escape') Lan.leave(); return; }
+    if (Lan.running && s === 'playing' && !UI.overlayId) {
+      if (code === 'KeyQ') { UI.toggleSignals(); return; }
+      if (UI.signalsOpen) {
+        if (code === 'Escape') { UI.closeSignals(true); return; }
+        if (/^(Digit|Numpad)[1-4]$/.test(code)) { UI.chooseSignal(Number(code.at(-1)) - 1); return; }
+      }
+    }
     if (practiceKey) { this.openUtility('practice'); return; }
     if (s === 'intro') {
       if (['Enter', 'Space', 'Escape'].includes(code)) this.finishIntro();
@@ -153,7 +165,7 @@ const App = {
       else if (code === 'Escape') Game.chooseBossPlan('normal');
       return;
     }
-    if (code === 'Escape' && UI.overlayId === 'shop') { UI.showMenu(); return; }
+    if (code === 'Escape' && ['shop', 'contracts'].includes(UI.overlayId)) { UI.showMenu(); return; }
     if (code === 'Escape' || code === 'KeyP') {
       if (Lan.guestPause) this.resume();
       else if (s === 'playing') this.pause(); else if (s === 'paused' && !Lan.guest) this.resume();
@@ -179,6 +191,7 @@ const App = {
     const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     Input.poll();
+    if (!Lan.running) Lan.tickLobby(now);
     if (Lan.running) Lan.step(dt, now);
     else if (Game.state === 'intro') {
       if (now >= this.introEndsAt) this.finishIntro();

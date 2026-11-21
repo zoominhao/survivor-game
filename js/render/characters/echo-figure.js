@@ -76,10 +76,10 @@ const EchoFigure = (() => {
     ctx.drawImage(headSprite, -31, -1, 62, 62);
   }
 
-  function drawShirt(ctx) {
+  function drawShirt(ctx, outfit) {
     stroke(ctx, paths.shirt, '#8d602f', 1.8);
-    fill(ctx, paths.shirt, yellow);
-    stroke(ctx, paths.seam, '#ce983a', 1.25);
+    fill(ctx, paths.shirt, outfit?.main ?? yellow);
+    stroke(ctx, paths.seam, outfit?.tier ? outfit.trim : '#ce983a', 1.25);
     fill(ctx, paths.collar, skin);
     fill(ctx, paths.mark, navy);
   }
@@ -131,7 +131,8 @@ const EchoFigure = (() => {
   const beam = HandLight.create(266, 100, 0.36, 0.34, [255, 220, 151]);
   const drawBeam = (ctx, p, pose, mask) => beam(ctx, p, pose, handX(pose.stride), handY, lensX, 0, mask);
 
-  function runner(ctx, stride, tier = 0, aim = 0) {
+  function runner(ctx, stride, outfit, aim = 0) {
+    const { tier } = outfit;
     ctx.save();
     ctx.lineCap = 'round';
     stepLeg(ctx, stride > 0 ? 1 : -1, stride);
@@ -139,7 +140,7 @@ const EchoFigure = (() => {
     line(ctx, skinShade, 3.4, -8, 1.8, -10.2 + stride * 1.7, 7.4);
     ctx.save();
     ctx.translate(0, -24); ctx.scale(0.36, 0.36);
-    drawShirt(ctx);
+    drawShirt(ctx, outfit);
     ctx.restore();
     line(ctx, skin, 3.3, 8, 1.8, handX(stride), handY);
     heldLight(ctx, stride, aim);

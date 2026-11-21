@@ -57,9 +57,9 @@ const LanState = (() => {
     (row[1] === null || number(row[1], 0, 2000)) ? [row[0], row[1] ?? Infinity] : null);
   const bound = (arr, limit) => arr.slice(0, limit);
 
-  function packPlayer(p) {
+  function packPlayer(p, pending) {
     return [pack(p, playerFields), pack(p.st, 'maxHp area amount'),
-      p.weapons.map(w => pack(w, weaponFields)), p.passives.map(q => [q.id, q.lv])];
+      p.weapons.map(w => pack(w, weaponFields)), p.passives.map(q => [q.id, q.lv]), pending];
   }
 
   function unpackPlayer(data, slot) {
@@ -68,6 +68,7 @@ const LanState = (() => {
     if (!p?.char || !number(st?.maxHp, 1, 5000) || !number(st.area, 0.1, 10) || !integer(st.amount, 0, 32) ||
         !integer(p.level, 1, 5000) || !number(p.xpNeed, 1) || !number(p.hp, 0, 5000)) return null;
     p.slot = slot; p.st = st; p.dmgBy = {};
+    if (integer(data[4], 0, p.level - 1)) p.outfitPending = data[4];
     p.weapons = mapRows(data[2], CFG.MAX_WEAPONS, row => {
       const w = unpack(row, weaponFields, { id: v => own(WEAPONS, v) });
       if (!w?.id || !integer(w.lv, 1, WEAPONS[w.id].max || 1)) return null;
@@ -81,7 +82,7 @@ const LanState = (() => {
   function packFrame(g) {
     const b = g.boss, e = g.environment;
     return {
-      clock: pack(g, 'time bossClearAt lastBossArena shake'), players: g.players.map(packPlayer),
+      clock: pack(g, 'time bossClearAt lastBossArena shake'), players: g.players.map(p => packPlayer(p, g.pendingFor(p))),
       boss: b && [pack(b, bossFields), b.arena && [b.arena.id, b.arena.from], b.seals?.map(s => pack(s, 'x y r'))],
       enemies: g.enemies.filter(e => !e.dead && e !== b).map(e => [typeKeys.indexOf(e.type), ...pack(e, enemyFields)]),
       projs: bound(g.projs, 400).map(p => pack(p, projs)), bullets: bound(g.ebullets, 120).map(p => pack(p, bullets)),
@@ -89,6 +90,8 @@ const LanState = (() => {
       pickups: bound(g.pickups, 400).map(p => pack(p, 'x y type')), fx: bound(g.fx, 100).map(f => pack(f, fx)),
       parts: bound(g.parts, 100).map(q => pack(q, 'x y life c')), texts: bound(g.texts, 80).map(t => pack(t, 'x y life c s')),
       lit: [...e.lit].slice(-2000), reeds: [...e.reeds].slice(-2000), ready: [...e.landmarkReady].slice(-2000),
+      rescue: g.rescue && [g.rescue.used, Math.round(g.rescue.progress * 100) / 100],
+      signals: g.signals?.map(v => v && v.until > g.time ? [v.id, Math.round(v.until * 100) / 100] : null),
     };
   }
 
@@ -99,6 +102,12 @@ const LanState = (() => {
     if (!players.every(Boolean) || !clock || !number(clock.time, 0, CFG.RUN_TIME + 1)) return null;
     const [partner, player] = players;
     const frame = { ...clock, player, partner, players, boss: null, bossClearAt: clock.bossClearAt ?? -Infinity, lastBossArena: clock.lastBossArena ?? null };
+    frame.rescue = Array.isArray(s.rescue) && typeof s.rescue[0] === 'boolean' && number(s.rescue[1], 0, RESCUE_SECONDS) ?
+      { used: s.rescue[0], progress: s.rescue[1] } : null;
+    frame.signals = [0, 1].map(slot => {
+      const v = Array.isArray(s.signals) ? s.signals[slot] : null;
+      return Array.isArray(v) && own(COOP_SIGNALS, v[0]) && number(v[1], clock.time, clock.time + 3) ? { id: v[0], until: v[1] } : null;
+    });
     frame.enemies = mapRows(s.enemies, CFG.MAX_ENEMIES, row => {
       if (!Array.isArray(row) || !integer(row[0], 0, typeKeys.length - 1) || typeKeys[row[0]] === 'boss') return null;
       const e = unpack(row.slice(1), enemyFields);

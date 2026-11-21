@@ -8,3 +8,6 @@ const CFG = {
   MAX_PASSIVES: 6,
   PLAYER_R: 11,       // 玩家受击半径
 };
+
+const OUTFIT_MILESTONES = [2, 5, 10];
+const SEAL_REWARDS = { interval: 90, boss: 2, dawn: 2 };

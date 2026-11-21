@@ -1,5 +1,16 @@
 'use strict';
 // 地图各自定义地貌、灯、机关、天气与出没的鬼怪。重访同一地图使用同一布局。
+const OPENING_DURATION = 60;
+const OPENING_ROUTES = {
+  dusk: { cost: 0, icon: 'lantern', desc: '默认夜巡路线，先走松灯古道，再依次经过其他场景。' },
+  night: { cost: 100, icon: 'moon', desc: '从薄雾松林出发。幽冥灯照路，镇魂钟可震退夜兽。',
+    arrival: { scene: 'night', kind: 'arrival', enemy: 'paperChild', msg: '松影里走出一个纸扎童子', sound: 'paperChildArrival' } },
+  rain: { cost: 140, icon: 'rainRoute', desc: '从落雨的石庭出发。有红喜灯、引星符阵和油纸伞鬼。',
+    arrival: { scene: 'rain', kind: 'arrival', enemy: 'umbrellaGhost', msg: '雨幕里撑起一把油纸伞', sound: 'umbrellaOpen' } },
+  snow: { cost: 160, icon: 'winter', desc: '从飘雪的山径出发。火盆照路，取暖龛可回血。',
+    arrival: { scene: 'snow', kind: 'arrival', enemy: 'snowEnvoy', msg: '雪地现出一道白影', sound: 'envoyCall' } },
+};
+
 const Environment = {
   scenes: {
     dusk: { name: '松灯古道', ground: '#44483a', shade: [33, 28, 41], weather: 'clear', darkness: 0.75,
@@ -14,11 +25,11 @@ const Environment = {
       enemies: { shade: 3, jiangshi: 2, paperChild: 2 }, late: { jiangshi: 4, moth: 3, paperChild: 1, spitter: 1 } },
     rain: { name: '雨落石庭', ground: '#364450', shade: [22, 22, 35], weather: 'rain', darkness: 0.96, sound: 'rainPass',
       seed: 97, solids: ['courtyardGate', 'stoneScreen'], decor: 'puddle', lamp: 'weddingLamp', landmark: 'starSigil',
-      enemies: { shade: 4, umbrellaGhost: 2, bride: 1, swarm: 0.18 }, late: { umbrellaGhost: 4, bride: 3, spitter: 2, swarm: 0.25 },
+      opening: { shade: 4, umbrellaGhost: 1 }, enemies: { shade: 4, umbrellaGhost: 2, bride: 1, swarm: 0.18 }, late: { umbrellaGhost: 4, bride: 3, spitter: 2, swarm: 0.25 },
       boss: { t: 720, variant: 'bridalQueen', tier: 2 } },
     snow: { name: '霜封山径', ground: '#687d7d', shade: [21, 38, 51], weather: 'snow', darkness: 0.83, sound: 'snowPass',
       seed: 127, solids: ['snowPine', 'snowRock'], decor: 'snowDrift', lamp: 'brazier', landmark: 'warmingShrine',
-      enemies: { shade: 4, snowEnvoy: 2, brute: 0.75 }, late: { snowEnvoy: 4, brute: 3, golem: 1.3, wraith: 1 },
+      opening: { shade: 4, snowEnvoy: 1 }, enemies: { shade: 4, snowEnvoy: 2, brute: 0.75 }, late: { snowEnvoy: 4, brute: 3, golem: 1.3, wraith: 1 },
       boss: { t: 480, variant: 'coffinKing', tier: 1 } },
     dawn: { name: '天光破晓', ground: '#6e684a', shade: [65, 52, 41], weather: 'clear', darkness: 0.16,
       seed: 163, solids: ['pine', 'graveStele'], decor: 'waystone', lamp: 'dawnLamp', landmark: 'dawnAltar',
@@ -40,10 +51,17 @@ const Environment = {
     return { id, from, since, mix: t * t * (3 - 2 * t) };
   },
 
-  sceneAt(time) {
+  canOpen(data, id) {
+    return typeof id === 'string' && Object.hasOwn(OPENING_ROUTES, id) &&
+      (OPENING_ROUTES[id].cost === 0 || data?.routes?.[id] === true);
+  },
+
+  sceneAt(time, opening = 'dusk') {
+    if (opening !== 'dusk' && time < OPENING_DURATION) return this.transition(opening, opening, 0, time);
     let index = this.route.length - 1;
     while (index > 0 && time < this.route[index][0]) index--;
     const [since, id] = this.route[index];
+    if (opening !== 'dusk' && since < OPENING_DURATION) return this.transition(id, opening, OPENING_DURATION, time);
     const from = this.route[Math.max(0, index - 1)][1];
     return this.transition(id, from, since, time, id === 'dawn' ? 12 : 5);
   },
@@ -51,7 +69,7 @@ const Environment = {
   forBattle(g) {
     const arena = g.boss?.arena;
     if (arena) return this.transition(arena.id, arena.from, g.boss.arrivedAt, g.time);
-    const scheduled = this.sceneAt(g.time);
+    const scheduled = this.sceneAt(g.time, g.openingScene);
     // 门关着直到 Boss 倒下。若轮到新地图，破晓余光期间平滑接回路线。
     if (g.lastBossArena && g.time - g.bossClearAt < 5 && g.lastBossArena !== this.landscape(scheduled)) {
       return this.transition(this.landscape(scheduled), g.lastBossArena, g.bossClearAt, g.time);

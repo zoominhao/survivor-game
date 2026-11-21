@@ -45,7 +45,8 @@ const BattleEnemies = {
     }
     // 定时事件
     while (this.evIdx < EVENTS.length && t >= EVENTS[this.evIdx].t) {
-      const ev = EVENTS[this.evIdx++];
+      const event = EVENTS[this.evIdx++];
+      const ev = event.opening ? OPENING_ROUTES[this.openingScene]?.arrival ?? event : event;
       const p = anchor();
       if (ev.kind !== 'boss' && ev.scene !== landscape) continue;
       if (ev.kind === 'ring') {
@@ -55,11 +56,13 @@ const BattleEnemies = {
           this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         }
         this.emit('banner', ev.msg || `${ENEMIES[ev.enemy].name}正在合围！`);
+        this.deferVoice(ENEMIES[ev.enemy].voice);
         this.play(ev.sound || 'siegeArrival');
       } else if (ev.kind === 'arrival') {
         const a = Math.random() * TAU, rr = R * 0.78;
         this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         this.emit('banner', ev.msg);
+        this.deferVoice(ENEMIES[ev.enemy].voice);
         if (ev.sound) this.play(ev.sound);
       } else if (ev.kind === 'boss') {
         this.pendingBosses.push(ev);
@@ -122,6 +125,12 @@ const BattleEnemies = {
       }
       const stepSound = def.moveSound;
       if (sp > 0 && stepSound && e.t % stepSound.period < dt) this.playNearby(stepSound.cue, e, stepSound.range);
+      const voice = def.voice;
+      if (sp > 0 && voice && d < voice.range && this.time >= this.voiceQuietUntil && this.time >= (this.voiceReady[voice.cue] ?? 0)) {
+        this.deferVoice(voice);
+        // 保留方位，但在触发范围边缘也能听见人声，不压成段落末尾的微响。
+        this.play(voice.cue, 1 - 0.38 * d / voice.range, U.clamp(-dx / 200, -0.7, 0.7));
+      }
       let mx = dx / d, my = dy / d;
       if (def.weave) {
         const sway = Math.sin(e.t * 7) * def.weave;
@@ -182,6 +191,12 @@ const BattleEnemies = {
   },
 
   hopLift(e, period) { return Math.sin(Math.PI * ((e.t % period) / period)); },
+
+  deferVoice(voice) {
+    if (!voice) return;
+    this.voiceReady[voice.cue] = this.time + voice.interval;
+    this.voiceQuietUntil = this.time + 2.5;
+  },
 
   fireEnemyVolley(e, def, angle) {
     e.shootT = def.shotCd ?? 2.8;

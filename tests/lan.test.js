@@ -144,6 +144,26 @@ test('连接码限本地候选，非法角色、选项、信令不进入战斗',
   assert.equal(LanState.readFrame(malformed), null);
 });
 
+test('来客使用工程师·竹时，专属技能和各自未选卡数都能跨局域网同步', () => {
+  const { game: g, LanState } = setup();
+  g.start('ella', 'zhu');
+  g.addWeapon('boardingPass', g.partner);
+  g.addWeapon('noodleRing', g.partner);
+  g.addWeapon('aiIntercept', g.partner);
+  const foe = g.spawnEnemy('brute', g.partner.x + 65, 0);
+  foe.speed = 0;
+  g.update(1 / 60);
+  g.player.level = 2; g.pending = 1;
+  g.partner.level = 5; g.partner.pending = 0;
+  const frame = LanState.readFrame(JSON.parse(JSON.stringify(LanState.packFrame(g))));
+  assert.equal(frame.player.char, 'zhu');
+  assert.ok(frame.projs.some(p => p.look === 'code') && frame.projs.some(p => p.look === 'ticket'));
+  assert.ok(frame.zones.some(z => z.type === 'ring' && z.look === 'noodles' && z.wid === 'noodleRing'));
+  assert.ok(frame.zones.some(z => z.type === 'meteor' && z.look === 'aiScan' && z.wid === 'aiIntercept'));
+  assert.equal(frame.player.outfitPending, 0);
+  assert.equal(frame.partner.outfitPending, 1);
+});
+
 test('可靠通道分块拼接，拥塞时不排入更多快照', () => {
   const { LanLink } = setup();
   const sender = Object.create(LanLink.prototype), receiver = Object.create(LanLink.prototype);

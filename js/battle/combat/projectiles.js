@@ -3,12 +3,12 @@
 // 投射物、区域武器与敌方弹幕。
 const BattleProjectiles = {
   // ---------- 投射物 ----------
-  addProj(o) {
+  addProj(o, p = this.player) {
     o.uid = 'p' + (++this.uid);
     o.age = 0;
     o.maxLife = o.life;
     o.hit = new Set();
-    o.owner = this.player;
+    o.owner = p;
     this.projs.push(o);
   },
 
@@ -94,7 +94,7 @@ const BattleProjectiles = {
     b.speed = Math.hypot(b.vx, b.vy);
     b.vx = Math.cos(angle) * b.speed;
     b.vy = Math.sin(angle) * b.speed;
-    this.play('bounce');
+    this.play(WEAPONS[b.wid]?.bounceSound || 'bounce');
   },
 
   // ---------- 区域效果:落地冲击、火海、霜环、年糕陷阱 ----------
@@ -110,8 +110,9 @@ const BattleProjectiles = {
           const meteor = z.type === 'meteor';
           keep = false;
           this.aoe(z.x, z.y, z.r, z.dmg, z.wid, z.kb ?? (meteor ? 220 : 75), z.owner);
-          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: meteor ? '#ff9f6b' : z.color });
-          this.burst(z.x, z.y, meteor ? '#ffb36b' : z.color, 8);
+          const color = z.color || (meteor ? '#ff9f6b' : '#ffb36b');
+          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.r, life: 0.35, max: 0.35, c: color });
+          this.burst(z.x, z.y, z.color || (meteor ? '#ffb36b' : color), 8);
           if (z.type === 'watermelon') this.burst(z.x, z.y, '#80c48b', 6);
           this.shake = Math.max(this.shake, meteor ? 6 : 2);
           this.play(z.impactSound ?? (meteor ? 'boom' : z.type === 'watermelon' ? 'splash' : 'land'));
@@ -162,6 +163,21 @@ const BattleProjectiles = {
   },
 
   // ---------- 敌方子弹 ----------
+  reflectBullet(b, p) {
+    if (p.iframe > 0 || this.practiceInvincible || this.state !== 'playing') return false;
+    const mirror = p.weapons.find(w => w.id === 'boneMirror' && w.timer <= 0);
+    if (!mirror) return false;
+    const s = mirror.s, speed = Math.hypot(b.vx, b.vy);
+    const dx = speed > 0 ? -b.vx / speed : p.dirx, dy = speed > 0 ? -b.vy / speed : p.diry;
+    mirror.timer = s.cd * p.st.cd;
+    const color = WEAPONS[mirror.id].color;
+    this.addProj({ x: b.x, y: b.y, vx: dx * 480, vy: dy * 480, r: 6 * p.st.area, life: 1.2,
+      dmg: s.dmg * p.st.might, pierce: s.pierce, wid: mirror.id, look: 'mirrorBolt', color, kb: 80 }, p);
+    this.fx.push({ type: 'mirrorWard', x: p.x, y: p.y, r: 25, life: 0.35, max: 0.35, c: color });
+    this.play('mirrorChime');
+    return true;
+  },
+
   updateBullets(dt) {
     const arr = this.ebullets;
     let n = 0;
@@ -172,7 +188,10 @@ const BattleProjectiles = {
       const p = this.coop ? this.nearestPlayer(b.x, b.y) : this.player;
       if (!p) break;
       const dx = b.x - p.x, dy = b.y - p.y, rr = b.r + CFG.PLAYER_R;
-      if (dx * dx + dy * dy < rr * rr) { this.hurtPlayer(b.dmg, null, p); continue; }
+      if (dx * dx + dy * dy < rr * rr) {
+        if (!this.reflectBullet(b, p)) this.hurtPlayer(b.dmg, null, p);
+        continue;
+      }
       if (b.life > 0) arr[n++] = b;
     }
     arr.length = n;

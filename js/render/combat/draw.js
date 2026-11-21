@@ -19,7 +19,7 @@ const CombatRendering = {
       ctx.setLineDash([]);
     }
     for (const z of g.zones) {
-      if (z.type === 'meteor') {
+      if (z.type === 'meteor' && z.look !== 'aiScan') {
         const k = 1 - z.t / z.max;
         ctx.fillStyle = `rgba(255,90,50,${0.08 + k * 0.2})`;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r * k, 0, TAU); ctx.fill();
@@ -42,12 +42,16 @@ const CombatRendering = {
         FoodArt.sauce(ctx, z);
       } else if (z.type === 'fire' && z.look === 'bubbletea') {
         FoodArt.teaSpill(ctx, z);
+      } else if (z.type === 'fire' && z.look === 'incense') {
+        RelicArt.incense(ctx, z, time);
       } else if (z.type === 'fire') {
         const a = Math.min(1, z.life) * (0.26 + Math.sin(time * 18 + z.x) * 0.06);
         ctx.fillStyle = `rgba(255,120,40,${a})`;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.fill();
         ctx.fillStyle = `rgba(255,210,90,${a * 0.8})`;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r * 0.55, 0, TAU); ctx.fill();
+      } else if (z.type === 'ring' && z.look === 'noodles') {
+        ZhuSkillArt.noodles(ctx, z, time);
       } else if (z.type === 'ring' && z.look === 'roar') {
         XiaoxiaoArt.roar(ctx, z);
       } else if (z.type === 'ring') {
@@ -243,6 +247,10 @@ const CombatRendering = {
         this.drawBasketball(ctx, b);
       } else if (b.look === 'latiao' || b.look === 'pony') {
         XiaoxiaoArt[b.look](ctx, b);
+      } else if (b.look === 'code' || b.look === 'ticket') {
+        ZhuSkillArt[b.look](ctx, b);
+      } else if (b.look === 'soulCoin' || b.look === 'mirrorBolt') {
+        RelicArt[b.look](ctx, b);
       } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato' || b.look === 'bubbletea') {
         FoodArt[b.look](ctx, b);
       } else if (b.look === 'bolt') {
@@ -282,6 +290,7 @@ const CombatRendering = {
     }
     // 有延迟的落地技能：陨星、灵猴与西瓜。
     for (const z of g.zones) {
+      if (z.look === 'aiScan') { if (vis(z.x, z.y, z.r)) ZhuSkillArt.scan(ctx, z); continue; }
       if (z.type === 'monkey') this.drawMonkeyLeap(ctx, z);
       else if (z.type === 'watermelon') FoodArt.watermelon(ctx, z);
       else if (z.type === 'goldIngot') this.drawGoldIngot(ctx, z);
@@ -343,6 +352,8 @@ const CombatRendering = {
         FoodArt.drumstickHeal(ctx, f, k);
       } else if (f.type === 'skincare') {
         XiaoxiaoArt.balm(ctx, f, k);
+      } else if (f.type === 'mirrorWard') {
+        RelicArt.mirrorWard(ctx, f, k);
       } else if (f.type === 'outfitPulse' && !this.reduceMotion?.matches) {
         const r = 13 + 25 * (1 - k);
         ctx.globalAlpha = k * 0.52;

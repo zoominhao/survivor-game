@@ -24,6 +24,7 @@ const BossBattle = {
       r: 44 + tier * 6, dmg: 14 + tier * 7, cd: 3, phase: '', arrivedAt: this.time, arena,
     });
     this.boss = boss;
+    if (kind === 'bridalQueen') this.deferVoice(ENEMIES.bride.voice);
     this.play(def.sound);
     this.emit('banner', `${def.name}降临`);
     return boss;
@@ -78,6 +79,8 @@ const BossBattle = {
   },
 
   bossCleared(boss, attacker = this.player) {
+    this.bossesDefeated++;
+    this.contractBoss(boss);
     for (let i = 0; i < 12; i++) this.dropGem(boss.x + U.rand(-50, 50), boss.y + U.rand(-50, 50), 8);
     this.lastBossArena = boss.arena ? Environment.landscape(Environment.forBattle(this)) : null;
     if (this.boss === boss) this.boss = null;

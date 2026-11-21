@@ -187,7 +187,7 @@ test('定时出现僵尸合围和鬼新娘，僵尸按起跳节奏移动', () =>
   Game.time = 119; Game.spawn(0);
   Game.time = 168; Game.spawn(0);
   assert.equal(Game.enemies.filter(e => e.type === 'bride').length, 1);
-  assert.ok(banners.includes('黄符僵尸围了上来') && banners.includes('雨里有人摇起了喜铃'));
+  assert.ok(banners.includes('黄符僵尸围了上来') && banners.some(text => text.includes('我冤呐')));
   assert.deepEqual(cues.map(args => args[0]), ['paperChildArrival', 'corpseAmbush', 'umbrellaOpen', 'siegeArrival', 'brideArrival']);
   const zombie = Game.spawnEnemy('jiangshi', 90, 0);
   zombie.t = 0; const before = zombie.x; Game.updateEnemies(1 / 60);
@@ -203,7 +203,7 @@ test('鬼新娘能穿障并射出三张扇形喜帖，弹幕继续遵守上限',
   assert.equal(bride.x, rock.x);
   bride.shootT = 0; Game.updateEnemies(1 / 60);
   assert.equal(Game.ebullets.length, 3);
-  assert.equal(cues[0][0], 'weddingPaper');
+  assert.ok(cues.some(([name]) => name === 'weddingPaper'));
   assert.ok(Game.ebullets.every(b => b.look === 'weddingPaper' && Math.abs(Math.hypot(b.vx, b.vy) - 128) < 0.001));
   assert.equal(new Set(Game.ebullets.map(b => b.vx)).size, 3);
   Game.ebullets = Array(79).fill(null);
@@ -245,10 +245,34 @@ test('黄符僵尸落地声随距离和方位变化，远处或冻结时不响',
   const frozen = Game.spawnEnemy('jiangshi', 85, 0);
   frozen.frozen = 1; frozen.t = 0.89;
   Game.updateEnemies(1 / 60);
-  assert.equal(cues.length, 2);
-  assert.ok(cues.every(([name]) => name === 'corpseHop'));
-  assert.ok(cues[0][1] > cues[1][1]);
-  assert.ok(cues[0][2] < 0 && cues[1][2] > 0);
+  const hops = cues.filter(([name]) => name === 'corpseHop');
+  assert.equal(hops.length, 2);
+  assert.ok(hops[0][1] > hops[1][1]);
+  assert.ok(hops[0][2] < 0 && hops[1][2] > 0);
+});
+
+test('鬼怪靠近时才喊叫，同种与不同种的叫声都限频，不把怪潮混成噪声', () => {
+  const { Game, cues } = setup();
+  const zombie = Game.spawnEnemy('jiangshi', 90, 0);
+  const nextZombie = Game.spawnEnemy('jiangshi', -92, 0);
+  const bride = Game.spawnEnemy('bride', 380, 0);
+  zombie.frozen = nextZombie.frozen = 1;
+  Game.updateEnemies(0.02);
+  const calls = () => cues.filter(([name]) => name === 'corpseSnarl' || name === 'brideAccuse');
+  assert.equal(calls().length, 0);
+  zombie.frozen = nextZombie.frozen = 0;
+  Game.updateEnemies(0.02);
+  assert.equal(calls().length, 1);
+  assert.equal(calls()[0][0], 'corpseSnarl');
+  assert.ok(calls()[0][1] > 0.62 && calls()[0][2] > 0);
+  bride.x = 200;
+  Game.time += 1;
+  Game.updateEnemies(0.02);
+  assert.equal(calls().length, 1);
+  Game.time += 2;
+  Game.updateEnemies(0.02);
+  assert.equal(calls().length, 2);
+  assert.equal(calls()[1][0], 'brideAccuse');
 });
 
 test('随场景和过渡进度替换特色刷怪池，开局使用默认怪潮', () => {

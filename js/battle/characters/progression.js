@@ -4,22 +4,30 @@
 const BattleProgression = {
   xpFor(lv) { return Math.floor(5 + (lv - 1) * 5 + Math.pow(lv - 1, 1.6)); },
 
-  // 汇总角色、局外强化、被动道具,得到当前面板
+  // 面板预览和实战共用同一套初始属性，界面不另算一份数值。
+  statsFor(char, passives = []) {
+    const c = CHARS[char], { meta: m, training } = this.save.data;
+    const trained = this.coop ? null : training?.[char];
+    const T = id => (trained?.[id] ?? 0) * HERO_TRAINING[id].step;
+    const L = id => passives.find(q => q.id === id)?.lv ?? 0;
+    return {
+      maxHp: Math.round((100 + (c.hp || 0) + T('vital')) * (1 + 0.1 * m.vital + 0.2 * L('vital'))),
+      speed: 150 * (1 + (c.speed || 0) + T('swift') + 0.04 * m.swift + 0.08 * L('swift')),
+      might: 1 + (c.might || 0) + T('might') + 0.05 * m.might + 0.1 * L('might'),
+      cd: Math.max(0.35, (1 - (c.haste || 0)) * (1 - 0.08 * L('haste'))),
+      area: 1 + 0.1 * L('area'),
+      amount: (c.amount || 0) + L('amount'),
+      armor: (c.armor || 0) + m.armor + L('armor'),
+      regen: 0.1 * m.regen + 0.3 * L('regen'),
+      magnet: 70 * (1 + (c.magnet || 0) + 0.15 * m.magnet + 0.3 * L('magnet')),
+      growth: 1 + 0.05 * m.growth + 0.08 * L('wisdom'),
+      greed: 1 + 0.1 * m.greed,
+    };
+  },
+
   recalc(p = this.player) {
-    const c = CHARS[p.char], m = this.save.data.meta, st = p.st;
-    const L = id => { const q = p.passives.find(x => x.id === id); return q ? q.lv : 0; };
-    const oldMax = st.maxHp || 0;
-    st.maxHp = Math.round((100 + (c.hp || 0)) * (1 + 0.1 * m.vital + 0.2 * L('vital')));
-    st.speed = 150 * (1 + (c.speed || 0) + 0.04 * m.swift + 0.08 * L('swift'));
-    st.might = 1 + (c.might || 0) + 0.05 * m.might + 0.1 * L('might');
-    st.cd = Math.max(0.35, (1 - (c.haste || 0)) * (1 - 0.08 * L('haste')));
-    st.area = 1 + 0.1 * L('area');
-    st.amount = (c.amount || 0) + L('amount');
-    st.armor = (c.armor || 0) + m.armor + L('armor');
-    st.regen = 0.1 * m.regen + 0.3 * L('regen');
-    st.magnet = 70 * (1 + (c.magnet || 0) + 0.15 * m.magnet + 0.3 * L('magnet'));
-    st.growth = 1 + 0.05 * m.growth + 0.08 * L('wisdom');
-    st.greed = 1 + 0.1 * m.greed;
+    const st = p.st, oldMax = st.maxHp || 0;
+    Object.assign(st, this.statsFor(p.char, p.passives));
     if (oldMax && st.maxHp > oldMax) p.hp += st.maxHp - oldMax; // 生命上限提高时同步补血
   },
 
@@ -48,6 +56,7 @@ const BattleProgression = {
       for (const id in WEAPONS) {
         const d = WEAPONS[id];
         if (d.evolved || (d.exclusive && d.exclusive !== p.char) || p.evolved[id] || p.weapons.some(w => w.id === id)) continue;
+        if (d.unlockCost && (this.coop || this.save.data.skills?.[id] !== true)) continue;
         pool.push({ kind: 'weapon', id, lv: 1, wt: 2 });
       }
     }
@@ -59,13 +68,18 @@ const BattleProgression = {
         if (!p.passives.some(q => q.id === id)) pool.push({ kind: 'passive', id, lv: 1, wt: 2 });
       }
     }
-    // 多选升级时优先给一个尚未习得的专属武器，宝箱单次抽取照旧。
-    if (n > 1 && out.length < n) {
-      const exclusive = pool.filter(c => c.kind === 'weapon' && c.lv === 1 && WEAPONS[c.id].exclusive === p.char);
-      if (exclusive.length) {
-        const choice = exclusive[U.randInt(0, exclusive.length - 1)];
-        out.push(...pool.splice(pool.indexOf(choice), 1));
-      }
+    // 专属技能仍优先；单人第 2 级额外给已购的新技能留一张卡。宝箱照常按权重抽取。
+    if (n > 1) {
+      const reserve = match => {
+        if (out.length >= n) return;
+        const choices = pool.filter(c => c.kind === 'weapon' && c.lv === 1 && match(WEAPONS[c.id]));
+        if (!choices.length) return;
+        const chosen = choices[U.randInt(0, choices.length - 1)];
+        out.push(...pool.splice(pool.indexOf(chosen), 1));
+      };
+      reserve(d => d.exclusive === p.char);
+      const pending = this.pendingFor(p);
+      if (!this.coop && pending > 0 && p.level - pending === 1) reserve(d => d.unlockCost);
     }
     // 按权重不放回抽取
     while (out.length < n && pool.length) {
@@ -143,11 +157,13 @@ const BattleProgression = {
     const p = this.levelPlayer || this.player;
     this.applyChoice(this.choices[i], p);
     this.addPending(p, -1);
+    if (OUTFIT_MILESTONES.includes(p.level - this.pendingFor(p))) {
+      this.fx.push({ type: 'outfitPulse', x: p.x, y: p.y, life: 0.78, max: 0.78, c: CHARS[p.char].color });
+    }
     if (this.pendingFor(p) > 0) {
       this.choices = this.buildChoices(3, p);
       this.emit('levelup');
     } else {
-      this.fx.push({ type: 'outfitPulse', x: p.x, y: p.y, life: 0.55, max: 0.55, c: CHARS[p.char].color });
       this.levelPlayer = null;
       this.state = 'playing';
       if (this.coop) this.nextLevelUp();

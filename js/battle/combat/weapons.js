@@ -27,6 +27,7 @@ function upgradeText(delta) {
     else if (k === 'guards') out.push('抵挡次数 +' + v);
     else if (k === 'heal') out.push('回复量 +' + Math.round(v * 100) + '% 最大生命');
     else if (k === 'reduce') out.push('减伤 +' + Math.round(v * 100) + '%');
+    else if (k === 'slow') out.push('减速 +' + Math.round(v * 100) + '%');
     else if (k === 'radius' || k === 'blast') out.push('范围 +' + v);
     else if (k === 'dur' || k === 'sauce') out.push('持续 +' + v + ' 秒');
     else if (k === 'size') out.push('体积 +' + v);
@@ -35,6 +36,33 @@ function upgradeText(delta) {
 }
 
 const WeaponFns = {
+  incense(g, w, s, dt) {
+    w.timer -= dt;
+    if (w.timer > 0) return;
+    const p = g.player;
+    if (!g.nearestEnemy(p.x, p.y, s.range)) { w.timer = 0.22; return; }
+    w.timer = s.cd * p.st.cd;
+    g.addZone({ type: 'fire', look: 'incense', x: p.x, y: p.y, r: s.radius * p.st.area, life: s.dur, tk: 0,
+      dmg: s.dmg * p.st.might, wid: w.id, slow: s.slow, color: WEAPONS[w.id].color });
+    g.play('incenseSet');
+  },
+
+  mirror(g, w, s, dt) {
+    w.timer = Math.max(0, w.timer - dt); // 没有弹幕时保留充能，不白白消耗冷却。
+  },
+
+  aiIntercept(g, w, s, dt) {
+    w.timer -= dt;
+    if (w.timer > 0) return;
+    const p = g.player, radius = s.radius * p.st.area;
+    const target = planAiStrike(g, p, s.range, radius, s.delay);
+    if (!target) { w.timer = 0.26; return; }
+    w.timer = s.cd * p.st.cd;
+    g.addZone({ type: 'meteor', look: 'aiScan', x: target.x, y: target.y, r: radius, t: s.delay, max: s.delay,
+      dmg: s.dmg * p.st.might, wid: w.id, kb: 95, color: WEAPONS[w.id].color, impactSound: 'aiStrike' });
+    g.play('aiScan');
+  },
+
   // 水润护肤：有恢复或防护需求才消耗冷却，减伤时间随战斗时钟递减。
   skincare(g, w, s, dt) {
     const p = g.player, st = p.st;

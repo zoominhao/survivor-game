@@ -1,5 +1,5 @@
 'use strict';
-// 妈妈·霄霄：按照片转绘，不携带原照片。头像和跑步共用脸部及服装图形。
+// 川妹·霄霄：按照片转绘，不携带原照片。头像和跑步共用脸部及服装图形。
 const XiaoxiaoArt = (() => {
   const skin = '#f2be9c', hair = '#29232f', white = '#faf5ed', seam = '#aab8bd', denim = '#314659';
   const paths = {
@@ -78,9 +78,10 @@ const XiaoxiaoArt = (() => {
     ctx.restore();
   }
 
-  function coat(ctx, sway, tier = 0) {
+  function coat(ctx, sway, outfit) {
+    const tier = outfit?.tier ?? 0;
     const cloth = ctx.createLinearGradient(-20, 10, 20, 32);
-    cloth.addColorStop(0, '#f9f6ee'); cloth.addColorStop(1, '#d5dfe0');
+    cloth.addColorStop(0, outfit?.main ?? '#f9f6ee'); cloth.addColorStop(1, tier ? outfit.trim : '#d5dfe0');
     fill(ctx, paths.coat, cloth, '#81969a', 1.1);
     ctx.strokeStyle = seam; ctx.lineWidth = 0.85; ctx.stroke(paths.quilt);
     oval(ctx, 2, 14.2, 1.1, 1.1, '#8fa0a4'); oval(ctx, 2, 24, 1.08, 1.08, '#8fa0a4');
@@ -130,7 +131,8 @@ const XiaoxiaoArt = (() => {
     ctx.restore();
   }
 
-  function runner(ctx, stride, tier, aim = 0) {
+  function runner(ctx, stride, outfit, aim = 0) {
+    const { tier } = outfit;
     ctx.save(); ctx.lineCap = 'round';
     const hx = 0.4 + stride * 0.5, hy = -15.7;
     for (const side of [-1, 1]) {
@@ -141,9 +143,9 @@ const XiaoxiaoArt = (() => {
       line(ctx, '#f7f3e9', 0.7, foot - 0.7, 15.25 - lift, foot + 2, 15.25 - lift);
     }
     backHair(ctx, hx, hy, 0.39, stride * 0.065);
-    line(ctx, '#d2dddc', 3.2, -6.8, -1, -8.7 + stride * 2.1, 6.7);
-    ctx.save(); ctx.translate(0, -8); ctx.scale(0.43, 0.47); coat(ctx, stride * 3, tier); ctx.restore();
-    line(ctx, white, 3.25, 7.1, -0.7, handX(stride), handY);
+    line(ctx, tier ? outfit.main : '#d2dddc', 3.2, -6.8, -1, -8.7 + stride * 2.1, 6.7);
+    ctx.save(); ctx.translate(0, -8); ctx.scale(0.43, 0.47); coat(ctx, stride * 3, outfit); ctx.restore();
+    line(ctx, tier ? outfit.main : white, 3.25, 7.1, -0.7, handX(stride), handY);
     head(ctx, hx, hy, 0.39, tier);
     phone(ctx, handX(stride), aim);
     oval(ctx, handX(stride), handY, 1.45, 1.45, skin);

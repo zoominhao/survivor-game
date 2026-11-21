@@ -1,8 +1,10 @@
 'use strict';
 
 // 大厅与浏览器会话。房主应用来客输入；来客的 Game 只读权威快照，不运行战斗。
+const LAN_FALLBACK_MS = 45000;
 const Lan = {
   phase: 'closed',
+  fallbackAt: 0,
   get guest() { return this.running && this.role === 'guest'; },
   get host() { return this.running && this.role === 'host'; },
   get localTurn() { return !this.running || Game.levelPlayer?.slot === Game.player.slot; },
@@ -11,7 +13,7 @@ const Lan = {
     this.close();
     this.char = Save.data.lastChar;
     this.phase = 'pick';
-    this.status = message || `已选 ${CHARS[this.char].name}。两台设备连同一个 Wi-Fi，最多两人；不计入单人存档。`;
+    this.status = message || `已选 ${CHARS[this.char].name}。好友用同一 Wi-Fi 和连接码加入；没人时可由机器人补位。`;
     UI.$('lanIn').value = '';
     UI.show('lan');
     UI.refreshLan();
@@ -30,6 +32,8 @@ const Lan = {
     this.otherChar = null;
     this.role = null;
     this.phase = 'closed';
+    this.fallbackAt = 0;
+    this.signalSentAt = -Infinity;
     this.sendAt = 0;
     this.lastSentPanel = '';
     this.lastSentTurn = -1;
@@ -56,7 +60,7 @@ const Lan = {
   select(role) {
     if (this.phase !== 'pick') return;
     this.role = role;
-    if (!globalThis.RTCPeerConnection) { this.statusText('此浏览器不支持局域网联机。请用新版 Chrome、Edge 或 Safari。'); return; }
+    if (!globalThis.RTCPeerConnection) { this.statusText('此浏览器不支持好友联机，仍可直接和机器人开局。'); return; }
     if (role === 'host') this.makeLink();
     else {
       this.phase = 'offer-in';
@@ -81,6 +85,7 @@ const Lan = {
       if (this.link !== link) return;
       this.out = code;
       this.phase = host ? 'answer-in' : 'answer-out';
+      if (host) this.fallbackAt = performance.now() + LAN_FALLBACK_MS;
       this.statusText(host ? '把邀请码发给队友，再粘贴对方回传的应答码。' : '把应答码回传房主，保持网页开启。');
     } catch (e) {
       if (this.link !== link && link) return;
@@ -95,10 +100,13 @@ const Lan = {
     if (this.phase === 'offer-in') { await this.makeLink(code); return; }
     if (this.phase !== 'answer-in') return;
     const link = this.link;
+    const deadline = this.fallbackAt;
+    this.fallbackAt = Math.max(deadline, performance.now() + 6500);
     this.phase = 'answer-busy';
     this.statusText('正在连接队友…');
     try { await link.accept(code); } catch (e) {
       if (link !== this.link) return;
+      this.fallbackAt = deadline;
       this.phase = 'answer-in';
       this.statusText(e instanceof DOMException ? '这不是当前邀请的应答码，请重新复制。' : e.message);
     }
@@ -111,6 +119,7 @@ const Lan = {
   },
 
   lost() {
+    if (!this.running && this.role === 'host' && this.fallbackAt) { this.startBot('未连上好友，机器人已补位'); return; }
     if (this.running && Game.result) {
       this.link.close(); this.link = null;
       return; // 断线后保留已经收到的战报，等玩家主动返回。
@@ -124,12 +133,35 @@ const Lan = {
 
   start() {
     if (this.running || this.role !== 'host' || !this.otherChar || !this.link?.writable) return;
+    this.begin(this.otherChar, false);
+  },
+
+  tickLobby(now) {
+    if (!this.fallbackAt || this.otherChar || this.running || document.hidden) return;
+    const remaining = Math.max(0, Math.ceil((this.fallbackAt - now) / 1000));
+    UI.updateLanCountdown(remaining);
+    if (!remaining) this.startBot('没有好友就绪，机器人已补位');
+  },
+
+  startBot(message = '机器人搭档已出发') {
+    if (this.running || this.phase === 'closed' || this.otherChar ||
+        (this.role === 'guest' && this.phase === 'connected')) return false;
+    this.close();
+    this.role = 'bot';
+    this.begin(this.char === 'zhu' ? 'xiaoxiao' : 'zhu', true);
+    UI.banner(message);
+    return true;
+  },
+
+  begin(partner, robot) {
     const view = Game.view;
     const save = { data: Save.defaults() };
     Game = createBattle({ save, emit: (e, v) => this.battleEvent(e, v), play: (...a) => this.sound(a) });
     Game.view = view;
     this.running = true;
-    Game.start(this.char, this.otherChar);
+    this.fallbackAt = 0;
+    this.phase = 'playing';
+    Game.start(this.char, partner, { robot });
     UI.cache = {};
     Input.keys.clear();
     Input.endJoy();
@@ -143,7 +175,7 @@ const Lan = {
       Input.endJoy();
       if (this.localTurn) UI.showLevelUp(); else UI.showLanWait('等候队友选卡', '队友正在选择自己的升级，本局暂时暂停。');
     } else {
-      if (e === 'banner') this.events.push(['banner', v]);
+      if (e === 'banner' && this.link) this.events.push(['banner', v]);
       battleViews[e](v);
     }
     if (e !== 'banner') this.sendAt = 0;
@@ -151,7 +183,7 @@ const Lan = {
 
   sound(args) {
     Sfx.play(...args);
-    if (this.events.length < 48 && !this.events.some(e => e[0] === 'sound' && e[1] === args[0])) this.events.push(['sound', ...args]);
+    if (this.link && this.events.length < 48 && !this.events.some(e => e[0] === 'sound' && e[1] === args[0])) this.events.push(['sound', ...args]);
   },
 
   sendFrame() {
@@ -175,6 +207,7 @@ const Lan = {
     if (this.role === 'host') {
       if (!this.running && this.phase === 'connected' && data.t === 'hello' && !this.otherChar && LanState.own(CHARS, data.char)) {
         this.otherChar = data.char;
+        this.fallbackAt = 0;
         this.statusText(`2 / 2 已就绪 · ${CHARS[this.char].name} / ${CHARS[this.otherChar].name}`);
       }
       if (!this.host) return;
@@ -183,6 +216,7 @@ const Lan = {
       }
       if (data.t === 'pick' && Game.state === 'levelup' && Game.levelPlayer?.slot === 1 &&
           data.turn === this.turn && LanState.integer(data.index, 0, Game.choices.length - 1)) Game.choose(data.index);
+      if (data.t === 'signal') Game.sendSignal(1, data.id);
     } else if (this.role === 'guest' && this.phase === 'connected' && data.t === 'frame') this.applyFrame(data);
   },
 
@@ -258,6 +292,15 @@ const Lan = {
     }
   },
 
+  sendSignal(id) {
+    if (!this.running || Game.state !== 'playing' || !LanState.own(COOP_SIGNALS, id)) return false;
+    if (!this.guest) return Game.sendSignal(0, id);
+    const now = performance.now();
+    if (now - this.signalSentAt < 2500 || !this.link?.send({ t: 'signal', id }, true)) return false;
+    this.signalSentAt = now;
+    return true;
+  },
+
   prepareMotion(frame, panel) {
     this.motion = [];
     if (panel !== 'playing' || Game.state !== 'playing') return;
@@ -273,7 +316,8 @@ const Lan = {
   },
 
   step(dt, now) {
-    if (this.host) {
+    if (this.role === 'bot') Game.update(dt, Input);
+    else if (this.host) {
       const r = this.remote;
       Game.update(dt, Input, r && now - r.at < 300 ? r : {});
       if (now >= this.sendAt) {

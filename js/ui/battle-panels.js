@@ -37,6 +37,9 @@ const BattlePanelsUI = {
   // ---------- 升级选卡 ----------
   showLevelUp() {
     const p = Game.player;
+    const advice = recommendUpgrade(Game.choices, p);
+    this.$('lvAdvice').hidden = !advice;
+    this.$('lvAdvice').textContent = advice ? `AI 军师 · 建议第 ${advice.index + 1} 张：${advice.reason}` : '';
     this.$('lvTitle').textContent = '修为精进 · ' + (p.level - Game.pending + 1) + ' 级';
     const box = this.$('cards');
     box.innerHTML = '';
@@ -44,6 +47,7 @@ const BattlePanelsUI = {
       const info = Game.describe(c);
       const b = document.createElement('button');
       b.className = 'card ' + info.cls;
+      if (i === advice?.index) b.classList.add('advised');
       b.innerHTML = this.cardHtml(info, i + 1);
       b.addEventListener('click', () => { Sfx.play('click'); Game.choose(i); });
       box.appendChild(b);
@@ -93,10 +97,13 @@ const BattlePanelsUI = {
   showResult() {
     const r = Game.result, p = Game.player;
     this.$('resTitle').textContent = r.win ? '天亮了' : '长夜吞没了你';
-    this.$('resSub').textContent = r.coop ? '双人战报 · 小队击杀合计，不影响单人战绩和存档。' :
-      r.assisted ? '本局使用了练习功能，不计战绩或金币奖励。' :
+    this.$('resSub').textContent = r.coop ? `${Game.robot ? '机器人搭档' : '双人战报'} · 小队击杀合计，不影响单人战绩和存档。` :
+      r.assisted ? '本局使用了练习功能，不计战绩、金币或守夜印。' :
       r.win ? '你守到了黎明,夜兽在晨光中消散。' : '提灯熄灭了,但余烬仍在。';
     this.$('result').classList.toggle('win', r.win);
+    this.$('resSeals').classList.toggle('hidden', r.coop || r.assisted);
+    this.$('resSealCount').textContent = r.earnedSeals ?? 0;
+    this.showContractResult(r);
     this.$('resStats').innerHTML =
       `<div><b>${U.fmtTime(r.time)}</b><small>坚持时间${r.newBest ? ' · 新纪录' : ''}</small></div>` +
       `<div><b>${r.level}</b><small>等级</small></div>` +

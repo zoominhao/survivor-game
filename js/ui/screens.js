@@ -2,7 +2,7 @@
 // ===== 界面:菜单、强化商店、升级选卡、宝箱、暂停、结算、HUD(均为 DOM) =====
 
 const UI = {
-  ...MenuUI, ...BattlePanelsUI, ...HudUI, ...UtilityUI, ...LanUI,
+  ...MenuUI, ...BattlePanelsUI, ...HudUI, ...UtilityUI, ...LanUI, ...ContractUI, ...CoopUI,
   cache: {},
   overlayId: null,
   $(id) { return document.getElementById(id); },
@@ -14,7 +14,14 @@ const UI = {
     on('btnStart', () => App.startRun());
     on('btnIntroSkip', () => App.finishIntro());
     on('btnShop', () => this.showShop());
+    on('btnShopMeta', () => this.showShop('meta'));
+    on('btnShopSkills', () => this.showShop('skills'));
+    on('btnShopRoutes', () => this.showShop('routes'));
+    on('btnShopTraining', () => this.showShop('training'));
     on('btnShopBack', () => this.showMenu());
+    on('btnContracts', () => this.showContracts());
+    on('btnContractsBack', () => this.showMenu());
+    on('btnClearContract', () => this.selectContract(null));
     on('btnReroll', () => Game.reroll());
     on('btnNormalFight', () => Game.chooseBossPlan('normal'));
     on('btnChestOk', () => Game.closeChest());
@@ -25,11 +32,13 @@ const UI = {
     on('btnPause', () => App.pause());
     this.initUtilities(on);
     this.initLan(on);
+    this.initSignals(on);
     this.showMenu();
   },
 
   // 显示指定浮层(null = 全部隐藏),并同步 HUD 可见性
   show(id) {
+    if (id) this.closeSignals();
     const previous = this.overlayId;
     this.overlayId = id;
     if (id === 'pause' && !['pause', 'audio', 'practice'].includes(previous)) {
@@ -47,7 +56,8 @@ const UI = {
       title.tabIndex = -1;
       title.focus({ preventScroll: true });
     } else if (id === 'menu' && previous) {
-      this.$(previous === 'shop' ? 'btnShop' : previous === 'lan' ? 'btnLan' : 'btnStart').focus();
+      const from = { shop: 'btnShop', lan: 'btnLan', contracts: 'btnContracts' };
+      this.$(from[previous] || 'btnStart').focus();
     } else if (previous === 'pause' && this.pauseFromHud) {
       this.$('btnPause').focus({ preventScroll: true });
     } else if (previous === 'decision' && this.decisionFocus) {

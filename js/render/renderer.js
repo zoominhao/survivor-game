@@ -1,9 +1,10 @@
 'use strict';
 
 // Canvas 布局、摄像机与每帧绘制顺序。
+const characterBeams = { echo: EchoFigure.drawBeam, xiaoxiao: XiaoxiaoArt.drawBeam, zhu: ZhuFigure.drawBeam };
 const Render = {
   ...EnemyRendering, ...CharacterRendering, ...CombatRendering,
-  cv: null, ctx: null, W: 0, H: 0, s: 1,
+  cv: null, ctx: null, W: 0, H: 0, s: 1, pixelScale: 1,
   sprites: {}, glows: {}, menuT: 0,
 
   init(onResize) {
@@ -19,6 +20,7 @@ const Render = {
 
   resize(onResize) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.pixelScale = dpr;
     const w = window.innerWidth, h = window.innerHeight;
     this.cv.width = this.W = Math.max(1, Math.round(w * dpr));
     this.cv.height = this.H = Math.max(1, Math.round(h * dpr));
@@ -124,19 +126,21 @@ const Render = {
     const vis = (x, y, pad) => x > L - pad && x < Rt + pad && y > T - pad && y < B + pad;
 
     const scene = Environment.forBattle(g);
+    const outfitMap = Environment.landscape(scene);
     const before = Environment.scenes[scene.from], current = Environment.scenes[scene.id];
     const shade = `rgb(${before.shade.map((value, i) => Math.round(value + (current.shade[i] - value) * scene.mix)).join(',')})`;
     const afterglow = EnvironmentArt.afterglow(time - g.bossClearAt, BOSS_AFTERGLOW);
     const darkness = (before.darkness + (current.darkness - before.darkness) * scene.mix) * (1 - afterglow * 0.80);
     const { lights, hint } = EnvironmentArt.drawField(ctx, this, g, L, T, Rt, B, scene);
     const pose = this.playerPose(camera, time);
-    const beam = g.state === 'intro' ? null : camera.char === 'echo' ? EchoFigure.drawBeam : camera.char === 'xiaoxiao' ? XiaoxiaoArt.drawBeam : null;
+    const beams = g.state === 'intro' ? [] : g.players.filter(member => member.hp > 0 && characterBeams[member.char] && vis(member.x, member.y, 350))
+      .map(member => ({ member, pose: member === camera ? pose : this.playerPose(member, time), draw: characterBeams[member.char] }));
     if (mate?.hp > 0 && mate !== camera) lights.push({ x: mate.x, y: mate.y, light: EnvironmentArt.partnerLight, weight: 1 });
     this.drawZones(ctx, g, time);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
-    EnvironmentArt.drawLighting(ctx, this, lights, darkness, shade, camera, pose, beam);
-    if (beam) beam(ctx, camera, pose);
+    EnvironmentArt.drawLighting(ctx, this, lights, darkness, shade, camera, beams);
+    for (const ray of beams) ray.draw(ctx, ray.member, ray.pose);
     const boss = g.boss, reduced = this.reduceMotion?.matches;
     if (boss?.kind === 'nightmare' && !boss.dead && vis(boss.x, boss.y, boss.r * 1.5)) {
       NightmareArt.signs(ctx, boss, time, reduced, (color, x, y, r) => this.drawGlow(ctx, color, x, y, r));
@@ -147,16 +151,16 @@ const Render = {
         if (!vis(member.x, member.y, 48)) continue;
         ctx.save();
         if (member.hp <= 0) ctx.globalAlpha = 0.37;
-        this.drawPlayer(ctx, g, member);
+        this.drawPlayer(ctx, g, member, member === camera ? pose : this.playerPose(member, time), outfitMap);
         ctx.restore();
         ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.fillStyle = member === p ? '#ffe4aa' : '#b2efe6';
         ctx.strokeStyle = '#182421'; ctx.lineWidth = 3;
-        const label = `守夜 ${member.slot + 1}${member.hp <= 0 ? ' · 倒下' : ''}`;
-        ctx.strokeText(label, member.x, member.y - 32);
-        ctx.fillText(label, member.x, member.y - 32);
+        const label = `${g.robot && member.slot === 1 ? '机器人' : `守夜 ${member.slot + 1}`}${member.hp <= 0 ? ' · 倒下' : ''}`;
+        ctx.strokeText(label, member.x, member.y - 37);
+        ctx.fillText(label, member.x, member.y - 37);
       }
-    } else this.drawPlayer(ctx, g, p, pose);
+    } else this.drawPlayer(ctx, g, p, pose, outfitMap);
     this.drawProjs(ctx, g, vis);
     this.drawFx(ctx, g, vis);
     EnvironmentArt.drawLightHint(ctx, hint);
@@ -196,5 +200,6 @@ const Render = {
       ctx.fillRect(0, 0, W, H);
     }
     ctx.globalAlpha = 1;
+    CoopSignalArt.draw(ctx, g, camera, W, H, s, this.pixelScale);
   },
 };
