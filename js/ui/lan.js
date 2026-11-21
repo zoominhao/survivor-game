@@ -12,7 +12,15 @@ const LanUI = {
     on('btnLanStart', () => Lan.start());
     on('btnLanBot', () => Lan.startBot());
     on('btnLanBack', () => Lan.leave());
-    on('btnLanLeave', () => Lan.leave());
+    on('btnLanLeave', () => {
+      if (this.overlayId !== 'lanWait' || !Lan.running) return;
+      this.show('lanLeaveConfirm');
+      this.$('btnLanStay').focus({ preventScroll: true });
+    });
+    on('btnLanStay', () => this.cancelLanLeave());
+    on('btnLanConfirmLeave', () => {
+      if (this.overlayId === 'lanLeaveConfirm' && Lan.running) Lan.leave();
+    });
     this.initLanQr(on);
   },
 
@@ -65,5 +73,11 @@ const LanUI = {
     this.$('lanWaitTitle').textContent = title;
     this.$('lanWaitNote').textContent = note;
     this.show('lanWait');
+  },
+
+  cancelLanLeave() {
+    if (this.overlayId !== 'lanLeaveConfirm') return;
+    this.show('lanWait');
+    this.$('btnLanLeave').focus({ preventScroll: true });
   },
 };

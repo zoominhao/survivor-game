@@ -168,6 +168,18 @@
     </div>
   </section>
 
+  <section id="lanLeaveConfirm" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lanLeaveTitle" aria-describedby="lanLeaveNote">
+    <div class="panel">
+      <p class="chapter">结伴巡夜</p>
+      <h2 id="lanLeaveTitle">退出这场联机？</h2>
+      <p id="lanLeaveNote" class="sub">退出会结束双方的本局，无法重新加入。</p>
+      <div class="row">
+        <button id="btnLanConfirmLeave" type="button">确认退出</button>
+        <button id="btnLanStay" class="primary" type="button">继续等待</button>
+      </div>
+    </div>
+  </section>
+
   <!-- 战斗开场 -->
   <section id="intro" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="introTitle">
     <div class="intro-card">
@@ -428,7 +440,7 @@
   <script src="js/ui/hud.js?v=skill-icons1"></script>
   <script src="js/ui/utilities.js?v=practice-roster1"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
-  <script src="js/ui/lan.js?v=links1"></script>
+  <script src="js/ui/lan.js?v=leave-confirm1"></script>
   <script src="js/ui/coop-support.js?v=actives1"></script>
   <script src="js/ui/contracts.js?v=ambience1"></script>
   <script src="js/ui/screens.js?v=actives1"></script>
@@ -441,6 +453,6 @@
   <script src="js/app/input.js?v=lan1"></script>
   <script src="js/app/lan-room.js?v=actives1"></script>
   <script src="js/app/lan.js?v=actives1"></script>
-  <script src="js/app/main.js?v=actives2"></script>
+  <script src="js/app/main.js?v=leave-confirm1"></script>
 </body>
 </html>

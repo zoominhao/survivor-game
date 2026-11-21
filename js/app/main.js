@@ -150,6 +150,10 @@ const App = {
 
   onKey(code, shift = false) {
     const s = Game.state;
+    if (UI.overlayId === 'lanLeaveConfirm') {
+      if (code === 'Escape') UI.cancelLanLeave();
+      return;
+    }
     if (code === 'KeyM') { this.toggleMute(); return; }
     const practiceKey = code === 'KeyG' && shift;
     if (this.utilityReturn) {
