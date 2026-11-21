@@ -34,6 +34,11 @@ const Render = {
     g.addColorStop(0, 'rgba(4,6,18,0)');
     g.addColorStop(1, 'rgba(4,6,18,0.86)');
     this.dark = g;
+    const v = this.ctx.createRadialGradient(this.W / 2, this.H / 2, Math.min(this.W, this.H) * 0.3,
+      this.W / 2, this.H / 2, Math.hypot(this.W, this.H) * 0.55);
+    v.addColorStop(0, 'rgba(255,0,30,0)');
+    v.addColorStop(1, 'rgba(255,0,30,0.9)');
+    this.lowHealthShade = v;
   },
 
   buildGround() {
@@ -136,7 +141,7 @@ const Render = {
     const beams = g.state === 'intro' ? [] : g.players.filter(member => member.hp > 0 && characterBeams[member.char] && vis(member.x, member.y, 350))
       .map(member => ({ member, pose: member === camera ? pose : this.playerPose(member, time), draw: characterBeams[member.char] }));
     if (mate?.hp > 0 && mate !== camera) lights.push({ x: mate.x, y: mate.y, light: EnvironmentArt.partnerLight, weight: 1 });
-    this.drawZones(ctx, g, time);
+    this.drawZones(ctx, g, time, vis);
     this.drawDrops(ctx, g, vis, time);
     this.drawEnemies(ctx, g, vis);
     EnvironmentArt.drawLighting(ctx, this, lights, darkness, shade, camera, beams);
@@ -171,6 +176,7 @@ const Render = {
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(0,0,0,0.65)';
     for (const t of g.texts) {
+      if (!vis(t.x, t.y, 100)) continue;
       ctx.globalAlpha = Math.min(1, t.life * 3);
       ctx.strokeText(t.s, t.x, t.y);
       ctx.fillStyle = t.c;
@@ -193,10 +199,7 @@ const Render = {
     const hpK = p.hp / p.st.maxHp;
     if (hpK < 0.35 && g.state === 'playing') {
       ctx.globalAlpha = (0.35 - hpK) * (1.1 + Math.sin(time * 8) * 0.4);
-      const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.hypot(W, H) * 0.55);
-      v.addColorStop(0, 'rgba(255,0,30,0)');
-      v.addColorStop(1, 'rgba(255,0,30,0.9)');
-      ctx.fillStyle = v;
+      ctx.fillStyle = this.lowHealthShade;
       ctx.fillRect(0, 0, W, H);
     }
     ctx.globalAlpha = 1;

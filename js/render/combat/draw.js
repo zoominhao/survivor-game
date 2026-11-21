@@ -3,12 +3,13 @@
 // 武器效果、掉落物、投射物和粒子。
 const CombatRendering = {
   lightningPoints: new WeakMap(),
-  drawZones(ctx, g, time) {
+  drawZones(ctx, g, time, vis) {
     // 光环类武器
     for (const p of g.players) for (const w of p.weapons) {
       if (p.hp <= 0) continue;
       if (WEAPONS[w.id].kind !== 'aura') continue;
       const R = w.s.radius * p.st.area, strong = !!w.s.thorns;
+      if (!vis(p.x, p.y, R + 6)) continue;
       ctx.fillStyle = strong ? 'rgba(150,255,140,0.13)' : 'rgba(120,220,130,0.09)';
       ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, TAU); ctx.fill();
       ctx.strokeStyle = strong ? 'rgba(190,255,170,0.6)' : 'rgba(140,240,150,0.38)';
@@ -19,6 +20,8 @@ const CombatRendering = {
       ctx.setLineDash([]);
     }
     for (const z of g.zones) {
+      const pad = z.type === 'undertow' ? (z.r || 0) + Math.hypot(z.fromX - z.x, z.fromY - z.y) : (z.r || 0) + 25;
+      if (!vis(z.x, z.y, pad)) continue;
       if (z.look === 'watchClack' || z.look === 'herbalFog' || z.look === 'maskEcho') {
         FolkSkillArt[z.look](ctx, z, time);
       } else if (z.type === 'undertow') {
@@ -372,6 +375,7 @@ const CombatRendering = {
     }
     ctx.globalCompositeOperation = 'source-over';
     for (const q of g.parts) {
+      if (!vis(q.x, q.y, 4)) continue;
       ctx.globalAlpha = Math.min(1, q.life * 3);
       ctx.fillStyle = q.c;
       ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);

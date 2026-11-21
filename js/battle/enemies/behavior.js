@@ -4,6 +4,7 @@
 const BattleEnemies = {
   // ---------- 刷怪 ----------
   spawnR() { return Math.hypot(this.view.hw, this.view.hh) + 50; },
+  enemyLimit() { return CFG.MAX_ENEMIES - (this.boss ? 0 : 1); },
 
   spawn(dt) {
     const t = this.time;
@@ -16,23 +17,26 @@ const BattleEnemies = {
     const rate = WAVE_RATES[minute] * (this.coop ? COOP_DIFFICULTY.spawnRate : 1);
     const scene = Environment.forBattle(this), landscape = Environment.landscape(scene);
     const count = this.enemies.length;
-    if (count < CFG.MAX_ENEMIES) {
+    if (count < this.enemyLimit()) {
       this.spawnAcc += rate * dt;
       if (count < 6 + minute * 5) this.spawnAcc += rate * dt * 2; // 场上太空时加速补怪
     }
     const R = this.spawnR();
-    while (this.spawnAcc >= 1) {
+    while (this.spawnAcc >= 1 && this.enemies.length < this.enemyLimit()) {
       this.spawnAcc--;
       const p = anchor();
       const type = U.weighted(Environment.enemyPoolAt(t, undefined, scene));
       const a = Math.random() * TAU;
       const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
       if (type === 'swarm') {
-        for (let i = 0; i < 5; i++) this.spawnEnemy(type, x + U.rand(-30, 30), y + U.rand(-30, 30));
+        for (let i = 0; i < 5 && this.enemies.length < this.enemyLimit(); i++) {
+          this.spawnEnemy(type, x + U.rand(-30, 30), y + U.rand(-30, 30));
+        }
       } else {
         this.spawnEnemy(type, x, y);
       }
     }
+    if (this.enemies.length >= this.enemyLimit()) this.spawnAcc %= 1;
     // 定期出现的精英怪,击杀掉宝箱
     if (t >= this.eliteT) {
       const p = anchor();
@@ -41,7 +45,7 @@ const BattleEnemies = {
       let type = U.weighted(pool);
       if (type === 'swarm' || type === 'moth') type = Object.keys(pool).find(id => id !== 'swarm' && id !== 'moth');
       const a = Math.random() * TAU;
-      this.spawnEnemy(type, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R, true);
+      if (this.reserveEnemySlots(1)) this.spawnEnemy(type, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R, true);
     }
     // 定时事件
     while (this.evIdx < EVENTS.length && t >= EVENTS[this.evIdx].t) {
@@ -52,6 +56,7 @@ const BattleEnemies = {
       if (ev.kind === 'ring') {
         this.spawnRing(ev, p);
       } else if (ev.kind === 'arrival') {
+        if (!this.reserveEnemySlots(1)) continue;
         const a = Math.random() * TAU, rr = R * 0.78;
         this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         this.emit('banner', ev.msg);
@@ -68,9 +73,10 @@ const BattleEnemies = {
   },
 
   spawnRing(ev, p) {
-    const rr = this.spawnR() * 0.92;
-    for (let i = 0; i < ev.n; i++) {
-      const a = i / ev.n * TAU;
+    const rr = this.spawnR() * 0.92, count = this.reserveEnemySlots(ev.n);
+    if (!count) return;
+    for (let i = 0; i < count; i++) {
+      const a = i / count * TAU;
       this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
     }
     this.emit('banner', ev.msg || `${ENEMIES[ev.enemy].name}正在合围！`);
@@ -78,9 +84,24 @@ const BattleEnemies = {
     this.play(ev.sound || 'siegeArrival');
   },
 
+  reserveEnemySlots(count) {
+    const limit = this.enemyLimit(), excess = this.enemies.length + count - limit;
+    if (excess <= 0) return count;
+    // 满场时优先腾掉离全队最远的普通怪，保住眼前战斗、已出的精英和 Boss。
+    const alive = this.players.filter(p => p.hp > 0);
+    const candidates = this.enemies.filter(e => e.dead || !e.elite && !e.boss).map(e => [e, e.dead ? Infinity :
+      Math.min(...alive.map(p => (p.x - e.x) ** 2 + (p.y - e.y) ** 2))]);
+    candidates.sort((a, b) => b[1] - a[1]);
+    const evicted = new Set(candidates.slice(0, excess).map(([e]) => e));
+    let n = 0;
+    for (const e of this.enemies) if (!evicted.has(e)) this.enemies[n++] = e;
+    this.enemies.length = n;
+    return Math.max(0, Math.min(count, limit - n));
+  },
+
   spawnEnemy(type, x, y, elite) {
-    // 联机给 Boss 留一个席位，怪潮不能让同步实体越过上限。
-    if (this.coop && type !== 'boss' && this.enemies.length >= CFG.MAX_ENEMIES - (this.boss ? 0 : 1)) return null;
+    // 单人和双人都留出 Boss 席位，普通增援不能越过上限。
+    if (this.enemies.length >= (type === 'boss' ? CFG.MAX_ENEMIES : this.enemyLimit())) return null;
     const d = ENEMIES[type], m = this.time / 60;
     const harder = this.coop && type !== 'boss';
     const hpMul = (1 + m * 0.2 + m * m * 0.012) * (harder ? COOP_DIFFICULTY.enemyHp : 1);
@@ -105,6 +126,7 @@ const BattleEnemies = {
   updateEnemies(dt) {
     const g = this.grid, cell = g.cell;
     const far = this.spawnR() * 1.7, R = this.spawnR();
+    const decay = Math.max(0, 1 - 8 * dt);
     const decoys = this.zones.filter(z => z.type === 'decoy' && z.life > 0);
     for (const e of this.enemies) {
       if (e.dead) continue;
@@ -165,7 +187,6 @@ const BattleEnemies = {
       const moveX = (mx * sp + e.kx) * dt, moveY = (my * sp + e.ky) * dt;
       if (avoidsTerrain && (moveX || moveY)) Terrain.move(e, moveX, moveY, e.r, e.side, this.landscape);
       else { e.x += moveX; e.y += moveY; }
-      const decay = Math.max(0, 1 - 8 * dt);
       e.kx *= decay; e.ky *= decay;
 
       // 敌人之间互相挤开，能穿障的鬼怪不主动挤开其他敌人。
@@ -255,14 +276,17 @@ const BattleEnemies = {
 
   nearestEnemies(x, y, maxR, n) {
     if (n <= 1) { const e = this.nearestEnemy(x, y, maxR); return e ? [e] : []; }
-    const list = [], m2 = maxR * maxR;
+    const list = [], distances = [], m2 = maxR * maxR;
     for (const e of this.enemies) {
       if (e.dead) continue;
       const dx = e.x - x, dy = e.y - y, d = dx * dx + dy * dy;
-      if (d < m2) { e._d = d; list.push(e); }
+      if (d >= m2 || (list.length === n && d >= distances[n - 1])) continue;
+      let i = list.length - 1;
+      while (i >= 0 && d < distances[i]) i--;
+      list.splice(i + 1, 0, e);
+      distances.splice(i + 1, 0, d);
+      if (list.length > n) { list.pop(); distances.pop(); }
     }
-    list.sort((a, b) => a._d - b._d);
-    if (list.length > n) list.length = n;
     return list;
   },
 
