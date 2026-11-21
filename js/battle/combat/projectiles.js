@@ -12,8 +12,8 @@ const BattleProjectiles = {
     this.projs.push(o);
   },
 
-  addZone(o) {
-    o.owner = this.player;
+  addZone(o, owner = this.player) {
+    o.owner = owner;
     this.zones.push(o);
   },
 
@@ -175,12 +175,14 @@ const BattleProjectiles = {
       } else if (z.type === 'decoy') {
         z.life -= dt;
         keep = z.life > 0;
-        if (!keep) {
+        if (!keep && !z.noBurst) {
           this.aoe(z.x, z.y, z.trigger, z.dmg, z.wid, z.kb, z.owner);
           FolkSynergy.mistMask(this, z);
           this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.trigger, life: 0.32, max: 0.32, c: z.color });
           this.play('boom');
         }
+      } else if (z.type === 'paperSeal') {
+        keep = this.updatePaperSeal(z, dt);
       } else if (z.type === 'ring') {
         if (z.t > 0) {
           z.t = Math.max(0, z.t - dt);

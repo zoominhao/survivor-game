@@ -20,6 +20,34 @@ function setup(oldSave = {}) {
 
 const ids = ['soulCoin', 'incenseWard', 'boneMirror'];
 
+test('主动技能购买和装备独立，旧档保留镇夜符，双人不继承局外装备', () => {
+  const { Save, game, writes } = setup({ coins: 400, paperSkill: 'seal', paperSkills: { seal: 'true', fake: true } });
+  assert.equal(game.player.paperSkill, 'ward');
+  assert.equal(Save.selectPaperSkill('seal'), false);
+  assert.equal(Save.buyPaperSkill('constructor'), false);
+  assert.equal(Save.buyPaperSkill('ward'), false);
+  assert.ok(Save.buyPaperSkill('lure'));
+  assert.equal(Save.buyPaperSkill('lure'), false);
+  assert.equal(Save.data.paperSkill, 'ward');
+  assert.ok(Save.selectPaperSkill('lure'));
+  assert.equal(writes(), 2);
+  Save.load();
+  game.start('ella');
+  assert.equal(game.player.paperSkill, 'lure');
+  assert.ok(!game.buildChoices(100).some(c => c.id === 'lure'));
+  game.start('ella', 'zhu', { robot: true });
+  assert.equal(game.player.paperSkill, 'ward');
+  assert.equal(game.partner.paperSkill, 'ward');
+  game.start('ella', 'zhu');
+  assert.equal(game.player.paperSkill, 'ward');
+  assert.equal(Save.data.paperSkill, 'lure');
+  assert.ok(Save.buyPaperSkill('seal'));
+  assert.ok(Save.selectPaperSkill('seal'));
+  game.start('ella');
+  assert.equal(game.player.paperSkill, 'seal');
+  assert.equal(Save.data.coins, 400 - 160 - 220);
+});
+
 test('只允许购买商店技能，公用钱包扣款一次、重载后仍解锁', () => {
   const { Save, WEAPONS, writes } = setup({ coins: 200, lastChar: 'zhu', meta: { swift: 2 }, chars: { bron: true } });
   assert.equal(Save.buySkill('__proto__'), false);

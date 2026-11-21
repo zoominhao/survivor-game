@@ -7,7 +7,7 @@ const Save = {
   defaults() {
     const meta = {};
     for (const k in META) meta[k] = 0;
-    return { coins: 0, seals: 0, meta, chars: { ella: true }, skills: {}, routes: {}, training: {}, stageSelection: null,
+    return { coins: 0, seals: 0, meta, chars: { ella: true }, skills: {}, paperSkills: {}, paperSkill: 'ward', routes: {}, training: {}, stageSelection: null,
       selectedContract: null, claimedContracts: {},
       lastChar: 'ella', best: 0, kills: 0, runs: 0, wins: 0, muted: false };
   },
@@ -23,6 +23,8 @@ const Save = {
         for (const [id, item] of Object.entries(WEAPONS)) {
           if (item.unlockCost && raw.skills?.[id] === true) d.skills[id] = true;
         }
+        d.paperSkills = Object.fromEntries(Object.keys(PAPER_SKILLS).filter(id => PAPER_SKILLS[id].cost && raw.paperSkills?.[id] === true).map(id => [id, true]));
+        d.paperSkill = canEquipPaperSkill(d, raw.paperSkill) ? raw.paperSkill : 'ward';
         d.seals = Number.isSafeInteger(raw.seals) && raw.seals >= 0 ? raw.seals : 0;
         d.routes = Object.fromEntries(Object.keys(STAGES).filter(id => STAGES[id].cost && raw.routes?.[id] === true).map(id => [id, true]));
         const selected = Array.isArray(raw.stageSelection) ? Environment.stagePool(d) : [];
@@ -61,6 +63,22 @@ const Save = {
     if (!cost || !d || d.skills[id] === true || !Number.isFinite(d.coins) || d.coins < cost) return false;
     d.coins -= cost;
     d.skills[id] = true;
+    this.write();
+    return true;
+  },
+  buyPaperSkill(id) {
+    const d = this.data;
+    const cost = typeof id === 'string' && Object.hasOwn(PAPER_SKILLS, id) ? PAPER_SKILLS[id].cost : 0;
+    if (!d || !cost || canEquipPaperSkill(d, id) || !Number.isFinite(d.coins) || d.coins < cost) return false;
+    d.coins -= cost;
+    d.paperSkills[id] = true;
+    this.write();
+    return true;
+  },
+  selectPaperSkill(id) {
+    const d = this.data;
+    if (!d || !canEquipPaperSkill(d, id) || d.paperSkill === id) return false;
+    d.paperSkill = id;
     this.write();
     return true;
   },

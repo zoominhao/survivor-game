@@ -106,6 +106,10 @@ const BattlePanelsUI = {
     this.$('pauseTitle').textContent = Lan.guest ? '本机菜单 · 战斗仍在继续' : '巡夜暂停';
     this.$('btnQuit').textContent = Lan.guest ? '退出联机' : '放弃本局';
     this.$('pauseBuild').innerHTML = this.buildHtml();
+    const paper = Game.player.paperSkill ?? 'ward', skill = Game.activeSkill(Game.player, 'ward');
+    this.$('pausePaperIcon').src = `art/skill-${paper}.svg`;
+    this.$('pausePaperName').textContent = skill.name;
+    this.$('pausePaperNote').textContent = `消耗 1 张符纸。${skill.desc} 精英和 Boss 会掉落符纸。`;
     this.show('pause');
   },
 
@@ -129,8 +133,8 @@ const BattlePanelsUI = {
     const rows = Object.entries(p.dmgBy).sort((a, b) => b[1] - a[1]);
     const top = rows.length ? rows[0][1] : 1;
     this.$('resDmg').innerHTML = rows.map(([id, v]) => {
-      const d = WEAPONS[id];
-      return `<li><span>${Icons.html(d ? id : 'lantern')} ${d ? d.name : '余烬'}</span><i><u style="width:${(v / top * 100).toFixed(1)}%"></u></i><em>${v}</em></li>`;
+      const d = WEAPONS[id] ?? PAPER_SKILLS[id];
+      return `<li><span>${Icons.html(WEAPONS[id] ? id : d ? 'wardPaper' : 'lantern')} ${d ? d.name : '余烬'}</span><i><u style="width:${(v / top * 100).toFixed(1)}%"></u></i><em>${v}</em></li>`;
     }).join('');
     this.$('btnRetry').textContent = r.coop ? '重新组队' : '再来一局';
     this.show('result');

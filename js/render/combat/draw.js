@@ -24,6 +24,10 @@ const CombatRendering = {
       if (!vis(z.x, z.y, pad)) continue;
       if (z.look === 'watchClack' || z.look === 'herbalFog' || z.look === 'maskEcho') {
         FolkSkillArt[z.look](ctx, z, time);
+      } else if (z.look === 'paperLure') {
+        PaperSkillArt.lure(ctx, z);
+      } else if (z.type === 'paperSeal') {
+        PaperSkillArt.seal(ctx, z);
       } else if (z.type === 'undertow') {
         FolkSkillArt.tideOar(ctx, { ...z, x2: z.fromX, y2: z.fromY, c: z.color }, z.life / z.max * 0.7);
       } else if (z.type === 'meteor' && z.look !== 'aiScan') {

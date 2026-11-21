@@ -3,7 +3,7 @@
 const FORK_WINDOW = { start: 360, last: 414, end: 445 };
 const ROUTE_BRANCHES = {
   bamboo: { icon: 'wardPaper', name: '布符镇守', tag: '控场', radiusBoost: 1.25,
-    notes: '镇夜符范围 +25%。小心黄符僵尸近身合围。',
+    notes: '符纸技能范围 +25%。小心黄符僵尸近身合围。',
     wave: { enemy: 'jiangshi', n: 26, msg: '黄符僵尸合围', sound: 'corpseAmbush' } },
   rain: { icon: 'starlance', name: '引星诱敌', tag: '修为', xp: 1.15,
     notes: '获得经验 +15%。伞鬼会从四周投下弹雨。',

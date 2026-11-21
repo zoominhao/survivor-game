@@ -66,6 +66,48 @@ test('镇夜符只清附近敌弹并减速，不造成伤害或打断 Boss 阶�
   assert.equal(g.useActive(0, 'ward'), false);
 });
 
+test('引魂符只引普通近战鬼，耗纸且不碰弹幕，纸人消失时不造成伤害', () => {
+  const { g } = setup();
+  Object.assign(g.save.data, { paperSkills: { lure: true }, paperSkill: 'lure' });
+  g.start('ella');
+  const p = g.player, ghost = g.spawnEnemy('shade', 85, 0), elite = g.spawnEnemy('shade', 65, 0, true);
+  const ranged = g.spawnEnemy('spitter', 80, 0), distant = g.spawnEnemy('shade', 250, 0);
+  const boss = g.summonBoss('nightmare', 0, 90, 0);
+  g.ebullets.push({ x: 12, y: 0, r: 5 });
+  assert.equal(g.useActive(0, 'lure'), false); // 输入的键位是固定 E 槽，不能指定招式。
+  p.wardCharges = 2;
+  assert.ok(g.useActive(0, 'ward'));
+  assert.equal(p.wardCharges, 1);
+  assert.equal(g.ebullets.length, 1);
+  const [lure] = g.zones;
+  assert.equal(g.enemyTarget(ghost), lure);
+  for (const e of [elite, ranged, distant, boss]) assert.equal(g.enemyTarget(e), p);
+  assert.equal(g.useActive(0, 'ward'), false);
+  g.updateZones(3);
+  assert.equal(g.zones.length, 0);
+  assert.equal(ghost.hp, ghost.maxHp);
+});
+
+test('朱砂印留在原地延时爆发，只伤圈内夜兽且不消弹', () => {
+  const { g } = setup();
+  Object.assign(g.save.data, { paperSkills: { seal: true }, paperSkill: 'seal' });
+  g.start('ella');
+  const p = g.player, near = g.spawnEnemy('brute', 80, 0), far = g.spawnEnemy('brute', -200, 0);
+  g.grid.insert(near); g.grid.insert(far);
+  g.ebullets.push({ x: 12, y: 0, r: 5 });
+  assert.ok(g.useActive(0, 'ward'));
+  assert.equal(p.wardCharges, 0);
+  p.x = 200;
+  g.updateZones(1);
+  assert.equal(g.zones[0].x, 0);
+  assert.equal(near.hp, near.maxHp);
+  g.updateZones(0.5);
+  assert.equal(g.zones.length, 0);
+  assert.ok(near.hp < near.maxHp && p.dmgBy.seal > 0);
+  assert.equal(far.hp, far.maxHp);
+  assert.equal(g.ebullets.length, 1);
+});
+
 test('每位守夜人独立计算冷却，倒下不能施法，局域网快照只读房主时间戳', () => {
   const { g, LanState } = setup('zhu');
   g.time = 40;

@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css?v=handscroll1">
-  <link rel="stylesheet" href="css/screens.css?v=practice-menu1">
+  <link rel="stylesheet" href="css/screens.css?v=paper-shop1">
   <link rel="stylesheet" href="css/responsive.css?v=handscroll2">
 </head>
 <body>
@@ -46,7 +46,7 @@
             <small id="btnDashState">空格</small>
           </button>
           <button id="btnWard" type="button" aria-label="镇夜符" aria-describedby="btnWardState" aria-keyshortcuts="E" title="镇夜符 · E：消耗 1 张符纸清弹、减速；击败精英和 Boss 可补充">
-            <span class="skill-emblem" aria-hidden="true"><img src="art/skill-ward.svg" alt="" width="42" height="42"></span>
+            <span class="skill-emblem" aria-hidden="true"><img id="btnWardIcon" src="art/skill-ward.svg" alt="" width="42" height="42"></span>
             <small id="btnWardState">E · 1/3</small>
           </button>
         </div>
@@ -230,8 +230,18 @@
       </div>
       <div id="shopList"></div>
       <div id="skillShopPanel" class="hidden">
-        <p id="skillShopGuide" class="control-note">一次解锁，仅限单人。可从升级或宝箱习得，第 2 级优先出已购技能。</p>
-        <div id="skillList" class="shop-stack"></div>
+        <div id="skillShopStock" class="skill-shop-stock">
+          <section aria-labelledby="paperSkillHeading">
+            <h3 id="paperSkillHeading"><span data-icon="wardPaper"></span> 主动技能</h3>
+            <p class="control-note">疾步不变。单人开战前可装备一种符纸技能，按 E 或点圆钮施放，每次消耗 1 张符纸。</p>
+            <div id="paperSkillList" class="shop-stack"></div>
+          </section>
+          <section aria-labelledby="autoSkillHeading">
+            <h3 id="autoSkillHeading"><span data-icon="spark"></span> 自动武器</h3>
+            <p class="control-note">买下后加入单人升级和宝箱池，第 2 级优先出已购武器。</p>
+            <div id="skillList" class="shop-stack"></div>
+          </section>
+        </div>
         <p id="skillShopStatus" class="control-note shop-status" role="status"></p>
       </div>
       <div id="routeShopPanel" class="hidden">
@@ -302,7 +312,7 @@
       <div id="pauseBuild"></div>
       <ul class="skill-guide" aria-label="主动技能">
         <li><img src="art/skill-dash.svg" alt="" width="36" height="36"><span><b>疾步 <kbd>空格</kbd></b><small>短冲闪避，冷却 6 秒。</small></span></li>
-        <li><img src="art/skill-ward.svg" alt="" width="36" height="36"><span><b>镇夜符 <kbd>E</kbd></b><small>消耗 1 张符纸清弹、减速。精英和 Boss 会掉落符纸。</small></span></li>
+        <li><img id="pausePaperIcon" src="art/skill-ward.svg" alt="" width="36" height="36"><span><b><span id="pausePaperName">镇夜符</span> <kbd>E</kbd></b><small id="pausePaperNote">消耗 1 张符纸清弹、减速。精英和 Boss 会掉落符纸。</small></span></li>
       </ul>
       <div class="row">
         <button id="btnResume" class="primary">继续</button>
@@ -406,7 +416,7 @@
   <script src="js/battle/rules.js?v=routes1"></script>
   <script src="js/battle/combat/equipment.js?v=evo1"></script>
   <script src="js/battle/characters/roster.js?v=folk2"></script>
-  <script src="js/battle/world/route-fork.js?v=stages1"></script>
+  <script src="js/battle/world/route-fork.js?v=paper-shop1"></script>
   <script src="js/battle/world/stages.js"></script>
   <script src="js/battle/world/environment.js?v=stage-model1"></script>
   <script src="js/battle/enemies/catalog.js?v=stage-model1"></script>
@@ -419,25 +429,25 @@
   <script src="js/battle/combat/weapons.js?v=evo1"></script>
   <script src="js/battle/coop-bonds.js?v=links1"></script>
   <script src="js/battle/characters/progression.js?v=bonds1"></script>
-  <script src="js/battle/enemies/behavior.js?v=stage-model1"></script>
+  <script src="js/battle/enemies/behavior.js?v=paper-shop1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
   <script src="js/battle/enemies/boss-decisions.js?v=stage-model1"></script>
   <script src="js/battle/enemies/bosses.js?v=stage-model1"></script>
   <script src="js/battle/combat/damage.js?v=actives2"></script>
-  <script src="js/battle/combat/projectiles.js?v=links1"></script>
-  <script src="js/battle/combat/drops.js?v=actives2"></script>
+  <script src="js/battle/combat/projectiles.js?v=paper-shop1"></script>
+  <script src="js/battle/combat/drops.js?v=paper-shop1"></script>
   <script src="js/battle/combat/effects.js"></script>
   <script src="js/battle/practice.js?v=practice-menu1"></script>
   <script src="js/battle/coop-support.js?v=emotes1"></script>
   <script src="js/battle/robot-threats.js?v=folk1"></script>
   <script src="js/battle/robot-partner.js?v=stage-model1"></script>
   <script src="js/battle/upgrade-advice.js?v=folk1"></script>
-  <script src="js/battle/combat/active-skills.js?v=stages1"></script>
-  <script src="js/battle/coop.js?v=stage-model1"></script>
+  <script src="js/battle/combat/active-skills.js?v=paper-shop1"></script>
+  <script src="js/battle/coop.js?v=paper-shop1"></script>
   <script src="js/battle/contracts.js?v=stage-model1"></script>
   <script src="js/battle/battle.js?v=stage-model1"></script>
 
-  <script src="js/platform/save.js?v=stages1"></script>
+  <script src="js/platform/save.js?v=paper-shop1"></script>
   <script src="js/audio/horror-data.js?v=night-audio1"></script>
   <script src="js/audio/horror-samples.js?v=night-audio1"></script>
   <script src="js/audio/music.js?v=night-audio1"></script>
@@ -457,7 +467,8 @@
   <script src="js/render/combat/zhu-skills.js?v=outfits1"></script>
   <script src="js/render/combat/relic-art.js"></script>
   <script src="js/render/combat/folk-skills.js?v=evo1"></script>
-  <script src="js/render/combat/draw.js?v=actives2"></script>
+  <script src="js/render/combat/paper-skill-art.js"></script>
+  <script src="js/render/combat/draw.js?v=paper-shop1"></script>
   <script src="js/render/world/map-props-art.js"></script>
   <script src="js/render/world/terrain-art.js"></script>
   <script src="js/render/world/environment-art.js?v=stage-model1"></script>
@@ -470,9 +481,10 @@
   <script src="js/render/renderer.js?v=stage-model1"></script>
   <script src="js/ui/icons.js?v=stages1"></script>
   <script src="js/ui/route-training.js?v=stage-model1"></script>
-  <script src="js/ui/menu.js?v=stage-model1"></script>
-  <script src="js/ui/battle-panels.js?v=stages1"></script>
-  <script src="js/ui/hud.js?v=practice2"></script>
+  <script src="js/ui/skill-shop.js"></script>
+  <script src="js/ui/menu.js?v=paper-shop1"></script>
+  <script src="js/ui/battle-panels.js?v=paper-shop1"></script>
+  <script src="js/ui/hud.js?v=paper-shop1"></script>
   <script src="js/ui/utilities.js?v=practice-menu1"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
   <script src="js/ui/lan.js?v=stage-model1"></script>

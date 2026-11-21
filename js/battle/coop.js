@@ -10,6 +10,7 @@ const BattleCoop = {
       weapons: [], passives: [], evolved: {}, kills: 0, coins: 0, dmgBy: {},
       st: {}, rerolls: m.reroll, revives: m.revive, activeReady: { dash: 0, ward: 0 }, dash: null,
       wardCharges: ACTIVE_SKILLS.ward.initial,
+      paperSkill: !this.coop && canEquipPaperSkill(this.save.data, this.save.data.paperSkill) ? this.save.data.paperSkill : 'ward',
     };
     this.recalc(p);
     p.hp = p.st.maxHp;

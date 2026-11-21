@@ -15,6 +15,12 @@ const HudUI = {
   updateActiveHud(g) {
     this.set('activeDock', 'hidden', g.state !== 'playing' || g.player.hp <= 0);
     if (g.state !== 'playing' || g.player.hp <= 0) return;
+    const paper = g.player.paperSkill ?? 'ward';
+    const skill = g.activeSkill(g.player, 'ward');
+    this.set('btnWard', 'aria-label', skill.name);
+    this.set('btnWard', 'title', `${skill.name} · E：${skill.desc} 每次消耗 1 张符纸。`);
+    this.set('btnWard', 'data-paper-skill', paper);
+    this.set('btnWardIcon', 'src', `art/skill-${paper}.svg`);
     for (const [id, button, shortcut] of ACTIVE_HUD) {
       const wait = Math.max(0, (g.player.activeReady[id] ?? 0) - g.time);
       const remaining = Math.ceil(wait);
@@ -25,7 +31,8 @@ const HudUI = {
       const charge = id === 'ward' ? ward / ACTIVE_SKILLS.ward.capacity :
         Math.floor(Math.max(0, 1 - wait / ACTIVE_SKILLS.dash.cooldown) * 48) / 48;
       this.set(button, 'charge', `${charge * 100}%`);
-      const label = id === 'ward' ? `${ready ? shortcut + ' · ' : ''}${ward}/${ACTIVE_SKILLS.ward.capacity}` :
+      const prefix = ready ? `${shortcut} · ` : paper !== 'ward' && ward && remaining ? `${remaining}秒 · ` : '';
+      const label = id === 'ward' ? `${prefix}${ward}/${ACTIVE_SKILLS.ward.capacity}` :
         remaining > 0 ? `${remaining} 秒` : shortcut;
       this.set(button + 'State', 'text', label);
     }
@@ -51,6 +58,7 @@ const HudUI = {
     else if (prop === 'hidden') el.classList.toggle('hidden', v);
     else if (prop === 'disabled') el.setAttribute('aria-disabled', String(v));
     else if (prop === 'charge') el.style.setProperty('--charge', v);
+    else if (['aria-label', 'title', 'data-paper-skill', 'src'].includes(prop)) el.setAttribute(prop, v);
   },
 
   updateHud() {

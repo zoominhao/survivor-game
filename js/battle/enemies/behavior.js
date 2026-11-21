@@ -225,7 +225,7 @@ const BattleEnemies = {
     if (enemy.boss || ENEMIES[enemy.type].ranged) return player;
     let best = null, distance = Infinity;
     for (const z of zones) {
-      if (z.type !== 'decoy' || z.life <= 0) continue;
+      if (z.type !== 'decoy' || z.life <= 0 || (z.normalOnly && enemy.elite)) continue;
       const d = (z.x - enemy.x) ** 2 + (z.y - enemy.y) ** 2;
       if (d < distance && d < z.r ** 2) { best = z; distance = d; }
     }

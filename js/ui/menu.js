@@ -8,7 +8,7 @@ const SHOP_SECTIONS = {
   training: ['btnShopTraining', 'trainingShopPanel', 'drawTrainingShop'],
 };
 const MenuUI = {
-  ...RouteTrainingUI,
+  ...RouteTrainingUI, ...SkillShopUI,
   // ---------- 开场与主菜单 ----------
   showIntro(charId, duration) {
     const c = CHARS[charId], w = WEAPONS[c.weapon];
@@ -99,37 +99,6 @@ const MenuUI = {
       }
     }
     this.show('shop');
-  },
-
-  drawSkillShop(message) {
-    const d = Save.data, list = this.$('skillList');
-    const balance = Number.isFinite(d.coins) ? d.coins : 0;
-    const stock = Object.entries(WEAPONS).filter(([, w]) => w.unlockCost);
-    list.replaceChildren();
-    for (const [id, item] of stock) {
-      const row = document.createElement('div');
-      row.className = 'shopRow';
-      const cost = item.unlockCost, owned = d.skills[id] === true, short = Math.max(0, cost - balance);
-      row.innerHTML = `<span class="ico">${Icons.html(id)}</span><div class="info"><b>${item.name}</b><small>${item.desc}</small>` +
-        (owned || !short ? '</div>' : `<small class="skill-short">还差 ${short} 金币</small></div>`);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.disabled = owned || short > 0;
-      button.innerHTML = owned ? '已解锁' : `${Icons.html('coin')} ${cost}`;
-      button.setAttribute('aria-label', owned ? `${item.name}已解锁` : `购买${item.name}，${cost} 金币`);
-      button.addEventListener('click', () => {
-        if (!Save.buySkill(id)) return;
-        Sfx.unlock();
-        Sfx.play('coin');
-        const hadFocus = document.activeElement === button;
-        this.showShop('skills', `已解锁「${item.name}」`);
-        if (hadFocus) (list.querySelector('button:not(:disabled)') || this.$('btnShopSkills')).focus();
-      });
-      row.appendChild(button);
-      list.appendChild(row);
-    }
-    const owned = stock.filter(([id]) => d.skills[id] === true).length;
-    this.$('skillShopStatus').textContent = `${message ? message + ' · ' : ''}已解锁 ${owned} / ${stock.length}`;
   },
 
   drawMetaShop() {

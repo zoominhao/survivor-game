@@ -40,7 +40,7 @@ const BattleDrops = {
       member.wardCharges < ACTIVE_SKILLS.ward.capacity && !(this.robot && member === this.partner) ? 24 : 0);
     if (!p) return false;
     p.wardCharges++;
-    this.texts.push({ x: item.x, y: item.y - 15, s: '镇夜符 +1', life: 0.85, c: ACTIVE_SKILLS.ward.color });
+    this.texts.push({ x: item.x, y: item.y - 15, s: '符纸 +1', life: 0.85, c: PAPER_SKILLS.ward.color });
     this.play('paper');
     return true;
   },
