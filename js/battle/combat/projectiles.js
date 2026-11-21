@@ -62,6 +62,7 @@ const BattleProjectiles = {
           else { if (b.hit.has(e.id)) return; b.hit.add(e.id); }
           this.damageEnemy(e, b.dmg, b.wid, b.mode === 'spiral' ? e.x - p.x : b.vx, b.mode === 'spiral' ? e.y - p.y : b.vy, b.kb, p);
           if (b.split) this.splitPaper(b, p);
+          else if (b.refold) this.refoldPaper(b, p);
           if (b.blast) {
             this.aoe(b.x, b.y, b.blast, b.dmg * 0.6, b.wid, 80, p);
             this.fx.push({ type: 'boom', x: b.x, y: b.y, r: b.blast, life: 0.25, max: 0.25, c: b.color });
@@ -104,10 +105,21 @@ const BattleProjectiles = {
     for (const offset of [-0.72, 0.72]) {
       const a = angle + offset;
       const flake = { x: shot.x, y: shot.y, vx: Math.cos(a) * 405, vy: Math.sin(a) * 405,
-        r: 4, life: 0.43, pierce: 1, dmg, wid: shot.wid, look: 'paperFlake', color: shot.color, kb: 48 };
+        r: 4, life: 0.43, pierce: 1, dmg, wid: shot.wid, look: 'paperFlake', color: shot.color, kb: 48, refold: shot.refold };
       this.addProj(flake, owner);
       flake.hit = new Set(shot.hit);
     }
+  },
+
+  refoldPaper(flake, owner) {
+    const tg = this.nearestEnemy(flake.x, flake.y, 230, flake.hit);
+    if (!tg) return;
+    const a = Math.atan2(tg.y - flake.y, tg.x - flake.x), speed = 460;
+    const crane = { x: flake.x, y: flake.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+      speed, mode: 'homing', tg, seek: 0.15, r: 5, life: 0.72, pierce: 1, dmg: flake.dmg * flake.refold,
+      wid: flake.wid, look: 'paperKite', color: flake.color, kb: 40 };
+    this.addProj(crane, owner);
+    crane.hit = new Set(flake.hit);
   },
 
   // ---------- 区域效果:落地冲击、火海、霜环、年糕陷阱 ----------
@@ -135,6 +147,11 @@ const BattleProjectiles = {
         keep = this.updateRicecake(z, dt);
       } else if (z.type === 'fire') {
         z.life -= dt; z.tk -= dt;
+        if (z.drift && z.owner.hp > 0) {
+          const dx = z.owner.x - z.x, dy = z.owner.y - z.y;
+          const k = Math.min(1, z.drift * dt / (Math.hypot(dx, dy) || 1));
+          z.x += dx * k; z.y += dy * k;
+        }
         if (z.tk <= 0) {
           z.tk = 0.5;
           if (z.heal && z.life > 0) for (const p of this.players) {
@@ -148,6 +165,13 @@ const BattleProjectiles = {
           });
         }
         keep = z.life > 0;
+      } else if (z.type === 'undertow') {
+        z.life -= dt; z.tk -= dt;
+        keep = z.life > 0;
+        if (keep && z.tk <= 0) {
+          z.tk = 0.16;
+          eachFolkLineEnemy(this, z, { x: z.fromX, y: z.fromY }, z.r, e => this.slowEnemy(e, z.slow, 0.48));
+        }
       } else if (z.type === 'decoy') {
         z.life -= dt;
         keep = z.life > 0;
@@ -162,15 +186,18 @@ const BattleProjectiles = {
           if (z.t > 0) { arr[n++] = z; continue; }
           this.play('watchClack');
         }
-        z.r += z.spd * dt;
-        this.eachEnemyNear(z.x, z.y, z.r, e => {
+        const before = z.r;
+        z.r = z.recall ? Math.max(0, before - z.spd * dt) : Math.min(z.maxR, before + z.spd * dt);
+        this.eachEnemyNear(z.x, z.y, z.recall ? before : z.r, e => {
+          if (z.recall && Math.hypot(e.x - z.x, e.y - z.y) + e.r < z.r) return;
           if (z.hit.has(e.id)) return;
           z.hit.add(e.id);
-          this.damageEnemy(e, z.dmg, z.wid, e.x - z.x, e.y - z.y, z.kb ?? 60, z.owner);
+          const sign = z.recall ? -1 : 1;
+          this.damageEnemy(e, z.dmg, z.wid, sign * (e.x - z.x), sign * (e.y - z.y), z.kb ?? 60, z.owner);
           if (z.freeze && !e.boss) e.frozen = z.freeze;
           if (z.slow) this.slowEnemy(e, z.slow, z.freeze + 2);
         });
-        keep = z.r < z.maxR;
+        keep = z.recall ? z.r > 0 : z.r < z.maxR;
       }
       if (keep) arr[n++] = z;
     }

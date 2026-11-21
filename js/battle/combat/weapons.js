@@ -130,7 +130,7 @@ const WeaponFns = {
       g.addProj({
         x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
         r: s.size * st.area, speed: s.speed, life: s.life, dmg: s.dmg * st.might, pierce: s.pierce,
-        mode: 'homing', tg, seek: 0.2, wid: w.id, look: item.look || 'mouse', color: item.color, kb: 75, split: s.split,
+        mode: 'homing', tg, seek: 0.2, wid: w.id, look: item.look || 'mouse', color: item.color, kb: 75, split: s.split, refold: s.refold,
       });
     }
     g.play(item.sound || 'mouse');

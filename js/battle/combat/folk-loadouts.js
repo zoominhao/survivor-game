@@ -1,5 +1,17 @@
 'use strict';
 
+function folkLineNear(x, y, x1, y1, x2, y2, radius) {
+  const dx = x2 - x1, dy = y2 - y1, square = dx * dx + dy * dy || 1;
+  const t = U.clamp(((x - x1) * dx + (y - y1) * dy) / square, 0, 1);
+  return (x - x1 - dx * t) ** 2 + (y - y1 - dy * t) ** 2 <= radius ** 2;
+}
+
+function eachFolkLineEnemy(g, a, b, width, fn) {
+  g.eachEnemyNear((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, Math.hypot(b.x - a.x, b.y - a.y) * 0.5 + width, e => {
+    if (folkLineNear(e.x, e.y, a.x, a.y, b.x, b.y, width + e.r)) fn(e);
+  });
+}
+
 // 江湖客的动作只写入战斗对象，房主使用同一套逻辑计算双人伤害与治疗。
 const FolkLoadouts = {
   tripleClack(g, w, s, dt) {
@@ -12,6 +24,9 @@ const FolkLoadouts = {
         maxR: r, spd: (r - 10) / 0.33, dmg: s.dmg * p.st.might, wid: w.id,
         kb: s.kb * (0.56 + i * 0.28), hit: new Set(), color: WEAPONS[w.id].color });
     }
+    if (s.recall) g.addZone({ type: 'ring', look: 'watchClack', t: 0.87, x: p.x, y: p.y, r,
+      maxR: r, spd: r / 0.43, dmg: s.dmg * p.st.might * 0.7, wid: w.id, recall: true,
+      kb: s.kb * 1.55, hit: new Set(), color: '#fff2cc' });
     g.play('watchClack');
   },
 
@@ -22,7 +37,7 @@ const FolkLoadouts = {
     if (!wounded && !g.nearestEnemy(p.x, p.y, s.range)) { w.timer = 0.18; return; }
     w.timer = s.cd * p.st.cd;
     g.addZone({ type: 'fire', look: 'herbalFog', x: p.x, y: p.y, r, life: s.dur, tk: 0,
-      heal: s.heal, dmg: s.dmg * p.st.might, slow: s.slow, wid: w.id, color: WEAPONS[w.id].color });
+      heal: s.heal, drift: s.drift, dmg: s.dmg * p.st.might, slow: s.slow, wid: w.id, color: WEAPONS[w.id].color });
     g.play('herbalMist');
   },
 
@@ -42,24 +57,28 @@ const FolkLoadouts = {
     w.timer = s.cd * p.st.cd;
     g.fx.push({ type: 'tideOar', x: p.x, y: p.y, x2: p.x + dx * reach, y2: p.y + dy * reach,
       r: width, life: 0.42, max: 0.42, c: WEAPONS[w.id].color });
+    if (s.wake) g.addZone({ type: 'undertow', x: p.x, y: p.y, fromX: p.x + dx * reach, fromY: p.y + dy * reach,
+      r: width, life: s.wake, max: s.wake, t: 0, tk: 0, slow: s.slow, color: WEAPONS[w.id].color });
     g.play('splash');
   },
 
   scarletThread(g, w, s, dt) {
     if ((w.timer -= dt) > 0) return;
-    const p = g.player, [first, second] = g.nearestEnemies(p.x, p.y, s.range, 2);
+    const p = g.player, [first, second, third] = g.nearestEnemies(p.x, p.y, s.range, s.knots || 2);
     if (!first) { w.timer = 0.15; return; }
     w.timer = s.cd * p.st.cd;
-    const a = second || p, b = first, dx = b.x - a.x, dy = b.y - a.y, square = dx * dx + dy * dy || 1;
-    const width = s.width * p.st.area;
-    g.eachEnemyNear((a.x + b.x) / 2, (a.y + b.y) / 2, Math.hypot(dx, dy) / 2 + width, e => {
-      const t = U.clamp(((e.x - a.x) * dx + (e.y - a.y) * dy) / square, 0, 1);
-      if (Math.hypot(e.x - a.x - dx * t, e.y - a.y - dy * t) > width + e.r) return;
-      g.damageEnemy(e, s.dmg * p.st.might, w.id, 0, 0, 0);
-      if (!e.dead) g.slowEnemy(e, s.slow, s.chill);
-    });
-    g.fx.push({ type: 'scarletThread', x: a.x, y: a.y, x2: b.x, y2: b.y,
-      r: width, life: 0.45, max: 0.45, c: WEAPONS[w.id].color });
+    const edges = third ? [[first, second], [second, third], [third, first]] : [[second || p, first]];
+    const width = s.width * p.st.area, hit = new Set();
+    for (const [a, b] of edges) {
+      eachFolkLineEnemy(g, a, b, width, e => {
+        if (hit.has(e.id)) return;
+        hit.add(e.id);
+        g.damageEnemy(e, s.dmg * p.st.might, w.id, 0, 0, 0);
+        if (!e.dead) g.slowEnemy(e, s.slow, s.chill);
+      });
+      g.fx.push({ type: 'scarletThread', x: a.x, y: a.y, x2: b.x, y2: b.y,
+        r: width, life: 0.45, max: 0.45, c: WEAPONS[w.id].color });
+    }
     g.play('threadPluck');
   },
 
@@ -68,12 +87,16 @@ const FolkLoadouts = {
     const p = g.player, foe = g.nearestEnemy(p.x, p.y, s.range);
     if (!foe) { w.timer = 0.2; return; }
     w.timer = s.cd * p.st.cd;
-    const d = Math.hypot(foe.x - p.x, foe.y - p.y) || 1, factor = Math.min(1, 116 / d);
-    const at = { x: p.x + (foe.x - p.x) * factor, y: p.y + (foe.y - p.y) * factor };
-    Terrain.move(at, 0, 0, CFG.PLAYER_R, 0, g.landscape);
-    g.addZone({ type: 'decoy', look: 'maskEcho', ...at,
-      r: s.radius * p.st.area, trigger: s.blast * p.st.area, life: s.dur,
-      dmg: s.dmg * p.st.might, kb: s.kb, wid: w.id, color: WEAPONS[w.id].color });
+    const angle = Math.atan2(foe.y - p.y, foe.x - p.x), dx = Math.cos(angle), dy = Math.sin(angle);
+    const distance = Math.min(116, Math.hypot(foe.x - p.x, foe.y - p.y));
+    const offsets = s.twin ? [-s.twin, s.twin] : [0];
+    offsets.forEach((offset, i) => {
+      const at = { x: p.x + dx * distance - dy * offset, y: p.y + dy * distance + dx * offset };
+      Terrain.move(at, 0, 0, CFG.PLAYER_R, 0, g.landscape);
+      g.addZone({ type: 'decoy', look: 'maskEcho', ...at,
+        r: s.radius * p.st.area, trigger: s.blast * p.st.area, life: s.dur + i * 0.42,
+        dmg: s.dmg * p.st.might, kb: s.kb, wid: w.id, color: WEAPONS[w.id].color });
+    });
     g.play('maskFlare');
   },
 };

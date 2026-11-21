@@ -151,3 +151,91 @@ test('六位角色均可作为来客，战斗快照保留其技能的投射物�
     assert.ok([...frame.projs, ...frame.zones, ...frame.fx].some(a => (a.look || a.type) === signature), id);
   }
 });
+
+test('六位江湖客满级加指定被动才出现进化，可应用且能同步来客的装备', () => {
+  const { Game: g, CHARS, WEAPONS, LanState } = setup();
+  for (const [id, char] of Object.entries(CHARS).filter(([, c]) => c.group === 'folk')) {
+    g.start('ella', id);
+    const p = g.partner, { to, need } = WEAPONS[char.weapon].evo;
+    g.applyChoice({ kind: 'passive', id: need, lv: 1 }, p);
+    assert.ok(!g.buildChoices(3, p).some(c => c.kind === 'evo'));
+    for (let lv = 2; lv <= 6; lv++) g.applyChoice({ kind: 'weapon', id: char.weapon, lv }, p);
+    p.passives.length = 0;
+    assert.ok(!g.buildChoices(3, p).some(c => c.kind === 'evo'));
+    g.applyChoice({ kind: 'passive', id: need, lv: 1 }, p);
+    const choice = g.buildChoices(3, p).find(c => c.kind === 'evo');
+    assert.equal(choice.to, to);
+    g.applyChoice(choice, p);
+    assert.equal(p.weapons[0].id, to);
+    assert.equal(LanState.readFrame(LanState.packFrame(g)).player.weapons[0].id, to);
+  }
+});
+
+test('百鹤回巢的纸刃会再折小鹤，继承命中名单并停止分裂', () => {
+  const { Game: g } = setup('ruo');
+  const a = dummy(g, 80, 0), b = dummy(g, 98, 42), c = dummy(g, 173, -40);
+  const flake = { x: b.x, y: b.y, vx: 0, vy: 0, dmg: 18, wid: 'paperFlock', color: '#fff0bd',
+    r: 4, life: 0.5, pierce: 1, look: 'paperFlake', refold: 0.82 };
+  g.addProj(flake);
+  flake.hit.add(a.id);
+  for (const e of [a, b, c]) g.grid.insert(e);
+  g.updateProjs(0.01);
+  assert.equal(g.projs.length, 1);
+  const [crane] = g.projs;
+  assert.equal(crane.look, 'paperKite');
+  assert.equal(crane.tg, c);
+  assert.ok(crane.hit.has(a.id) && crane.hit.has(b.id) && !crane.refold && !crane.split);
+});
+
+test('逐风回生随主人缓慢移动仍能治疗，回更音浪往原先的位置拉怪', () => {
+  const { Game: g } = setup('shao');
+  g.player.weapons.length = 0;
+  g.addWeapon('driftingMist');
+  g.player.hp = 70;
+  g.stepLoadout(g.player, 0.02);
+  const [fog] = g.zones;
+  const origin = fog.x;
+  g.player.x += 135;
+  g.updateZones(0.4);
+  assert.ok(fog.x > origin && fog.x < g.player.x && g.player.hp > 70);
+  g.start('wen');
+  g.player.weapons.length = 0;
+  g.addWeapon('returnClack');
+  const foe = dummy(g, 90, 0);
+  g.grid.insert(foe);
+  g.stepLoadout(g.player, 0.02);
+  const wave = g.zones.find(z => z.recall);
+  assert.ok(wave && wave.t > 0);
+  for (let i = 0; i < 5; i++) g.updateZones(0.16);
+  foe.kx = 0;
+  for (let i = 0; i < 4; i++) g.updateZones(0.16);
+  assert.ok(wave.hit.has(foe.id) && foe.kx < 0);
+});
+
+test('逆潮留痕影响后来才踏入的怪，三才红阵不重复命中，双傩分两边爆开', () => {
+  const { Game: g } = setup('du');
+  const equip = id => { g.player.weapons.length = 0; g.addWeapon(id); g.grid.clear(); };
+  equip('undertow');
+  const front = dummy(g, 102, 0), late = dummy(g, 143, 98);
+  g.grid.insert(front);
+  g.stepLoadout(g.player, 0.02);
+  late.y = 12;
+  g.grid.insert(late);
+  g.updateZones(0.02);
+  assert.ok(late.slow > 0 && late.hp === late.maxHp);
+  g.start('su');
+  equip('threadNet');
+  const corners = [dummy(g, 80, 0), dummy(g, 110, 65), dummy(g, 110, -65)];
+  for (const e of corners) g.grid.insert(e);
+  g.stepLoadout(g.player, 0.02);
+  assert.equal(g.fx.filter(f => f.type === 'scarletThread').length, 3);
+  for (const e of corners) assert.ok(e.maxHp - e.hp > 38 && e.maxHp - e.hp < 54);
+  g.start('yan');
+  equip('twinMasks');
+  dummy(g, 170, 0);
+  g.stepLoadout(g.player, 0.02);
+  const [one, two] = g.zones;
+  assert.ok(one.y < 0 && two.y > 0 && one.life < two.life);
+  g.updateZones(one.life + 0.01);
+  assert.equal(g.zones.length, 1);
+});

@@ -4,6 +4,7 @@ const FolkSkillArt = {
   paper(ctx, b) {
     ctx.save(); ctx.globalCompositeOperation = 'source-over';
     ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx));
+    if (b.look === 'paperKite') ctx.scale(0.65, 0.65);
     ctx.fillStyle = '#f5e4bc'; ctx.strokeStyle = '#bc995f'; ctx.lineWidth = 0.8;
     ctx.beginPath();
     if (b.look === 'paperFlake') {

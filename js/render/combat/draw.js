@@ -21,6 +21,8 @@ const CombatRendering = {
     for (const z of g.zones) {
       if (z.look === 'watchClack' || z.look === 'herbalFog' || z.look === 'maskEcho') {
         FolkSkillArt[z.look](ctx, z, time);
+      } else if (z.type === 'undertow') {
+        FolkSkillArt.tideOar(ctx, { ...z, x2: z.fromX, y2: z.fromY, c: z.color }, z.life / z.max * 0.7);
       } else if (z.type === 'meteor' && z.look !== 'aiScan') {
         const k = 1 - z.t / z.max;
         ctx.fillStyle = `rgba(255,90,50,${0.08 + k * 0.2})`;
@@ -251,7 +253,7 @@ const CombatRendering = {
         XiaoxiaoArt[b.look](ctx, b);
       } else if (b.look === 'code' || b.look === 'ticket') {
         ZhuSkillArt[b.look](ctx, b);
-      } else if (b.look === 'paperCrane' || b.look === 'paperFlake') {
+      } else if (b.look === 'paperCrane' || b.look === 'paperFlake' || b.look === 'paperKite') {
         FolkSkillArt.paper(ctx, b);
       } else if (b.look === 'soulCoin' || b.look === 'mirrorBolt') {
         RelicArt[b.look](ctx, b);

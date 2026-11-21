@@ -80,6 +80,7 @@ const Icons = (() => {
 
   return {
     html(id) {
+      if (Object.hasOwn(WEAPONS, id)) id = WEAPONS[id].icon || id;
       const path = Object.hasOwn(lines, id) ? lines[id] : lines.lantern;
       return `<svg class="sigil" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
     },
