@@ -5,39 +5,50 @@ const CoopUI = {
 
   initSignals(on) {
     on('btnSignal', () => this.toggleSignals());
-    Object.entries(COOP_SIGNALS).forEach(([id, def], index) => {
+    Object.values(COOP_SIGNALS).forEach((def, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = `${def.glyph} ${def.label}`;
+      button.textContent = def.emoji;
+      button.setAttribute('aria-label', def.label);
       button.setAttribute('aria-keyshortcuts', String(index + 1));
       button.addEventListener('click', () => this.chooseSignal(index));
       this.$('signalActions').appendChild(button);
     });
   },
 
-  toggleSignals() {
+  toggleSignals(fromShortcut = false) {
     if (this.signalsOpen) { this.closeSignals(true); return; }
     if (!Lan.running || Game.state !== 'playing' || this.overlayId) return;
     this.signalsOpen = true;
-    this.$('signalStatus').textContent = '';
+    this.signalReturnFocus = fromShortcut ? document.activeElement : this.$('btnSignal');
+    this.setSignalWaiting(false);
     this.$('signalActions').classList.remove('hidden');
     this.$('btnSignal').setAttribute('aria-expanded', 'true');
+    this.$('signalActions').firstElementChild.focus({ preventScroll: true });
   },
 
   closeSignals(restore = false) {
     if (!this.signalsOpen) return;
     this.signalsOpen = false;
     this.$('signalActions').classList.add('hidden');
-    this.$('signalStatus').textContent = '';
+    this.setSignalWaiting(false);
     this.$('btnSignal').setAttribute('aria-expanded', 'false');
-    if (restore) this.$('btnSignal').focus({ preventScroll: true });
+    const focus = this.signalReturnFocus;
+    this.signalReturnFocus = null;
+    if (restore && focus !== document.body) focus?.focus({ preventScroll: true });
   },
 
   chooseSignal(index) {
     const id = Object.keys(COOP_SIGNALS)[index];
     if (!this.signalsOpen || !id || this.overlayId) return;
     if (Lan.sendSignal(id)) this.closeSignals(true);
-    else this.$('signalStatus').textContent = '信号暂不可发，请稍等';
+    else this.setSignalWaiting(true);
+  },
+
+  setSignalWaiting(waiting) {
+    this.$('signalStatus').textContent = waiting ? '表情暂不可发，请稍等' : '';
+    this.$('signalHourglass').classList.toggle('hidden', !waiting);
+    this.$('signalSmile').classList.toggle('hidden', waiting);
   },
 
   updateCoopHud(g) {

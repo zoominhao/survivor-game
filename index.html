@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css?v=skill-icons1">
+  <link rel="stylesheet" href="css/screens.css?v=emotes1">
   <link rel="stylesheet" href="css/responsive.css?v=ambience1">
 </head>
 <body>
@@ -36,8 +36,8 @@
     <div class="battle-dock">
       <span id="contractHud" class="contract-mark hidden"></span>
       <div id="signalDock" class="signal-dock hidden">
-        <div id="signalActions" class="signal-actions hidden" role="group" aria-label="双人快捷信号"></div>
-        <p id="signalStatus" role="status"></p>
+        <div id="signalActions" class="signal-actions hidden" role="group" aria-label="快捷表情"></div>
+        <p id="signalStatus" class="sr-only" role="status"></p>
       </div>
       <div class="battle-actions">
         <div id="activeDock" class="active-dock hidden" role="group" aria-label="主动技能">
@@ -48,7 +48,9 @@
             <span data-icon="wardPaper"></span><small id="btnWardState">E · 1/3</small>
           </button>
         </div>
-        <button id="btnSignal" class="hidden" type="button" aria-expanded="false" aria-controls="signalActions" aria-keyshortcuts="Q">信号 <kbd>Q</kbd></button>
+        <button id="btnSignal" class="icon-button hidden" type="button" aria-label="表情" aria-expanded="false" aria-controls="signalActions" aria-keyshortcuts="Q">
+          <span id="signalSmile" data-icon="emotes"></span><span id="signalHourglass" class="hidden" data-icon="haste"></span>
+        </button>
       </div>
     </div>
   </div>
@@ -396,7 +398,7 @@
   <script src="js/battle/combat/drops.js?v=actives2"></script>
   <script src="js/battle/combat/effects.js"></script>
   <script src="js/battle/practice.js?v=practice-roster1"></script>
-  <script src="js/battle/coop-support.js?v=bonds1"></script>
+  <script src="js/battle/coop-support.js?v=emotes1"></script>
   <script src="js/battle/robot-threats.js?v=folk1"></script>
   <script src="js/battle/robot-partner.js?v=folk1"></script>
   <script src="js/battle/upgrade-advice.js?v=folk1"></script>
@@ -434,9 +436,9 @@
   <script src="js/render/enemies/nightmare-art.js"></script>
   <script src="js/render/enemies/boss-art.js"></script>
   <script src="js/render/enemies/draw.js"></script>
-  <script src="js/render/coop-signals.js"></script>
+  <script src="js/render/coop-signals.js?v=emotes1"></script>
   <script src="js/render/renderer.js?v=late1"></script>
-  <script src="js/ui/icons.js?v=skill-icons1"></script>
+  <script src="js/ui/icons.js?v=emotes1"></script>
   <script src="js/ui/route-training.js"></script>
   <script src="js/ui/menu.js?v=folk2"></script>
   <script src="js/ui/battle-panels.js?v=fork1"></script>
@@ -444,7 +446,7 @@
   <script src="js/ui/utilities.js?v=practice-roster1"></script>
   <script src="js/ui/lan-qr.js?v=lan-qr2"></script>
   <script src="js/ui/lan.js?v=leave-confirm1"></script>
-  <script src="js/ui/coop-support.js?v=actives1"></script>
+  <script src="js/ui/coop-support.js?v=emotes1"></script>
   <script src="js/ui/contracts.js?v=ambience1"></script>
   <script src="js/ui/screens.js?v=actives1"></script>
   <script src="js/vendor/qrcode-generator-2.0.4.min.js"></script>
@@ -456,6 +458,6 @@
   <script src="js/app/input.js?v=lan1"></script>
   <script src="js/app/lan-room.js?v=actives1"></script>
   <script src="js/app/lan.js?v=actives1"></script>
-  <script src="js/app/main.js?v=leave-confirm1"></script>
+  <script src="js/app/main.js?v=emotes1"></script>
 </body>
 </html>

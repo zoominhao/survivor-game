@@ -7,11 +7,11 @@ const { battleScript, loadGame } = require('./fixtures/load-game');
 
 function setup() {
   const scope = vm.createContext({});
-  loadGame(scope, f => battleScript(f) || f.endsWith('/lan-state.js') || f.endsWith('/save.js'));
+  loadGame(scope, f => battleScript(f) || ['/lan-state.js', '/save.js', '/coop-signals.js'].some(name => f.endsWith(name)));
   return vm.runInContext(`(() => {
     const events = [], save = { data: Save.defaults(), write() { throw new Error('双人和机器人都不能写单人档'); } };
     const g = createBattle({ save, emit: (event, data) => events.push([event, data]) });
-    return { g, events, LanState, RobotPartner, recommendUpgrade };
+    return { g, events, LanState, RobotPartner, recommendUpgrade, CoopSignalArt };
   })()`, scope);
 }
 
@@ -160,6 +160,22 @@ test('机器人会站在倒下玩家附近扶救，双方快照只读有效信�
   assert.equal(LanState.readFrame(wire).signals[0], null);
   g.time += 3;
   assert.ok(g.sendSignal(0, 'cheer'));
+});
+
+test('联机快照的聊天气泡只画表情，过期不再绘制', () => {
+  const { g, LanState, CoopSignalArt } = setup();
+  g.start('ella', 'zhu');
+  g.sendSignal(0, 'follow');
+  g.sendSignal(1, 'cheer');
+  const frame = LanState.readFrame(JSON.parse(JSON.stringify(LanState.packFrame(g))));
+  const drawn = [];
+  const ctx = { save() {}, restore() {}, setTransform() {}, beginPath() {}, arc() {}, fill() {}, stroke() {},
+    fillText(emoji) { drawn.push(emoji); } };
+  CoopSignalArt.draw(ctx, frame, { x: 0, y: 0 }, 600, 400, 1, 1);
+  assert.deepEqual(drawn, ['👋', '👍']);
+  frame.time += 3;
+  CoopSignalArt.draw(ctx, frame, { x: 0, y: 0 }, 600, 400, 1, 1);
+  assert.equal(drawn.length, 2);
 });
 
 test('军师能指出真实的进化搭配，紧急时优先建议回血', () => {

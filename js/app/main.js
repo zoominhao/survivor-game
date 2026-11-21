@@ -166,7 +166,7 @@ const App = {
       return;
     }
     if (Lan.running && s === 'playing' && !UI.overlayId) {
-      if (code === 'KeyQ') { UI.toggleSignals(); return; }
+      if (code === 'KeyQ') { UI.toggleSignals(true); return; }
       if (UI.signalsOpen) {
         if (code === 'Escape') { UI.closeSignals(true); return; }
         if (/^(Digit|Numpad)[1-4]$/.test(code)) { UI.chooseSignal(Number(code.at(-1)) - 1); return; }

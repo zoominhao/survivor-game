@@ -217,9 +217,12 @@
 .active-dock button[aria-disabled="true"] .sigil { opacity: .55; }
 .signal-dock { display: grid; justify-items: end; }
 .signal-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-#btnSignal kbd { color: var(--gold); }
-#signalStatus { margin: 0; padding: 4px 8px; color: var(--gold); background: var(--bg); font-size: 12px; }
-#signalStatus:empty { display: none; }
+.signal-actions button, #btnSignal { width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 50%; }
+.signal-actions button { font: 23px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+#btnSignal { border-color: var(--binding); }
+#btnSignal[aria-expanded="true"] { border-color: var(--gold); }
+#btnSignal .sigil { color: var(--gold); }
+.signal-actions button:hover, #btnSignal:hover { background: var(--surface-hover); }
 .level-advice { margin: -3px 0 12px; padding: 6px 10px; border-inline-start: 2px solid var(--vermillion); color: var(--dim); font-size: 13px; line-height: 1.55; }
 .card.advised { box-shadow: inset 0 0 0 3px var(--gold); }
 .shop-hero { padding: 7px 8px; border-bottom: 1px solid var(--line); }

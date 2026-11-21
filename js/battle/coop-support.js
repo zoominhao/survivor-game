@@ -1,10 +1,10 @@
 'use strict';
 
 const COOP_SIGNALS = {
-  follow: { label: '跟我来', glyph: '→', color: '#bdebc8' },
-  danger: { label: '小心', glyph: '!', color: '#f3c492' },
-  help: { label: '救我', glyph: '+', color: '#ffc2ba' },
-  cheer: { label: '打得好', glyph: '✓', color: '#f5e2aa' },
+  follow: { label: '跟我来', emoji: '👋', color: '#bdebc8' },
+  danger: { label: '小心', emoji: '😱', color: '#f3c492' },
+  help: { label: '救我', emoji: '🙏', color: '#ffc2ba' },
+  cheer: { label: '打得好', emoji: '👍', color: '#f5e2aa' },
 };
 const RESCUE_RADIUS = 44;
 const RESCUE_SECONDS = 2;
