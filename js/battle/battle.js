@@ -4,7 +4,7 @@
 function createBattle({ save, emit = () => {}, play = () => {} }) {
   return {
     ...BattleProgression, ...BattleEnemies, ...NightmareBattle, ...BossBattle, ...BossDecisions,
-    ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects,
+    ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle,
     save, emit, play, uid: 0,
     state: 'menu', view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
 
@@ -12,6 +12,8 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
     start(charId) {
       const c = CHARS[charId], m = this.save.data.meta;
       this.time = 0;
+      this.assisted = false;
+      this.practiceInvincible = false;
       this.environment = WorldInteractions.createRun();
       this.sceneId = this.landscape = 'dusk';
       this.spawnAcc = 0;
@@ -127,15 +129,18 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
     // 结算:win = 是否撑到黎明
     finish(win) {
       const p = this.player, d = this.save.data;
-      const earned = Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0);
-      d.coins += earned;
-      d.runs++;
-      d.kills += p.kills;
-      if (win) d.wins++;
-      const newBest = this.time > d.best;
-      if (newBest) d.best = Math.min(CFG.RUN_TIME, this.time);
-      this.save.write();
-      this.result = { win, earned, time: Math.min(CFG.RUN_TIME, this.time), kills: p.kills, level: p.level, newBest };
+      const time = Math.min(CFG.RUN_TIME, this.time);
+      const newBest = !this.assisted && this.time > d.best;
+      const earned = this.assisted ? 0 : Math.floor(p.coins) + Math.floor(this.time / 10) + (win ? 200 : 0);
+      if (!this.assisted) {
+        d.coins += earned;
+        d.runs++;
+        d.kills += p.kills;
+        if (win) d.wins++;
+        if (newBest) d.best = time;
+        this.save.write();
+      }
+      this.result = { win, earned, time, kills: p.kills, level: p.level, newBest, assisted: this.assisted };
       this.state = win ? 'victory' : 'gameover';
       if (win) {
         for (const e of this.enemies) this.burst(e.x, e.y, '#ffe9a8', 2);

@@ -47,6 +47,7 @@
 
 @media (max-width: 480px) {
   .panel { padding: 18px; }
+  #audio .row button { padding-inline: 8px; }
   .chars { gap: 6px; }
   .char { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 2px; min-height: 97px; padding: 5px 7px; }
   .char-art { width: 42px; height: 36px; }

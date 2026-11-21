@@ -187,8 +187,8 @@ test('定时出现僵尸合围和鬼新娘，僵尸按起跳节奏移动', () =>
   Game.time = 119; Game.spawn(0);
   Game.time = 168; Game.spawn(0);
   assert.equal(Game.enemies.filter(e => e.type === 'bride').length, 1);
-  assert.ok(banners.includes('黄符僵尸围了上来') && banners.includes('红盖头下，喜帖无声'));
-  assert.deepEqual(cues.map(args => args[0]), ['paperChild', 'corpseAmbush', 'umbrellaOpen', 'bridalBell']);
+  assert.ok(banners.includes('黄符僵尸围了上来') && banners.includes('雨里有人摇起了喜铃'));
+  assert.deepEqual(cues.map(args => args[0]), ['paperChildArrival', 'corpseAmbush', 'umbrellaOpen', 'siegeArrival', 'brideArrival']);
   const zombie = Game.spawnEnemy('jiangshi', 90, 0);
   zombie.t = 0; const before = zombie.x; Game.updateEnemies(1 / 60);
   const landSpeed = before - zombie.x;

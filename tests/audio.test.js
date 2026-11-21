@@ -6,10 +6,11 @@ const test = require('node:test');
 const { loadGame } = require('./fixtures/load-game');
 
 class AudioParamStub {
+  events = [];
   setValueAtTime(value) { this.value = value; }
   linearRampToValueAtTime(value) { this.value = value; }
   exponentialRampToValueAtTime(value) { this.value = value; }
-  setTargetAtTime(value) { this.value = value; }
+  setTargetAtTime(value, time) { this.events.push([value, time]); this.value = value; }
   cancelScheduledValues() {}
 }
 
@@ -88,6 +89,44 @@ test('静音存档和后台状态都会停止排程并压低总音量', () => {
   assert.ok(Sfx.master.gain.value > 0);
 });
 
+test('两条音量线路相互独立，滑杆归零不会改动另一条', () => {
+  const { Sfx, save } = setup();
+  Sfx.configure({ muted: false, musicVolume: 28, effectsVolume: 67 });
+  Sfx.unlock();
+  assert.equal(Sfx.musicGain.gain.value, 0.28);
+  assert.equal(Sfx.effectsGain.gain.value, 0.67);
+  Sfx.setVolume('effects', 0);
+  Sfx.syncMusic('playing', false);
+  const count = Sfx.ctx.starts.length;
+  Sfx.play('boss');
+  assert.equal(Sfx.ctx.starts.length, count);
+  assert.equal(Sfx.music.track, 'battle');
+  assert.equal(Sfx.musicGain.gain.value, 0.28);
+  assert.equal(Sfx.arrivalUntil, -Infinity);
+  Sfx.setVolume('music', 0);
+  Sfx.syncMusic('playing', false);
+  assert.equal(Sfx.music.track, null);
+  Sfx.setVolume('effects', 55, true);
+  Sfx.play('shoot');
+  assert.ok(Sfx.ctx.starts.length > count);
+  assert.equal(Sfx.effectsGain.gain.value, 0.55);
+  assert.equal(Sfx.musicGain.gain.value, 0);
+  assert.equal(save.data.effectsVolume, 55);
+  assert.equal(save.count, 1);
+});
+
+test('旧档的总静音被保留，缺失或无效的滑杆值回到安全默认值', () => {
+  const { Sfx } = setup();
+  Sfx.configure({ muted: true, musicVolume: '坏掉了', effectsVolume: 135 });
+  Sfx.unlock();
+  assert.equal(Sfx.master.gain.value, 0);
+  assert.equal(Sfx.levels.music, 80);
+  assert.equal(Sfx.levels.effects, 100);
+  Sfx.setMuted(false);
+  assert.ok(Sfx.master.gain.value > 0);
+  assert.equal(Sfx.musicGain.gain.value, 0.8);
+});
+
 test('层叠音效限制重复触发，卡顿后不一次补播大量音符', () => {
   const { Sfx } = setup();
   Sfx.unlock();
@@ -121,6 +160,24 @@ test('从浏览器挂起状态解锁时补播最近的一个开场音效', async
   assert.equal(Sfx.pendingCue, null);
 });
 
+test('解锁期间的常规音效不挤掉登场声，试听也不消耗实际登场的冷却', async () => {
+  class SuspendedContext extends AudioContextStub {
+    constructor() { super(); this.state = 'suspended'; }
+    async resume() { await Promise.resolve(); this.state = 'running'; }
+  }
+  const { Sfx } = setup(SuspendedContext);
+  Sfx.unlock();
+  Sfx.play('sampleArrival');
+  Sfx.play('hit');
+  assert.equal(Sfx.pendingCue[0], 'sampleArrival');
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(Sfx.last.sampleArrival, 0);
+  const before = Sfx.ctx.starts.length;
+  Sfx.play('paperChildArrival');
+  assert.ok(Sfx.ctx.starts.length > before);
+});
+
 test('民俗音效能合成多层声音，落地声声道偏移且限制连发', () => {
   const { Sfx } = setup();
   Sfx.unlock();
@@ -135,15 +192,20 @@ test('民俗音效能合成多层声音，落地声声道偏移且限制连发',
   assert.deepEqual(Sfx.ctx.panners.map(p => p.pan.value), [-0.65, -0.65, 0.7, 0.7]);
 });
 
-test('夜魇登场让配乐暂时压低，之后不重启曲目地恢复音量', () => {
+test('小怪与 Boss 的重要登场声压低配乐和常规音效，但不重启曲目', () => {
   const { Sfx } = setup();
   Sfx.unlock();
-  Sfx.play('boss');
-  assert.equal(Sfx.ctx.starts.length, 8);
-  Sfx.syncMusic('playing', true, true);
-  const bus = Sfx.music.bus, low = Sfx.music.volume;
-  assert.equal(Sfx.music.track, 'boss');
-  Sfx.syncMusic('playing', true, false);
-  assert.equal(Sfx.music.bus, bus);
-  assert.ok(Sfx.music.volume > low * 3);
+  for (const [name, isBoss] of [['paperChildArrival', false], ['boss', true]]) {
+    Sfx.syncMusic('playing', isBoss);
+    const bus = Sfx.music.bus, full = Sfx.music.volume, count = Sfx.ctx.starts.length;
+    Sfx.play(name);
+    assert.ok(Sfx.ctx.starts.length > count);
+    Sfx.syncMusic('playing', isBoss);
+    assert.ok(Sfx.music.volume < full * 0.3);
+    assert.ok(Sfx.routineGain.gain.events.some(([value, time]) => value < 0.5 && time === Sfx.ctx.currentTime));
+    Sfx.ctx.currentTime = Sfx.arrivalUntil + 0.05;
+    Sfx.syncMusic('playing', isBoss);
+    assert.equal(Sfx.music.bus, bus);
+    assert.equal(Sfx.music.volume, full);
+  }
 });

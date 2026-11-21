@@ -2,7 +2,7 @@
 // ===== 界面:菜单、强化商店、升级选卡、宝箱、暂停、结算、HUD(均为 DOM) =====
 
 const UI = {
-  ...MenuUI, ...BattlePanelsUI, ...HudUI,
+  ...MenuUI, ...BattlePanelsUI, ...HudUI, ...UtilityUI,
   cache: {},
   overlayId: null,
   $(id) { return document.getElementById(id); },
@@ -23,9 +23,7 @@ const UI = {
     on('btnRetry', () => App.startRun());
     on('btnMenu', () => this.showMenu());
     on('btnPause', () => App.pause());
-    on('btnMute', () => App.toggleMute());
-    on('btnMute2', () => App.toggleMute());
-    this.refreshMute();
+    this.initUtilities(on);
     this.showMenu();
   },
 
@@ -33,7 +31,9 @@ const UI = {
   show(id) {
     const previous = this.overlayId;
     this.overlayId = id;
-    if (id === 'pause' && id !== previous) this.pauseFromHud = this.$('hud').contains(document.activeElement);
+    if (id === 'pause' && !['pause', 'audio', 'practice'].includes(previous)) {
+      this.pauseFromHud = this.$('hud').contains(document.activeElement);
+    }
     if (id === 'decision' && id !== previous) this.decisionFocus = this.$('hud').contains(document.activeElement) ? document.activeElement : null;
     for (const o of document.querySelectorAll('.overlay')) o.classList.toggle('hidden', o.id !== id);
     const inRun = !!Game.player && Game.state !== 'menu' && Game.state !== 'intro';
@@ -58,21 +58,13 @@ const UI = {
   trapDialogTab(e) {
     const id = this.overlayId;
     if (e.key !== 'Tab' || !id || id === 'menu') return;
-    const buttons = [...this.$(id).querySelectorAll('button:not(:disabled)')].filter(el => el.getClientRects().length);
-    if (!buttons.length) return;
-    const current = buttons.indexOf(document.activeElement);
-    const last = buttons.length - 1;
+    const controls = [...this.$(id).querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el => el.getClientRects().length);
+    if (!controls.length) return;
+    const current = controls.indexOf(document.activeElement);
+    const last = controls.length - 1;
     if (current === -1 || (e.shiftKey ? current === 0 : current === last)) {
       e.preventDefault();
-      buttons[e.shiftKey ? last : 0].focus();
-    }
-  },
-
-  refreshMute() {
-    for (const id of ['btnMute', 'btnMute2']) {
-      const btn = this.$(id);
-      btn.innerHTML = Icons.html(Sfx.muted ? 'mute' : 'sound');
-      btn.setAttribute('aria-pressed', String(Sfx.muted));
+      controls[e.shiftKey ? last : 0].focus();
     }
   },
 

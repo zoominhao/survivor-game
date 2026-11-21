@@ -18,10 +18,13 @@ const Game = createBattle({
 const App = {
   last: 0,
   introEndsAt: 0,
+  utilityReturn: null,
+  tapCount: 0,
+  tapsSince: -Infinity,
 
   init() {
     Save.load();
-    Sfx.muted = Save.data.muted;
+    Sfx.configure(Save.data);
     Sfx.hidden = document.hidden;
     Render.init((hw, hh) => { Game.view.hw = hw; Game.view.hh = hh; });
     Input.init();
@@ -29,7 +32,10 @@ const App = {
     // 切到后台时自动暂停
     document.addEventListener('visibilitychange', () => {
       Sfx.setHidden(document.hidden);
-      if (document.hidden) this.pause();
+      if (document.hidden) {
+        if (this.utilityReturn?.state === 'playing') this.utilityReturn.state = 'paused';
+        this.pause();
+      }
     });
     this.last = performance.now();
     requestAnimationFrame(t => this.frame(t));
@@ -37,6 +43,7 @@ const App = {
 
   startRun() {
     if (Game.state === 'intro') return;
+    this.tapCount = 0; this.tapsSince = -Infinity;
     Input.endJoy();
     Game.start(Save.data.lastChar);
     Game.state = 'intro';
@@ -68,12 +75,47 @@ const App = {
 
   toggleMute() {
     Sfx.setMuted(!Sfx.muted);
-    UI.refreshMute();
+    UI.refreshAudio();
   },
 
-  onKey(code) {
+  openUtility(id) {
+    const state = Game.state;
+    if (id !== 'audio' && id !== 'practice') return;
+    if (this.utilityReturn || !(['playing', 'paused'].includes(state) || (id === 'audio' && state === 'menu'))) return;
+    this.utilityReturn = { id, state, focus: document.activeElement };
+    this.tapCount = 0; this.tapsSince = -Infinity;
+    // 主菜单本身不推进战斗，保留状态可继续播放菜单音乐。
+    if (state !== 'menu') Game.state = id;
+    Input.endJoy();
+    if (id === 'audio') UI.refreshAudio(); else UI.refreshPractice();
+    UI.show(id);
+  },
+
+  closeUtility() {
+    if (!this.utilityReturn) return;
+    const { state, focus } = this.utilityReturn;
+    this.utilityReturn = null;
+    Game.state = state;
+    if (state === 'paused') UI.showPause();
+    else UI.show(state === 'menu' ? 'menu' : null);
+    if (focus?.getClientRects().length) focus.focus({ preventScroll: true });
+  },
+
+  tapPractice(now = performance.now()) {
+    if (Game.state !== 'playing' || this.utilityReturn) return;
+    if (now - this.tapsSince > 2500) { this.tapCount = 0; this.tapsSince = now; }
+    if (++this.tapCount === 5) this.openUtility('practice');
+  },
+
+  onKey(code, shift = false) {
     const s = Game.state;
     if (code === 'KeyM') { this.toggleMute(); return; }
+    const practiceKey = code === 'KeyG' && shift;
+    if (this.utilityReturn) {
+      if (code === 'Escape' || (practiceKey && this.utilityReturn.id === 'practice')) this.closeUtility();
+      return;
+    }
+    if (practiceKey) { this.openUtility('practice'); return; }
     if (s === 'intro') {
       if (['Enter', 'Space', 'Escape'].includes(code)) this.finishIntro();
       return;
@@ -115,7 +157,7 @@ const App = {
     }
     const boss = Game.boss;
     const bossActive = !!boss && !boss.dead;
-    Sfx.syncMusic(Game.state, bossActive, bossActive && Game.time - boss.arrivedAt < BOSS_ARRIVAL);
+    Sfx.syncMusic(Game.state === 'audio' ? 'playing' : Game.state, bossActive);
     Render.draw(dt, Game);
     UI.updateHud();
     requestAnimationFrame(t => this.frame(t));

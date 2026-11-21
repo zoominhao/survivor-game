@@ -56,7 +56,7 @@ const BattleDamage = {
 
   hurtPlayer(dmg, src) {
     const p = this.player;
-    if (p.iframe > 0 || this.state !== 'playing') return;
+    if (p.iframe > 0 || this.practiceInvincible || this.state !== 'playing') return;
     const paper = p.weapons.find(w => w.id === 'exampaper' && w.guards > 0);
     if (paper) { this.consumeExamGuard(paper); return; }
     const care = p.weapons.find(w => w.id === 'skincare' && w.on > 0);

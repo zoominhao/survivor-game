@@ -91,7 +91,8 @@ const BattlePanelsUI = {
   showResult() {
     const r = Game.result, p = Game.player;
     this.$('resTitle').textContent = r.win ? '天亮了' : '长夜吞没了你';
-    this.$('resSub').textContent = r.win ? '你守到了黎明,夜兽在晨光中消散。' : '提灯熄灭了,但余烬仍在。';
+    this.$('resSub').textContent = r.assisted ? '本局使用了练习功能，不计战绩或金币奖励。' :
+      r.win ? '你守到了黎明,夜兽在晨光中消散。' : '提灯熄灭了,但余烬仍在。';
     this.$('result').classList.toggle('win', r.win);
     this.$('resStats').innerHTML =
       `<div><b>${U.fmtTime(r.time)}</b><small>坚持时间${r.newBest ? ' · 新纪录' : ''}</small></div>` +

@@ -58,8 +58,10 @@ class NightMusic {
     const score = NIGHT_SCORE[track];
     const volume = score.gain * mix;
     if (volume !== this.volume) {
+      const fade = this.volume >= 0 && volume < this.volume ? 0.033 : 0.15;
       this.volume = volume;
-      this.bus.gain.setTargetAtTime(volume, now, 0.12);
+      this.bus.gain.cancelScheduledValues(now);
+      this.bus.gain.setTargetAtTime(volume, now, fade);
     }
     // 用音频时钟提前少量排程；卡顿恢复不补播已经错过的音符。
     if (this.next < now) this.next = now + 0.025;

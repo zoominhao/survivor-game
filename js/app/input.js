@@ -11,10 +11,12 @@ const Input = {
       Sfx.unlock();
       // 按钮获得焦点时，交给浏览器用 Enter / 空格触发点击，勿同时触发全局快捷键。
       if (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space')) return;
+      // 音量滑杆的方向键交给浏览器，不触发走位或禁止默认行为。
+      if (e.target instanceof HTMLInputElement && e.target.type === 'range' && e.code.startsWith('Arrow')) return;
       if (e.repeat) return;
       this.keys.add(e.code);
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
-      App.onKey(e.code);
+      App.onKey(e.code, e.shiftKey);
     });
     window.addEventListener('keyup', e => this.keys.delete(e.code));
     window.addEventListener('blur', () => { this.keys.clear(); this.endJoy(); });

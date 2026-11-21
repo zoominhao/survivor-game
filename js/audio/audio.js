@@ -22,17 +22,9 @@ const SOUNDS = {
   zap: [0.12, ['square', 1050, 260, 0.12, 0.13, 0, 1350], ['triangle', 470, 165, 0.15, 0.09, 0.05]],
   frost: [0.20, ['sine', 834, 460, 0.25, 0.12], ['sine', 1210, 810, 0.28, 0.095, 0.05]],
   chest: [0.26, ['triangle', 392, 396, 0.23, 0.14], ['triangle', 587, 590, 0.28, 0.17, 0.07], ['sine', 784, 784, 0.32, 0.18, 0.14]],
-  boss: [1.4, ['sine', 129, 48, 0.43, 0.44], ['triangle', 207, 51, 0.31, 0.22, 0.012, 510],
-    ['sine', 73, 35, 0.58, 0.22, 0.17], ['triangle', 241, 228, 0.98, 0.21, 0.22, 1100],
-    ['sine', 511, 463, 1.11, 0.17, 0.245], ['sine', 823, 755, 0.74, 0.09, 0.253],
-    ['sawtooth', 1120, 298, 0.25, 0.072, 0.255, 820], ['sine', 115, 38, 0.34, 0.18, 0.57]],
   bossWind: [0.48, ['triangle', 135, 285, 0.33, 0.12, 0, 590], ['sine', 243, 341, 0.24, 0.105, 0.16]],
   bossCharge: [0.45, ['sine', 128, 47, 0.32, 0.29], ['sawtooth', 324, 101, 0.26, 0.125, 0.025, 620]],
-  coffinKingArrival: [1.35, ['sine', 95, 42, 0.48, 0.35], ['triangle', 270, 127, 0.4, 0.19, 0.12, 750],
-    ['sawtooth', 790, 153, 0.46, 0.10, 0.35, 760], ['sine', 112, 39, 0.52, 0.33, 0.72]],
   coffinSeal: [0.45, ['triangle', 188, 305, 0.42, 0.13, 0, 800], ['sine', 421, 295, 0.34, 0.11, 0.22]],
-  bridalQueenArrival: [1.35, ['sine', 685, 590, 0.68, 0.25], ['triangle', 263, 246, 0.49, 0.2, 0.18, 830],
-    ['sine', 907, 655, 0.66, 0.19, 0.41], ['sine', 114, 53, 0.47, 0.24, 0.72]],
   nightmareClear: [0.85, ['sine', 120, 49, 0.37, 0.28], ['triangle', 392, 392, 0.53, 0.15, 0.16],
     ['sine', 587, 587, 0.64, 0.135, 0.32], ['sine', 784, 784, 0.72, 0.15, 0.49]],
   intro: [0.42, ['triangle', 164, 82, 0.62, 0.24], ['sine', 293, 289, 0.65, 0.15, 0.16]],
@@ -41,15 +33,12 @@ const SOUNDS = {
   goldDrop: [0.18, ['sine', 144, 48, 0.21, 0.28], ['triangle', 920, 612, 0.29, 0.15, 0.012], ['sine', 1420, 1113, 0.18, 0.08, 0.025]],
   paper: [0.22, ['triangle', 700, 230, 0.13, 0.18], ['square', 930, 514, 0.055, 0.075, 0.019, 1150]],
   corpseHop: [0.23, ['sine', 114, 52, 0.17, 0.235], ['triangle', 206, 97, 0.09, 0.10, 0.015, 420]],
-  corpseAmbush: [1.2, ['triangle', 124, 81, 0.6, 0.19, 0, 380], ['sine', 96, 58, 0.33, 0.17, 0.19]],
   bridalBell: [1, ['sine', 625, 608, 0.78, 0.21], ['sine', 948, 930, 0.53, 0.12, 0.11], ['triangle', 319, 306, 0.37, 0.105, 0.23]],
   weddingPaper: [0.26, ['sawtooth', 877, 235, 0.19, 0.135, 0, 1160], ['triangle', 1470, 650, 0.105, 0.105, 0.022, 1680]],
   bridalFade: [0.38, ['sine', 782, 437, 0.3, 0.12], ['sine', 1145, 901, 0.24, 0.08, 0.055]],
   paperChild: [0.42, ['sawtooth', 1410, 410, 0.085, 0.105, 0, 1620], ['triangle', 962, 1280, 0.13, 0.095, 0.06, 1800], ['sawtooth', 1080, 350, 0.09, 0.06, 0.15, 1250]],
-  umbrellaOpen: [0.85, ['sawtooth', 240, 650, 0.21, 0.13, 0, 1050], ['triangle', 520, 187, 0.15, 0.15, 0.145, 1800], ['sine', 771, 633, 0.29, 0.09, 0.19]],
   umbrellaDrip: [0.29, ['sine', 430, 788, 0.14, 0.155], ['sine', 1320, 848, 0.11, 0.08, 0.029]],
   envoyChain: [0.57, ['triangle', 399, 322, 0.16, 0.11, 0, 900], ['sine', 832, 691, 0.12, 0.075, 0.05], ['triangle', 281, 208, 0.23, 0.12, 0.14, 740]],
-  envoyCall: [0.9, ['triangle', 155, 139, 0.62, 0.16, 0, 610], ['sine', 284, 253, 0.65, 0.14, 0.16], ['sine', 721, 497, 0.32, 0.065, 0.18]],
   bambooPass: [1, ['triangle', 474, 247, 0.12, 0.11], ['triangle', 391, 230, 0.17, 0.1, 0.16], ['sawtooth', 250, 445, 0.32, 0.06, 0.11, 670]],
   rainPass: [1, ['sine', 670, 530, 0.23, 0.095], ['sine', 903, 665, 0.22, 0.07, 0.16], ['sine', 448, 410, 0.24, 0.095, 0.36]],
   snowPass: [1, ['sawtooth', 226, 307, 0.75, 0.065, 0, 590], ['sine', 538, 386, 0.74, 0.1, 0.16]],
@@ -83,11 +72,25 @@ function audioTone(ctx, destination, at, wave, from, to, dur, volume, cutoff, pa
   osc.stop(at + dur + 0.012);
 }
 
+const AUDIO_LEVELS = { music: 80, effects: 100 };
+const AUDIO_SAVE_KEYS = { music: 'musicVolume', effects: 'effectsVolume' };
+const normalizeVolume = (value, fallback) => Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : fallback;
+
 const Sfx = {
   ctx: null,
   muted: false,
   hidden: false,
   last: {},
+  levels: { ...AUDIO_LEVELS },
+  arrivalUntil: -Infinity,
+
+  configure(save) {
+    this.muted = save.muted === true;
+    for (const channel of Object.keys(AUDIO_LEVELS)) {
+      this.levels[channel] = normalizeVolume(save[AUDIO_SAVE_KEYS[channel]], AUDIO_LEVELS[channel]);
+    }
+    this.applyMix();
+  },
 
   // 浏览器要求用户手势后才能出声,在首次点击/按键时调用
   unlock() {
@@ -99,10 +102,20 @@ const Sfx = {
         this.master = this.ctx.createGain();
         this.master.gain.value = this.muted || this.hidden ? 0 : 0.56;
         this.master.connect(this.ctx.destination);
-        this.music = new NightMusic(this.ctx, this.master);
+        this.musicGain = this.makeGain(this.master, this.levels.music / 100);
+        this.effectsGain = this.makeGain(this.master, this.levels.effects / 100);
+        this.routineGain = this.makeGain(this.effectsGain, 1);
+        this.music = new NightMusic(this.ctx, this.musicGain);
       } catch (e) { this.ctx = null; return; }
     }
     this.resumeAudio();
+  },
+
+  makeGain(to, value) {
+    const bus = this.ctx.createGain();
+    bus.gain.value = value;
+    bus.connect(to);
+    return bus;
   },
 
   resumeAudio() {
@@ -119,27 +132,40 @@ const Sfx = {
   },
 
   play(name, gain = 1, pan = 0) {
-    const cue = SOUNDS[name];
-    if (!cue || gain <= 0 || this.muted || this.hidden || !this.ctx) return;
+    const arrival = Object.hasOwn(ARRIVAL_SOUNDS, name);
+    const cue = arrival ? ARRIVAL_SOUNDS[name] : SOUNDS[name];
+    if (!cue || gain <= 0 || !this.levels.effects || this.muted || this.hidden || !this.ctx) return;
     if (this.ctx.state !== 'running') {
-      if (this.resuming) this.pendingCue = [name, gain, pan];
+      if (this.resuming && (arrival || !this.pendingCue || !Object.hasOwn(ARRIVAL_SOUNDS, this.pendingCue[0]))) {
+        this.pendingCue = [name, gain, pan];
+      }
       return;
     }
     const now = this.ctx.currentTime;
     if (now - (this.last[name] ?? -Infinity) < cue[0]) return;
     this.last[name] = now;
+    const out = arrival ? this.effectsGain : this.routineGain;
+    if (arrival) this.focusArrival(now);
     for (let i = 1; i < cue.length; i++) {
       const [wave, from, to, dur, volume, delay = 0, cutoff] = cue[i];
-      audioTone(this.ctx, this.master, now + delay, wave, from, to, dur, volume * gain, cutoff, pan);
+      audioTone(this.ctx, out, now + delay, wave, from, to, dur, volume * gain, cutoff, pan);
     }
   },
 
-  syncMusic(state, bossActive, bossArrival = false) {
+  focusArrival(now) {
+    this.arrivalUntil = Math.max(this.arrivalUntil, now + 1.45);
+    const gain = this.routineGain.gain;
+    gain.cancelScheduledValues(now);
+    gain.setTargetAtTime(0.38, now, 0.025);
+    gain.setTargetAtTime(1, this.arrivalUntil, 0.16);
+  },
+
+  syncMusic(state, bossActive) {
     if (!this.music) return;
-    const quiet = state === 'levelup' || state === 'chest';
-    const track = this.muted || this.hidden || this.ctx.state !== 'running' ? null :
+    const quiet = state === 'levelup' || state === 'chest' || state === 'decision';
+    const track = !this.levels.music || this.muted || this.hidden || this.ctx.state !== 'running' ? null :
       state === 'menu' ? 'menu' : state === 'playing' || quiet ? (bossActive ? 'boss' : 'battle') : null;
-    this.music.sync(track, bossArrival ? 0.26 : quiet ? 0.5 : 1);
+    this.music.sync(track, this.ctx.currentTime < this.arrivalUntil ? 0.22 : quiet ? 0.5 : 1);
   },
 
   applyMix() {
@@ -147,7 +173,17 @@ const Sfx = {
     const silent = this.muted || this.hidden, now = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(now);
     this.master.gain.setTargetAtTime(silent ? 0 : 0.56, now, 0.025);
-    if (silent) { this.pendingCue = null; this.music.stop(); }
+    for (const [bus, level] of [[this.musicGain, this.levels.music], [this.effectsGain, this.levels.effects]]) {
+      bus.gain.cancelScheduledValues(now);
+      bus.gain.setTargetAtTime(level / 100, now, 0.025);
+    }
+    if (silent || !this.levels.music) this.music.stop();
+    if (silent || !this.levels.effects) {
+      this.pendingCue = null;
+      this.arrivalUntil = -Infinity;
+      this.routineGain.gain.cancelScheduledValues(now);
+      this.routineGain.gain.setTargetAtTime(1, now, 0.025);
+    }
   },
 
   setHidden(hidden) {
@@ -161,5 +197,18 @@ const Sfx = {
     this.applyMix();
     Save.data.muted = m;
     Save.write();
+  },
+
+  setVolume(channel, value, persist = false) {
+    if (!Object.hasOwn(AUDIO_LEVELS, channel)) return;
+    const level = normalizeVolume(value, this.levels[channel]);
+    if (level !== this.levels[channel]) {
+      this.levels[channel] = level;
+      this.applyMix();
+    }
+    if (persist) {
+      Save.data[AUDIO_SAVE_KEYS[channel]] = level;
+      Save.write();
+    }
   },
 };

@@ -47,13 +47,12 @@ const BattleEnemies = {
           this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         }
         this.emit('banner', ev.msg || `${ENEMIES[ev.enemy].name}正在合围！`);
-        if (ev.enemy === 'jiangshi') this.play('corpseAmbush');
+        this.play(ev.sound || 'siegeArrival');
       } else if (ev.kind === 'arrival') {
         const a = Math.random() * TAU, rr = R * 0.78;
         this.spawnEnemy(ev.enemy, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
         this.emit('banner', ev.msg);
-        if (ev.enemy === 'bride') this.play('bridalBell');
-        else if (ev.sound) this.play(ev.sound);
+        if (ev.sound) this.play(ev.sound);
       } else if (ev.kind === 'boss') {
         this.pendingBosses.push(ev);
       }
