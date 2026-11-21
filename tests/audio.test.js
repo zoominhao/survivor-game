@@ -1,13 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
-
-const scripts = ['music.js', 'audio.js'].map(name =>
-  new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', name), 'utf8')));
+const { loadGame } = require('./fixtures/load-game');
 
 class AudioParamStub {
   setValueAtTime(value) { this.value = value; }
@@ -43,7 +39,7 @@ class AudioContextStub {
 function setup(AudioContext = AudioContextStub) {
   const save = { data: {}, count: 0, write() { this.count++; } };
   const context = vm.createContext({ window: { AudioContext }, Save: save, setTimeout() {} });
-  for (const script of scripts) script.runInContext(context);
+  loadGame(context, file => file.startsWith('js/audio/'));
   return { Sfx: vm.runInContext('Sfx', context), save };
 }
 
@@ -137,4 +133,17 @@ test('民俗音效能合成多层声音，落地声声道偏移且限制连发',
   Sfx.play('bridalFade');
   assert.equal(Sfx.ctx.starts.length, 9);
   assert.deepEqual(Sfx.ctx.panners.map(p => p.pan.value), [-0.65, -0.65, 0.7, 0.7]);
+});
+
+test('夜魇登场让配乐暂时压低，之后不重启曲目地恢复音量', () => {
+  const { Sfx } = setup();
+  Sfx.unlock();
+  Sfx.play('boss');
+  assert.equal(Sfx.ctx.starts.length, 8);
+  Sfx.syncMusic('playing', true, true);
+  const bus = Sfx.music.bus, low = Sfx.music.volume;
+  assert.equal(Sfx.music.track, 'boss');
+  Sfx.syncMusic('playing', true, false);
+  assert.equal(Sfx.music.bus, bus);
+  assert.ok(Sfx.music.volume > low * 3);
 });

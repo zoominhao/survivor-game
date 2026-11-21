@@ -1,0 +1,84 @@
+/* ---------- 窄屏 ---------- */
+@media (max-width: 860px) {
+  .watch-roster { padding: 24px 20px 20px; }
+  .roster-head { grid-template-columns: minmax(0, 1fr); }
+  .ledger { grid-column: 1; grid-row: auto; }
+}
+
+@media (max-width: 680px) {
+  .overlay { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+  .watch-book { max-width: 500px; grid-template-columns: minmax(0, 1fr); }
+  .watch-cover {
+    min-height: 128px; padding: 20px 18px;
+    background-image: linear-gradient(90deg, #102523ed 2%, #162b2a99 49%, transparent 92%), url("../art/watch-scroll.svg");
+    background-position: center, center 35%;
+    border-right: 0; border-bottom: 1px solid var(--line);
+  }
+  .watch-cover::before { inset: 6px; }
+  .cover-title h1 { margin: 3px 0 4px; font-size: 37px; }
+  .cover-title p { font-size: 12px; }
+  .cover-seal { top: 1px; left: auto; right: 0; width: 30px; height: 30px; }
+  .watch-roster { padding: 12px; }
+  .roster-head { grid-template-columns: auto minmax(0, 1fr); gap: 6px; margin-bottom: 8px; align-items: center; }
+  .roster-head h2 { font-size: 22px; text-align: right; }
+  .ledger { grid-column: 1 / -1; }
+  .ledger div { padding: 3px 4px; }
+  .ledger dd { font-size: 14px; }
+  .char { min-height: 100px; }
+  .hint { margin-top: 8px; }
+}
+
+@media (max-width: 570px) {
+  #stats { top: calc(26px + env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); transform: none; flex-direction: column; gap: 4px; }
+  #slots { top: calc(80px + env(safe-area-inset-top)); }
+  #bossbar { top: calc(147px + env(safe-area-inset-top)); }
+  .slot { width: 28px; height: 28px; font-size: 15px; }
+}
+
+@media (max-width: 620px) {
+  .intro-card { max-width: 430px; grid-template-columns: minmax(0, 1fr); }
+  .intro-art { min-height: 150px; height: clamp(160px, 35vh, 235px); border-right: 0; border-bottom: 1px solid var(--line); }
+  .intro-medallion { width: min(57%, 191px); }
+  .intro-portrait { width: min(58%, 208px); }
+  .intro-copy { padding: 20px 24px 22px; }
+  .intro-copy h2 { font-size: 48px; margin: 10px 0 14px; }
+  .intro-skip { margin-top: 14px; }
+}
+
+@media (max-width: 480px) {
+  .panel { padding: 18px; }
+  .chars { gap: 6px; }
+  .char { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 2px; min-height: 97px; padding: 5px 7px; }
+  .char-art { width: 42px; height: 36px; }
+  .char .avatar { width: 32px; height: 35px; }
+  .char b { font-size: 14px; }
+  .char small { font-size: 11px; line-height: 1.3; }
+  .char-info { gap: 1px; }
+  .char-notice { margin: 2px 0; }
+  .roster-actions { gap: 6px; }
+  .roster-actions button { padding-inline: 8px; }
+  .roster-actions .primary { font-size: 16px; letter-spacing: .04em; }
+  #shopList, .build { grid-template-columns: minmax(0, 1fr); }
+  /* 手机端让每张卡片由内容撑高，不用桌面横排的零基准 flex 尺寸。 */
+  .cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .card { display: block; width: 100%; max-width: none; padding: 10px 8px; text-align: left; border-top-width: 2px; }
+  .card-layout { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: start; gap: 8px; }
+  .card-copy { display: block; }
+  .card-heading { flex-direction: row; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 8px; margin-bottom: 4px; }
+  .card .ico { width: 40px; height: 40px; font-size: 24px; }
+  .card .nm { font-size: 16px; }
+  .card .tag { flex: none; padding-inline: 4px; white-space: nowrap; }
+  .card kbd { display: none; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats div:nth-child(3) { border-left: none; }
+  .stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, #xpfill { transition: none; }
+  .char.deny { animation: none; }
+  #banner.show { animation-name: banner-opacity; }
+  .intro-card, .intro-medallion, .intro-portrait, .intro-copy h2, .intro-stamp, .intro-art::after { animation: none; }
+  .intro-art::after, .intro-progress { display: none; }
+  @keyframes banner-opacity { 0%, 100% { opacity: 0; } 12%, 75% { opacity: 1; } }
+}

@@ -1,0 +1,172 @@
+/* ===== 山水夜巡：墨青、旧铜、宣纸与朱砂 ===== */
+:root {
+  color-scheme: dark;
+  --bg: #111b1b;
+  --surface: #202d2a;
+  --surface-hover: #304139;
+  --line: #586355;
+  --text: #f0e5cd;
+  --dim: #bfc3ae;
+  --gold: #d8b77f;
+  --jade: #a5c5b1;
+  --ink: #30291f;
+  --paper: #ebdcbb;
+  --vermillion: #8f392b;
+  --vermillion-hover: #a34532;
+  --red-light: #ffb3a0;
+  --scrim: rgb(9 16 15 / 72%);
+  --shadow: 0 20px 64px #050a0a99;
+  --display: "Songti SC", STSong, "Noto Serif CJK SC", "SimSun", serif;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* 交给虚拟摇杆处理,禁止浏览器滚动/缩放手势 */
+}
+
+.hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.sigil {
+  display: inline-block; flex: none; width: 1.15em; height: 1.15em;
+  vertical-align: -0.2em;
+  fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  min-height: 44px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color .16s, transform .16s, border-color .16s;
+}
+button:hover:not(:disabled) { background-color: var(--surface-hover); }
+button:focus-visible { outline: 2px solid var(--focus, var(--gold)); outline-offset: 2px; }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: .58; cursor: default; }
+button.primary {
+  color: var(--paper); font-weight: 750;
+  background-color: var(--vermillion);
+  border-color: var(--vermillion);
+  box-shadow: inset 0 0 0 2px var(--vermillion), inset 0 0 0 3px #fde6ba59;
+}
+button.primary:hover:not(:disabled) { background-color: var(--vermillion-hover); }
+.icon-button { display: inline-grid; width: 44px; padding: 0; place-items: center; }
+.icon-button .sigil { width: 22px; height: 22px; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+
+#xpbar {
+  position: absolute; left: 0; right: 0; top: env(safe-area-inset-top, 0px);
+  height: 17px;
+  background: var(--scrim);
+  border-bottom: 1px solid var(--line);
+}
+#xpfill { height: 100%; width: 0; background: repeating-linear-gradient(120deg, #578570 0 8px, #61927b 8px 9px); transition: width .16s; }
+#lvl {
+  position: absolute; right: max(10px, env(safe-area-inset-right)); top: 0;
+  padding: 0 8px; background: var(--bg); color: var(--jade);
+  font-size: 11px; line-height: 16px; font-weight: 700;
+}
+
+.watch-time {
+  position: absolute; top: calc(26px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 4px 14px 5px;
+  min-width: 110px; border: 1px solid var(--line); background: var(--bg); color: var(--gold);
+}
+.watch-time .sigil { font-size: 23px; }
+.watch-time small { display: block; color: var(--dim); font-size: 10px; letter-spacing: .1em; }
+#timer { display: block; color: var(--text); font: 700 22px/1.15 var(--display); font-variant-numeric: tabular-nums; }
+
+#stats {
+  position: absolute; top: calc(82px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  display: flex; gap: 16px; color: var(--gold); font-size: 13px; white-space: nowrap;
+  text-shadow: 0 1px 3px #000;
+}
+#stats > span { display: flex; align-items: center; gap: 4px; }
+#stats b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+#slots { position: absolute; top: calc(26px + env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); display: grid; gap: 4px; }
+#wslots, #pslots { display: flex; gap: 4px; }
+.slot {
+  position: relative;
+  width: 32px; height: 34px;
+  display: grid; place-items: center;
+  font-size: 17px; color: var(--gold);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 2px var(--bg), inset 0 0 0 3px #d8b77f29;
+}
+#pslots .slot { color: var(--jade); }
+.slot i {
+  position: absolute; right: 1px; bottom: 0;
+  padding: 0 1px;
+  font-size: 9px; line-height: 1.2; font-style: normal; font-weight: 700;
+  color: var(--text); background: var(--bg);
+}
+.slot.max { border-color: var(--gold); }
+.slot.max i { color: var(--gold); }
+
+#hudBtns { position: absolute; top: calc(26px + env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 4px; pointer-events: auto; }
+#hudBtns button { color: var(--gold); background-color: var(--bg); }
+
+#bossbar {
+  position: absolute; top: calc(107px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  width: min(420px, 70vw);
+  text-align: center; font-size: 12px; font-weight: 700; color: var(--red-light);
+  text-shadow: 0 1px 2px #000;
+}
+#bossbar > div { height: 7px; margin-top: 4px; background: var(--scrim); border: 1px solid var(--vermillion); }
+#bossfill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--vermillion), var(--red-light)); }
+
+#banner {
+  position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+  padding: 8px 24px; border-block: 1px solid var(--gold); background: var(--scrim);
+  font: 800 clamp(20px, 4.5vw, 34px) var(--display); letter-spacing: .1em;
+  color: var(--gold); white-space: nowrap;
+  opacity: 0;
+}
+#banner.show { animation: banner 2.6s ease-out forwards; }
+@keyframes banner {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.9); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%); }
+}
+
+/* ---------- 虚拟摇杆 ---------- */
+#joy {
+  position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px;
+  border-radius: 50%;
+  background: #d8b77f14;
+  border: 1px solid #d8b77f80;
+  box-shadow: inset 0 0 0 5px #d8b77f21;
+  pointer-events: none;
+}
+#joyKnob {
+  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: #d8b77f73;
+}

@@ -1,23 +1,16 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
-
-const scripts = ['config.js', 'utils.js', 'terrain.js', 'environment.js', 'weapons.js', 'core.js', 'wardrobe.js'].map(file =>
-  new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', file), 'utf8'), { filename: file }));
+const { battleScript, loadGame } = require('./fixtures/load-game');
 
 function start(charId, oldSave = null) {
   const context = vm.createContext({
     localStorage: { getItem: () => JSON.stringify(oldSave) },
-    Input: { x: 0, y: 0 },
-    Sfx: { play() {} },
-    UI: { show() {}, showLevelUp() {} },
   });
-  for (const script of scripts) script.runInContext(context);
-  const { Game, Save, CHARS, Wardrobe } = vm.runInContext('({ Game, Save, CHARS, Wardrobe })', context);
+  loadGame(context, file => battleScript(file) || file.endsWith('/save.js') || file.endsWith('/wardrobe.js'));
+  const { Game, Save, CHARS, Wardrobe } = vm.runInContext('({ Game: createBattle({ save: Save }), Save, CHARS, Wardrobe })', context);
   Save.load();
   Game.start(charId ?? Save.data.lastChar);
   return { Game, Save, CHARS, Wardrobe };
@@ -116,7 +109,7 @@ test('其他角色不能在升级中抽到果果专属技能，环绕萤火仍�
   assert.ok(choices.some(choice => choice.id === 'orbit'));
 });
 
-const echoExtras = ['ricecake', 'icecream', 'candy', 'watermelon', 'basketball', 'bubbletea'];
+const echoExtras = ['ricecake', 'icecream', 'candy', 'watermelon', 'basketball', 'bubbletea', 'drumstick'];
 
 test('开心升级优先获得未习得的专属武器，其他角色抽不到这些武器', () => {
   const { Game } = start('echo');
@@ -128,6 +121,28 @@ test('开心升级优先获得未习得的专属武器，其他角色抽不到�
   const second = Game.buildChoices(3)[0];
   assert.ok(echoExtras.includes(second.id) && second.lv === 1 && second.id !== first.id);
   assert.equal(start('tuan').Game.buildChoices(100).some(c => echoExtras.includes(c.id)), false);
+});
+
+test('开心的回血鸡腿只在低血量时自动触发，升级会提高回复并缩短冷却', () => {
+  const Game = foodRun('echo', 'drumstick');
+  const p = Game.player, w = p.weapons[0];
+  p.hp = 63;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 63);
+  assert.equal(w.timer, 0);
+  p.hp = 54;
+  Game.update(1 / 60);
+  assert.ok(Math.abs(p.hp - 68.4) < 0.001);
+  assert.equal(w.timer, 12);
+  assert.ok(Game.fx.some(f => f.type === 'drumstickHeal'));
+  p.hp = 45;
+  Game.update(1 / 60);
+  assert.equal(p.hp, 45);
+  for (let lv = 2; lv <= 6; lv++) Game.applyChoice({ kind: 'weapon', id: 'drumstick', lv });
+  w.timer = 0;
+  Game.update(1 / 60);
+  assert.ok(Math.abs(p.hp - 67.5) < 0.001);
+  assert.equal(w.timer, 9.5);
 });
 
 test('珍珠奶茶命中后留下减速区，后来踩进来的敌人也会受伤', () => {
@@ -354,7 +369,7 @@ test('妈妈·霄霄默认解锁，专属武器不会出现在其他角色的选
   assert.equal(Save.data.chars.xiaoxiao, true);
   assert.equal(Save.data.lastChar, 'echo');
   assert.equal(Save.data.coins, 34);
-  const skills = ['latiao', 'gallop', 'momroar', 'skincare'];
+  const skills = ['latiao', 'gallop', 'momroar', 'skincare', 'goldIngot'];
   assert.ok(skills.every(id => Game.buildChoices(100).some(c => c.id === id)));
   assert.ok(skills.includes(Game.buildChoices(3)[0].id));
   assert.equal(start('echo').Game.buildChoices(100).some(c => skills.includes(c.id)), false);
@@ -366,6 +381,24 @@ test('香辣连发朝夜兽投出两条辣条', () => {
   for (let i = 0; i < 10; i++) Game.update(1 / 60);
   assert.equal(Game.projs.length, 2);
   assert.ok(Game.projs.every(b => b.look === 'latiao' && b.vx > 0));
+});
+
+test('金元宝落地后伤害并震退落点附近的夜兽', () => {
+  const Game = foodRun('xiaoxiao', 'goldIngot');
+  const target = stationaryEnemy(Game, 125, 0);
+  const nearby = stationaryEnemy(Game, 163, 25);
+  const far = stationaryEnemy(Game, 240, 0);
+  for (let i = 0; i < 12; i++) Game.update(1 / 60);
+  assert.ok(Game.zones.some(z => z.type === 'goldIngot'));
+  assert.equal(target.hp, target.maxHp);
+  for (let i = 0; i < 23; i++) Game.update(1 / 60);
+  assert.ok(target.hp < target.maxHp && nearby.hp < nearby.maxHp && nearby.kx > 0);
+  assert.equal(far.hp, far.maxHp);
+  assert.ok(Game.player.dmgBy.goldIngot > 0);
+  for (let lv = 2; lv <= 5; lv++) Game.applyChoice({ kind: 'weapon', id: 'goldIngot', lv });
+  Game.player.weapons[0].timer = 0;
+  Game.update(1 / 60);
+  assert.equal(Game.zones.filter(z => z.type === 'goldIngot').length, 2);
 });
 
 test('万马奔腾朝移动方向派出三匹能穿透的小马', () => {

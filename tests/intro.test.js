@@ -1,13 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
-
-const scripts = ['config', 'utils', 'terrain', 'environment', 'weapons', 'core', 'main'].map(name =>
-  new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'js', name + '.js'), 'utf8')));
+const { battleScript, loadGame } = require('./fixtures/load-game');
 
 function startIntro({ reducedMotion = false } = {}) {
   const document = { hidden: false, getElementById: () => ({ classList: { add() {} } }) };
@@ -19,7 +15,7 @@ function startIntro({ reducedMotion = false } = {}) {
     performance: { now: () => 100 }, requestAnimationFrame() {},
     UI: ui, Sfx: sfx, Render: { draw() {} },
   });
-  for (const script of scripts) script.runInContext(context);
+  loadGame(context, file => battleScript(file) || file.endsWith('/save.js') || file.startsWith('js/app/'));
   const { App, Game, Save } = vm.runInContext('({ App, Game, Save })', context);
   Save.load();
   App.startRun();
