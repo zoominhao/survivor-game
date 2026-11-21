@@ -5,7 +5,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
   return {
     ...BattleProgression, ...BattleEnemies, ...NightmareBattle, ...BossBattle, ...BossDecisions,
     ...BattleDamage, ...BattleProjectiles, ...BattleDrops, ...BattleEffects, ...PracticeBattle, ...BattleCoop, ...BattleContracts, ...CoopSupport,
-    ...RouteFork.battle,
+    ...RouteFork.battle, ...BattleActives,
     save, emit, play, uid: 0,
     state: 'menu', view: { hw: 480, hh: 300 }, grid: new Grid(64), player: null,
 

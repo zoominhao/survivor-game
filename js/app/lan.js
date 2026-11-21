@@ -246,6 +246,9 @@ const Lan = {
       if (data.t === 'pick' && Game.state === 'levelup' && Game.levelPlayer?.slot === 1 &&
           data.turn === this.turn && LanState.integer(data.index, 0, Game.choices.length - 1)) Game.choose(data.index);
       if (data.t === 'signal') Game.sendSignal(1, data.id);
+      if (data.t === 'active' && LanState.own(ACTIVE_SKILLS, data.id) && LanState.number(data.x, -1, 1) && LanState.number(data.y, -1, 1)) {
+        Game.useActive(1, data.id, { x: data.x, y: data.y });
+      }
     } else if (this.role === 'guest' && this.phase === 'connected' && data.t === 'frame') {
       if (this.running || this.guestReady) this.applyFrame(data);
       else if (!this.otherChar && !this.oldRoomNotice) {
@@ -335,6 +338,10 @@ const Lan = {
     if (now - this.signalSentAt < 2500 || !this.link?.send({ t: 'signal', id }, true)) return false;
     this.signalSentAt = now;
     return true;
+  },
+
+  sendActive(id, { x, y }) {
+    return this.guest && !!this.link?.send({ t: 'active', id, x, y }, true);
   },
 
   prepareMotion(frame, panel) {

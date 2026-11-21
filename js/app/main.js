@@ -141,6 +141,13 @@ const App = {
     if (++this.tapCount === 5) this.openUtility('practice');
   },
 
+  castActive(id) {
+    const p = Game.player;
+    if (UI.overlayId || !p || !Game.canUseActive(p.slot, id)) return false;
+    Input.poll();
+    return Lan.guest ? Lan.sendActive(id, Input) : Game.useActive(0, id, Input);
+  },
+
   onKey(code, shift = false) {
     const s = Game.state;
     if (code === 'KeyM') { this.toggleMute(); return; }
@@ -150,6 +157,10 @@ const App = {
       return;
     }
     if (UI.overlayId === 'lan') { if (code === 'Escape') Lan.leave(); return; }
+    if (s === 'playing' && !shift && (code === 'Space' || code === 'KeyE')) {
+      this.castActive(code === 'Space' ? 'dash' : 'ward');
+      return;
+    }
     if (Lan.running && s === 'playing' && !UI.overlayId) {
       if (code === 'KeyQ') { UI.toggleSignals(); return; }
       if (UI.signalsOpen) {

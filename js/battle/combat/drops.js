@@ -34,6 +34,17 @@ const BattleDrops = {
     return xp;
   },
 
+  pickupWardPaper(item) {
+    // 满额的守夜人不拦截符纸，附近还有空位的队友仍然能拾取。
+    const p = this.nearestPlayer(item.x, item.y, member =>
+      member.wardCharges < ACTIVE_SKILLS.ward.capacity && !(this.robot && member === this.partner) ? 24 : 0);
+    if (!p) return false;
+    p.wardCharges++;
+    this.texts.push({ x: item.x, y: item.y - 15, s: '镇夜符 +1', life: 0.85, c: ACTIVE_SKILLS.ward.color });
+    this.play('paper');
+    return true;
+  },
+
   updatePickups(dt) {
     // 经验宝石:进入拾取范围后加速飞向玩家
     const gs = this.gems;
@@ -58,6 +69,10 @@ const BattleDrops = {
     n = 0;
     for (let i = 0; i < ps.length; i++) {
       const k = ps[i];
+      if (k.type === 'wardPaper') {
+        if (!this.pickupWardPaper(k)) ps[n++] = k;
+        continue;
+      }
       const p = this.coop ? this.nearestPlayer(k.x, k.y, k.type === 'coin' && !k.mag ? p => p.st.magnet : null) : this.player;
       if (!p) { ps[n++] = k; continue; }
       const dx = p.x - k.x, dy = p.y - k.y, d2 = dx * dx + dy * dy;

@@ -8,7 +8,8 @@ const BattleCoop = {
       slot, x, y: 0, dirx: 1, diry: 0, face: 1, moving: false, walkT: 0,
       iframe: 0, hp: 0, level: 1, xp: 0, xpNeed: this.xpFor(1), pending: 0, char,
       weapons: [], passives: [], evolved: {}, kills: 0, coins: 0, dmgBy: {},
-      st: {}, rerolls: m.reroll, revives: m.revive,
+      st: {}, rerolls: m.reroll, revives: m.revive, activeReady: { dash: 0, ward: 0 }, dash: null,
+      wardCharges: ACTIVE_SKILLS.ward.initial,
     };
     this.recalc(p);
     p.hp = p.st.maxHp;
@@ -37,17 +38,24 @@ const BattleCoop = {
   },
 
   movePlayer(p, input, dt) {
-    const { x: ix = 0, y: iy = 0 } = input;
+    const dash = p.dash;
+    const { x: ix = 0, y: iy = 0 } = dash || input;
     const il = Math.hypot(ix, iy), { speed, regen, maxHp } = p.st;
     p.moving = p.hp > 0 && il > 0.08;
-    if (p.hp <= 0) return;
+    if (p.hp <= 0) { p.dash = null; return; }
     if (p.moving) {
       const k = il > 1 ? 1 / il : 1, { x, y } = p;
-      Terrain.move(p, ix * k * speed * dt, iy * k * speed * dt, CFG.PLAYER_R, 0, this.landscape);
+      const step = dash ? ACTIVE_SKILLS.dash.speed * Math.min(dt, dash.left) : speed * dt;
+      Terrain.move(p, ix * k * step, iy * k * step, CFG.PLAYER_R, 0, this.landscape);
       p.dirx = ix / il; p.diry = iy / il;
       if (Math.abs(ix) > 0.05) p.face = ix < 0 ? -1 : 1;
       p.moving = Math.hypot(p.x - x, p.y - y) > 0.05;
       if (p.moving) p.walkT += dt;
+    }
+    if (dash) {
+      dash.trace.x2 = p.x; dash.trace.y2 = p.y;
+      dash.left -= dt;
+      if (dash.left < 1e-8) p.dash = null;
     }
     if (p.iframe > 0) p.iframe -= dt;
     if (regen > 0 && p.hp < maxHp) p.hp = Math.min(maxHp, p.hp + regen * dt);

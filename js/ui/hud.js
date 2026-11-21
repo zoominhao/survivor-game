@@ -1,7 +1,31 @@
 'use strict';
 
+const ACTIVE_HUD = [['dash', 'btnDash', '空格'], ['ward', 'btnWard', 'E']];
+
 // 战斗信息与场景提示。
 const HudUI = {
+  initActives() {
+    for (const [id, button] of ACTIVE_HUD) this.$(button).addEventListener('click', event => {
+      Sfx.unlock();
+      // 鼠标或触屏用完归还全局快捷键；用 Tab 聚焦时保留原生键盘操作。
+      if (App.castActive(id) && event.detail > 0) event.currentTarget.blur();
+    });
+  },
+
+  updateActiveHud(g) {
+    this.set('activeDock', 'hidden', g.state !== 'playing' || g.player.hp <= 0);
+    if (g.state !== 'playing' || g.player.hp <= 0) return;
+    for (const [id, button, shortcut] of ACTIVE_HUD) {
+      const remaining = Math.max(0, Math.ceil((g.player.activeReady[id] ?? 0) - g.time));
+      const ready = g.canUseActive(g.player.slot, id);
+      this.set(button, 'disabled', !ready);
+      const ward = g.player.wardCharges;
+      const label = id === 'ward' ? `${ward === 0 ? '缺符' : ready ? shortcut : '回气'} · ${ward}/${ACTIVE_SKILLS.ward.capacity}` :
+        remaining > 0 ? `冷却 ${remaining} 秒` : shortcut;
+      this.set(button + 'State', 'text', label);
+    }
+  },
+
   banner(text) {
     const b = this.$('banner');
     b.textContent = text;
@@ -20,6 +44,7 @@ const HudUI = {
     if (prop === 'text') el.textContent = v;
     else if (prop === 'width') el.style.width = v;
     else if (prop === 'hidden') el.classList.toggle('hidden', v);
+    else if (prop === 'disabled') el.setAttribute('aria-disabled', String(v));
   },
 
   updateHud() {
@@ -38,6 +63,7 @@ const HudUI = {
       this.set('lanFlag', 'text', `双人 · ${p.slot + 1} 号${p.hp <= 0 ? ' · 已倒下' : ''} · ${mate}${g.partner.hp > 0 ? '在场' : '已倒下'}`);
     }
     this.updateCoopHud(g);
+    this.updateActiveHud(g);
     const boss = g.boss && !g.boss.dead ? g.boss : null;
     this.set('bossbar', 'hidden', !boss);
     if (boss) {

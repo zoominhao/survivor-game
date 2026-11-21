@@ -46,7 +46,10 @@ const BattleDamage = {
     if (r < 0.05) this.pickups.push({ type: 'coin', x: e.x, y: e.y, v: 1 });
     else if (r < 0.057) this.pickups.push({ type: 'heart', x: e.x, y: e.y });
     else if (r < 0.0595 && !this.pickups.some(k => k.type === 'vacuum')) this.pickups.push({ type: 'vacuum', x: e.x, y: e.y });
-    if (e.elite || e.boss) this.pickups.push({ type: 'chest', x: e.x, y: e.y, boss: e.boss, bossName: e.name });
+    if (e.elite || e.boss) {
+      this.pickups.push({ type: 'wardPaper', x: e.x + 16, y: e.y - 6 });
+      this.pickups.push({ type: 'chest', x: e.x, y: e.y, boss: e.boss, bossName: e.name });
+    }
     if (e.boss) this.bossCleared(e, p);
     else if (e.elite) this.trackContract('eliteHunt');
     this.burst(e.x, e.y, ENEMIES[e.type].color, e.boss ? 30 : e.elite ? 12 : 4);

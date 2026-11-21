@@ -12,7 +12,7 @@ const LanState = (() => {
   const points = 'x y';
   const enemyFields = 'id x y r t flash frozen slowT elite hp maxHp';
   const bossFields = 'id kind name plan phase arrivedAt cd windTime cx cy r x y chargeSpeed attackAngle fanWings tier hp maxHp t';
-  const playerFields = 'x y hp level xp xpNeed char dirx diry face moving walkT iframe kills coins rerolls';
+  const playerFields = 'x y hp level xp xpNeed char dirx diry face moving walkT iframe kills coins rerolls wardCharges';
   const weaponFields = 'id lv on ang guards';
   const projs = 'uid x y r age vx vy look color rot';
   const zones = 'type look x y r t max maxR life color wid fromX fromY trigger';
@@ -35,6 +35,7 @@ const LanState = (() => {
     name: anyText, plan, phase: v => ['', 'wind', 'charge', 'sealWind', 'fanWind'].includes(v),
     char: v => own(CHARS, v), face: v => v === 1 || v === -1, moving: v => typeof v === 'boolean',
     elite: v => typeof v === 'boolean', s: anyText, max: v => number(v, 0.01, 4000),
+    wardCharges: v => integer(v, 0, ACTIVE_SKILLS.ward.capacity),
     life: v => number(v, 0, 4000), maxR: v => number(v, 0.01, 4000), trigger: v => number(v, 0, 4000),
   };
   function unpack(row, fields, extra = {}) {
@@ -59,7 +60,7 @@ const LanState = (() => {
 
   function packPlayer(p, pending) {
     return [pack(p, playerFields), pack(p.st, 'maxHp area amount'),
-      p.weapons.map(w => pack(w, weaponFields)), p.passives.map(q => [q.id, q.lv]), pending];
+      p.weapons.map(w => pack(w, weaponFields)), p.passives.map(q => [q.id, q.lv]), pending, pack(p.activeReady, 'dash ward')];
   }
 
   function unpackPlayer(data, slot) {
@@ -68,6 +69,9 @@ const LanState = (() => {
     if (!p?.char || !number(st?.maxHp, 1, 5000) || !number(st.area, 0.1, 10) || !integer(st.amount, 0, 32) ||
         !integer(p.level, 1, 5000) || !number(p.xpNeed, 1) || !number(p.hp, 0, 5000)) return null;
     p.slot = slot; p.st = st; p.dmgBy = {};
+    p.wardCharges ??= 0;
+    const ready = (id, v) => number(v, 0, CFG.RUN_TIME + ACTIVE_SKILLS[id].cooldown);
+    p.activeReady = unpack(data[5], 'dash ward', { dash: v => ready('dash', v), ward: v => ready('ward', v) }) || {};
     if (integer(data[4], 0, p.level - 1)) p.outfitPending = data[4];
     p.weapons = mapRows(data[2], CFG.MAX_WEAPONS, row => {
       const w = unpack(row, weaponFields, { id: v => own(WEAPONS, v) });

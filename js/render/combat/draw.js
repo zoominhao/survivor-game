@@ -111,6 +111,15 @@ const CombatRendering = {
         ctx.strokeStyle = '#d9fff5';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(k.x, k.y + bob, 6, time * 4, time * 4 + 4.6); ctx.stroke();
+      } else if (k.type === 'wardPaper') {
+        ctx.save(); ctx.translate(k.x, k.y + bob - 4); ctx.rotate(0.19);
+        ctx.fillStyle = '#f7d894'; ctx.strokeStyle = '#452b24'; ctx.lineWidth = 1.2;
+        ctx.fillRect(-6, -10, 12, 20); ctx.strokeRect(-6, -10, 12, 20);
+        ctx.strokeStyle = '#a54f41'; ctx.lineWidth = 1.7;
+        ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(0, 3);
+        ctx.moveTo(-3, -4); ctx.lineTo(3, -4); ctx.moveTo(-3, 3); ctx.lineTo(0, 0); ctx.lineTo(3, 3); ctx.stroke();
+        ctx.fillStyle = '#a54f41'; ctx.fillRect(-3, 5, 6, 2);
+        ctx.restore();
       } else if (k.type === 'chest') {
         ctx.globalCompositeOperation = 'lighter';
         this.drawGlow(ctx, '#ffd166', k.x, k.y, 30 + Math.sin(time * 4) * 4);
@@ -346,6 +355,21 @@ const CombatRendering = {
         ctx.lineWidth = 2;
         const mx = (f.x + f.x2) / 2 + (f.y2 - f.y) * 0.15, my = (f.y + f.y2) / 2 - (f.x2 - f.x) * 0.15;
         ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(mx, my); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+      } else if (f.type === 'dashTrace') {
+        if (!vis(f.x, f.y, 110) || (f.x === f.x2 && f.y === f.y2)) continue;
+        ctx.save();
+        ctx.globalAlpha = 0.52 * k; ctx.strokeStyle = f.c; ctx.lineWidth = 3 + 6 * k; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+        ctx.restore();
+      } else if (f.type === 'activeWard') {
+        if (!vis(f.x, f.y, f.r + 6)) continue;
+        const r = f.r * (1 - 0.55 * k);
+        ctx.save();
+        ctx.globalAlpha = k * 0.82; ctx.strokeStyle = f.c; ctx.lineWidth = 2.4;
+        ctx.setLineDash([12, 6]); ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, TAU); ctx.stroke();
+        ctx.setLineDash([]); ctx.translate(f.x, f.y); ctx.rotate(Math.PI / 4);
+        ctx.strokeRect(-r * 0.18, -r * 0.18, r * 0.36, r * 0.36);
+        ctx.restore();
       } else if (f.type === 'boom') {
         ctx.globalAlpha = k * 0.8;
         ctx.strokeStyle = f.c;

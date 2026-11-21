@@ -38,6 +38,7 @@ const UI = {
     this.initUtilities(on);
     this.initLan(on);
     this.initSignals(on);
+    this.initActives();
     this.showMenu();
   },
 

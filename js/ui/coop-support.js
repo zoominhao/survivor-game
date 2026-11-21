@@ -42,6 +42,7 @@ const CoopUI = {
 
   updateCoopHud(g) {
     this.set('signalDock', 'hidden', !g.coop || g.state !== 'playing');
+    this.set('btnSignal', 'hidden', !g.coop || g.state !== 'playing');
     if (!g.coop) return;
     const down = g.player.hp <= 0 || g.partner.hp <= 0;
     this.set('bondMark', 'hidden', !g.bond || down);
