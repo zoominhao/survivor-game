@@ -12,6 +12,8 @@ const UI = {
     document.addEventListener('keydown', e => this.trapDialogTab(e));
     const on = (id, fn) => this.$(id).addEventListener('click', () => { Sfx.unlock(); Sfx.play('click'); fn(); });
     on('btnStart', () => App.startRun());
+    on('btnCoreRoster', () => this.showMenu('core'));
+    on('btnFolkRoster', () => this.showMenu('folk'));
     on('btnIntroSkip', () => App.finishIntro());
     on('btnShop', () => this.showShop());
     on('btnShopMeta', () => this.showShop('meta'));

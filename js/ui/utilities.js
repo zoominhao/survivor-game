@@ -68,7 +68,9 @@ const UtilityUI = {
     this.$('practiceCoins').textContent = `金币 ${Math.floor(p.coins)}`;
     this.$('practiceLevel').textContent = `修为 ${p.level}`;
     this.$('practiceGuard').textContent = `无敌${Game.practiceInvincible ? '开启' : '关闭'}`;
+    this.$('practiceRosterStatus').textContent = Game.practiceRoster ? '已开启试玩，返回名册选角' : '全角色试玩关闭';
     panel.querySelector('[data-practice="invincible"]').setAttribute('aria-pressed', String(Game.practiceInvincible));
+    this.$('btnPracticeRoster').setAttribute('aria-pressed', String(Game.practiceRoster));
     const heal = panel.querySelector('[data-practice="heal"]');
     const hadFocus = document.activeElement === heal;
     heal.disabled = p.hp >= p.st.maxHp;

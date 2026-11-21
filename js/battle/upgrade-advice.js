@@ -19,9 +19,10 @@ function recommendUpgrade(choices, p) {
       return [values[c.id] ?? 29, `${PASSIVES[c.id].name}：${PASSIVES[c.id].desc}`];
     }
     if (c.kind === 'weapon') {
-      if (low && ['snackHeal', 'exampaper', 'skincare'].includes(item.kind)) return [90, '血量偏低，补上回血或护盾手段'];
+      const sustain = ['snackHeal', 'exampaper', 'skincare', 'herbalFog'].includes(item.kind);
+      if (low && sustain) return [90, '血量偏低，补上回血或护盾手段'];
       if (item.evo && c.lv === item.max && passive(item.evo.need)) return [89, '这次升满后，下一次选卡即可准备进化'];
-      const defense = ['snackHeal', 'exampaper', 'skincare', 'mirror'].includes(item.kind);
+      const defense = sustain || item.kind === 'mirror';
       if (!owns(c.id) && !defense && p.weapons.length <= 2) return [57, '前期多一种攻击，清怪更稳'];
       return [defense ? 35 : owns(c.id) ? 49 : 43, defense ? '为后续怪潮补一项保命手段' :
         owns(c.id) ? `强化已有的${item.name}` : '加入一种不同的攻击方式，补足现有构筑'];

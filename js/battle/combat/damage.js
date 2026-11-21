@@ -59,7 +59,8 @@ const BattleDamage = {
     const paper = p.weapons.find(w => w.id === 'exampaper' && w.guards > 0);
     if (paper) { this.consumeExamGuard(paper, p); return; }
     const care = p.weapons.find(w => w.id === 'skincare' && w.on > 0);
-    dmg = Math.max(1, Math.round((dmg - p.st.armor) * (care ? 1 - care.s.reduce : 1)));
+    const bond = this.bondActive && this.bond.stat === 'incoming' ? this.bond.factor : 1;
+    dmg = Math.max(1, Math.round((dmg - p.st.armor) * (care ? 1 - care.s.reduce : 1) * bond));
     p.hp -= dmg;
     this.interruptRescue(p);
     p.iframe = src && src.boss ? 0.7 : 0.3; // 被 Boss 撞到后给更长的无敌时间,避免贴身秒杀
@@ -100,6 +101,7 @@ const BattleDamage = {
       return;
     }
     p.hp = 0;
+    this.stepBond();
     if (this.coop && this.players.some(other => other.hp > 0)) {
       p.moving = false;
       if (this.robot && p === this.partner) this.sendSignal(p.slot, 'help');

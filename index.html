@@ -6,7 +6,7 @@
   <title>长夜守望</title>
   <link rel="icon" href="art/watch-seal.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/screens.css?v=invite2">
+  <link rel="stylesheet" href="css/screens.css?v=practice-roster1">
   <link rel="stylesheet" href="css/responsive.css?v=ambience1">
 </head>
 <body>
@@ -28,8 +28,11 @@
     <div id="bossbar" class="hidden"><span id="bossName">夜魇</span><div><div id="bossfill"></div></div></div>
     <div id="banner"></div>
     <span id="practiceFlag" class="practice-mark hidden">练习局 · 不计战绩</span>
-    <span id="lanFlag" class="practice-mark hidden"></span>
-    <span id="rescueMark" class="rescue-mark hidden"></span>
+    <div id="lanHud" class="lan-hud hidden">
+      <span id="rescueMark" class="hidden"></span>
+      <span id="bondMark" class="hidden"></span>
+      <span id="lanFlag"></span>
+    </div>
     <div id="signalDock" class="signal-dock hidden">
       <div id="signalActions" class="signal-actions hidden" role="group" aria-label="双人快捷信号"></div>
       <p id="signalStatus" role="status"></p>
@@ -61,6 +64,11 @@
             <div><dt>最佳守夜</dt><dd id="menuBest">--:--</dd></div>
             <div><dt>守到天明</dt><dd id="menuWins">0</dd></div>
           </dl>
+        </div>
+        <div class="roster-groups" role="group" aria-label="角色类别">
+          <button id="btnCoreRoster" type="button" aria-pressed="true" aria-controls="charList">守夜人</button>
+          <button id="btnFolkRoster" type="button" aria-pressed="false" aria-controls="charList">江湖客</button>
+          <span id="rosterCurrent"></span>
         </div>
         <div id="charList" class="chars" role="group" aria-labelledby="rosterTitle"></div>
         <p id="charNotice" class="char-notice" role="status"></p>
@@ -127,6 +135,7 @@
         <div><dt>房主</dt><dd id="lanRoomHost"></dd></div>
         <div><dt>队友</dt><dd><span id="lanRoomGuest"></span><small id="lanRoomReady"></small></dd></div>
       </dl>
+      <p id="lanBond" class="control-note"></p>
       <p id="lanCountdown" class="control-note hidden"></p>
       <div class="row">
         <button id="btnLanReady" class="primary hidden" type="button" aria-pressed="false">准备</button>
@@ -290,12 +299,14 @@
       <p id="practiceStatus" class="control-note" role="status">
         <span id="practiceLife"></span> <span id="practiceCoins"></span>
         <span id="practiceLevel"></span> <span id="practiceGuard"></span>
+        <span id="practiceRosterStatus"></span>
       </p>
       <div class="practice-actions">
         <button type="button" data-practice="invincible" aria-pressed="false">无敌</button>
         <button type="button" data-practice="heal">回满生命</button>
         <button type="button" data-practice="coins">本局 +100 金币</button>
         <button type="button" data-practice="xp">+50 基础经验</button>
+        <button id="btnPracticeRoster" type="button" data-practice="roster" aria-pressed="false">试玩全部角色</button>
       </div>
       <fieldset class="mix-previews">
         <legend>声音测试</legend>
@@ -335,50 +346,54 @@
   <!-- 经典脚本保留 file:// 双击运行；依赖按层排列。 -->
   <script src="js/shared/math.js"></script>
   <script src="js/battle/rules.js?v=routes1"></script>
-  <script src="js/battle/combat/equipment.js?v=skill-shop1"></script>
-  <script src="js/battle/characters/roster.js?v=routes1"></script>
+  <script src="js/battle/combat/equipment.js?v=folk1"></script>
+  <script src="js/battle/characters/roster.js?v=folk2"></script>
   <script src="js/battle/world/environment.js?v=routes1"></script>
   <script src="js/battle/enemies/catalog.js?v=routes1"></script>
   <script src="js/battle/combat/grid.js"></script>
   <script src="js/battle/world/terrain.js"></script>
   <script src="js/battle/world/interactions.js?v=ambience1"></script>
-  <script src="js/battle/combat/ai-strike.js"></script>
-  <script src="js/battle/combat/weapons.js?v=skill-shop1"></script>
-  <script src="js/battle/characters/progression.js?v=ambience1"></script>
-  <script src="js/battle/enemies/behavior.js?v=routes1"></script>
+  <script src="js/battle/combat/ai-strike.js?v=folk1"></script>
+  <script src="js/battle/combat/folk-loadouts.js"></script>
+  <script src="js/battle/combat/weapons.js?v=folk1"></script>
+  <script src="js/battle/coop-bonds.js"></script>
+  <script src="js/battle/characters/progression.js?v=bonds1"></script>
+  <script src="js/battle/enemies/behavior.js?v=bonds1"></script>
   <script src="js/battle/enemies/nightmare.js"></script>
   <script src="js/battle/enemies/boss-decisions.js?v=lan1"></script>
-  <script src="js/battle/enemies/bosses.js?v=contracts1"></script>
-  <script src="js/battle/combat/damage.js?v=ambience1"></script>
-  <script src="js/battle/combat/projectiles.js?v=skill-shop1"></script>
+  <script src="js/battle/enemies/bosses.js?v=bonds1"></script>
+  <script src="js/battle/combat/damage.js?v=bonds1"></script>
+  <script src="js/battle/combat/projectiles.js?v=folk1"></script>
   <script src="js/battle/combat/drops.js?v=lan1"></script>
   <script src="js/battle/combat/effects.js"></script>
-  <script src="js/battle/practice.js?v=lan1"></script>
-  <script src="js/battle/coop-support.js"></script>
-  <script src="js/battle/robot-threats.js"></script>
-  <script src="js/battle/robot-partner.js?v=robot2"></script>
-  <script src="js/battle/upgrade-advice.js"></script>
-  <script src="js/battle/coop.js?v=partners1"></script>
+  <script src="js/battle/practice.js?v=practice-roster1"></script>
+  <script src="js/battle/coop-support.js?v=bonds1"></script>
+  <script src="js/battle/robot-threats.js?v=folk1"></script>
+  <script src="js/battle/robot-partner.js?v=folk1"></script>
+  <script src="js/battle/upgrade-advice.js?v=folk1"></script>
+  <script src="js/battle/coop.js?v=bonds1"></script>
   <script src="js/battle/contracts.js?v=ambience1"></script>
-  <script src="js/battle/battle.js?v=robot2"></script>
+  <script src="js/battle/battle.js?v=practice-roster1"></script>
 
-  <script src="js/platform/save.js?v=contracts1"></script>
+  <script src="js/platform/save.js?v=folk2"></script>
   <script src="js/audio/music.js?v=ambience1"></script>
   <script src="js/audio/voice-data.js"></script>
   <script src="js/audio/voices.js"></script>
   <script src="js/audio/arrivals.js?v=ghost-voice1"></script>
-  <script src="js/audio/audio.js?v=ambience1"></script>
+  <script src="js/audio/audio.js?v=folk1"></script>
   <script src="js/render/characters/hand-light.js"></script>
   <script src="js/render/characters/echo-figure.js?v=outfits1"></script>
   <script src="js/render/characters/xiaoxiao-art.js?v=outfits1"></script>
   <script src="js/render/characters/zhu-figure.js?v=shortcrop1"></script>
   <script src="js/render/characters/trail-figures.js"></script>
-  <script src="js/render/characters/wardrobe.js?v=outfits1"></script>
-  <script src="js/render/characters/draw.js?v=outfits1"></script>
+  <script src="js/render/characters/folk-figures.js"></script>
+  <script src="js/render/characters/wardrobe.js?v=folk1"></script>
+  <script src="js/render/characters/draw.js?v=folk1"></script>
   <script src="js/render/combat/food-art.js"></script>
   <script src="js/render/combat/zhu-skills.js?v=outfits1"></script>
   <script src="js/render/combat/relic-art.js"></script>
-  <script src="js/render/combat/draw.js?v=skill-shop1"></script>
+  <script src="js/render/combat/folk-skills.js"></script>
+  <script src="js/render/combat/draw.js?v=folk1"></script>
   <script src="js/render/world/map-props-art.js"></script>
   <script src="js/render/world/terrain-art.js"></script>
   <script src="js/render/world/environment-art.js?v=outfits1"></script>
@@ -389,22 +404,22 @@
   <script src="js/render/enemies/draw.js"></script>
   <script src="js/render/coop-signals.js"></script>
   <script src="js/render/renderer.js?v=partners1"></script>
-  <script src="js/ui/icons.js?v=ambience1"></script>
+  <script src="js/ui/icons.js?v=folk1"></script>
   <script src="js/ui/route-training.js"></script>
-  <script src="js/ui/menu.js?v=contracts1"></script>
+  <script src="js/ui/menu.js?v=folk2"></script>
   <script src="js/ui/battle-panels.js?v=partners1"></script>
-  <script src="js/ui/hud.js?v=robot2"></script>
-  <script src="js/ui/utilities.js?v=ambience1"></script>
-  <script src="js/ui/lan.js?v=invite2"></script>
-  <script src="js/ui/coop-support.js"></script>
+  <script src="js/ui/hud.js?v=bonds1"></script>
+  <script src="js/ui/utilities.js?v=practice-roster1"></script>
+  <script src="js/ui/lan.js?v=bonds1"></script>
+  <script src="js/ui/coop-support.js?v=bonds1"></script>
   <script src="js/ui/contracts.js?v=ambience1"></script>
-  <script src="js/ui/screens.js?v=ambience1"></script>
+  <script src="js/ui/screens.js?v=folk1"></script>
   <script src="js/net/lan-code.js"></script>
   <script src="js/net/lan-link.js?v=invite2"></script>
-  <script src="js/net/lan-state.js?v=partners1"></script>
+  <script src="js/net/lan-state.js?v=bonds1"></script>
   <script src="js/app/input.js?v=lan1"></script>
-  <script src="js/app/lan-room.js"></script>
+  <script src="js/app/lan-room.js?v=bonds1"></script>
   <script src="js/app/lan.js?v=robot2"></script>
-  <script src="js/app/main.js?v=invite2"></script>
+  <script src="js/app/main.js?v=practice-roster1"></script>
 </body>
 </html>

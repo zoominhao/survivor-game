@@ -61,6 +61,7 @@ const BattleProjectiles = {
           if (b.rehit) { if (!this.canHit(e, b.uid, b.rehit)) return; }
           else { if (b.hit.has(e.id)) return; b.hit.add(e.id); }
           this.damageEnemy(e, b.dmg, b.wid, b.mode === 'spiral' ? e.x - p.x : b.vx, b.mode === 'spiral' ? e.y - p.y : b.vy, b.kb, p);
+          if (b.split) this.splitPaper(b, p);
           if (b.blast) {
             this.aoe(b.x, b.y, b.blast, b.dmg * 0.6, b.wid, 80, p);
             this.fx.push({ type: 'boom', x: b.x, y: b.y, r: b.blast, life: 0.25, max: 0.25, c: b.color });
@@ -97,6 +98,18 @@ const BattleProjectiles = {
     this.play(WEAPONS[b.wid]?.bounceSound || 'bounce');
   },
 
+  splitPaper(shot, owner) {
+    const angle = Math.atan2(shot.vy, shot.vx), dmg = shot.dmg * shot.split;
+    shot.split = 0;
+    for (const offset of [-0.72, 0.72]) {
+      const a = angle + offset;
+      const flake = { x: shot.x, y: shot.y, vx: Math.cos(a) * 405, vy: Math.sin(a) * 405,
+        r: 4, life: 0.43, pierce: 1, dmg, wid: shot.wid, look: 'paperFlake', color: shot.color, kb: 48 };
+      this.addProj(flake, owner);
+      flake.hit = new Set(shot.hit);
+    }
+  },
+
   // ---------- 区域效果:落地冲击、火海、霜环、年糕陷阱 ----------
   updateZones(dt) {
     const arr = this.zones;
@@ -124,13 +137,31 @@ const BattleProjectiles = {
         z.life -= dt; z.tk -= dt;
         if (z.tk <= 0) {
           z.tk = 0.5;
+          if (z.heal && z.life > 0) for (const p of this.players) {
+            if (p.hp > 0 && Math.hypot(p.x - z.x, p.y - z.y) <= z.r) {
+              p.hp = Math.min(p.st.maxHp, p.hp + p.st.maxHp * z.heal);
+            }
+          }
           this.eachEnemyNear(z.x, z.y, z.r, e => {
             this.damageEnemy(e, z.dmg, z.wid, 0, 0, 0, z.owner);
             if (z.slow && !e.dead) this.slowEnemy(e, z.slow, 0.65);
           });
         }
         keep = z.life > 0;
+      } else if (z.type === 'decoy') {
+        z.life -= dt;
+        keep = z.life > 0;
+        if (!keep) {
+          this.aoe(z.x, z.y, z.trigger, z.dmg, z.wid, z.kb, z.owner);
+          this.fx.push({ type: 'boom', x: z.x, y: z.y, r: z.trigger, life: 0.32, max: 0.32, c: z.color });
+          this.play('boom');
+        }
       } else if (z.type === 'ring') {
+        if (z.t > 0) {
+          z.t = Math.max(0, z.t - dt);
+          if (z.t > 0) { arr[n++] = z; continue; }
+          this.play('watchClack');
+        }
         z.r += z.spd * dt;
         this.eachEnemyNear(z.x, z.y, z.r, e => {
           if (z.hit.has(e.id)) return;

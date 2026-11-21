@@ -17,9 +17,10 @@ const BossBattle = {
     const tactic = BOSS_TACTICS[kind];
     const arena = sceneId ? { id: sceneId, from: Environment.landscape(Environment.forBattle(this)) } : null;
     const boss = this.spawnEnemy('boss', x, y);
+    const hp = BOSS_HP[tier] * (this.coop ? COOP_DIFFICULTY.bossHp : 1);
     Object.assign(boss, {
       boss: true, kind, name: def.name, tier, plan, [tactic.stat]: tactic.values[plan],
-      bounty: plan === 'challenge' ? tactic.bounty : 0, hp: BOSS_HP[tier], maxHp: BOSS_HP[tier],
+      bounty: plan === 'challenge' ? tactic.bounty : 0, hp, maxHp: hp,
       speed: boss.speed * def.speed / ENEMIES.boss.speed,
       r: 44 + tier * 6, dmg: 14 + tier * 7, cd: 3, phase: '', arrivedAt: this.time, arena,
     });
@@ -91,6 +92,7 @@ const BossBattle = {
       member.hp = Math.min(member.st.maxHp, Math.max(0, member.hp) + member.st.maxHp * 0.25);
       member.iframe = Math.max(member.iframe, BOSS_REWARD_BEAT);
     }
+    this.stepBond();
     const healed = p.hp - before;
     const xp = this.collectAllGems();
     const reward = [`+${Number((xp * p.st.growth).toFixed(1))} 经验`];

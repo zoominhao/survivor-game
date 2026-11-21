@@ -13,7 +13,7 @@ const BattleEnemies = {
       return p.hp > 0 ? p : this.players[1 - slot];
     };
     const minute = Math.min(WAVE_RATES.length - 1, Math.floor(t / 60));
-    const rate = WAVE_RATES[minute];
+    const rate = WAVE_RATES[minute] * (this.coop ? COOP_DIFFICULTY.spawnRate : 1);
     const scene = Environment.forBattle(this), landscape = Environment.landscape(scene);
     const count = this.enemies.length;
     if (count < CFG.MAX_ENEMIES) {
@@ -78,10 +78,11 @@ const BattleEnemies = {
     // 联机给 Boss 留一个席位，怪潮不能让同步实体越过上限。
     if (this.coop && type !== 'boss' && this.enemies.length >= CFG.MAX_ENEMIES - (this.boss ? 0 : 1)) return null;
     const d = ENEMIES[type], m = this.time / 60;
-    const hpMul = 1 + m * 0.2 + m * m * 0.012; // 血量随时间成长
+    const harder = this.coop && type !== 'boss';
+    const hpMul = (1 + m * 0.2 + m * m * 0.012) * (harder ? COOP_DIFFICULTY.enemyHp : 1);
     const e = {
       id: ++this.uid, type, x, y, r: d.r, hp: d.hp * hpMul, maxHp: d.hp * hpMul,
-      speed: d.speed * U.rand(0.9, 1.1), dmg: d.dmg * (1 + m * 0.05), xp: d.xp,
+      speed: d.speed * U.rand(0.9, 1.1), dmg: d.dmg * (1 + m * 0.05) * (harder ? COOP_DIFFICULTY.enemyDamage : 1), xp: d.xp,
       kx: 0, ky: 0, kbRes: d.kbRes || 0, flash: 0, slow: 0, slowT: 0, frozen: 0,
       h: {}, t: Math.random() * 6, shootT: U.rand(1, 3), side: Math.random() < 0.5 ? -1 : 1,
       dead: false, elite: false, boss: false,
@@ -100,6 +101,7 @@ const BattleEnemies = {
   updateEnemies(dt) {
     const g = this.grid, cell = g.cell;
     const far = this.spawnR() * 1.7, R = this.spawnR();
+    const decoys = this.zones.filter(z => z.type === 'decoy' && z.life > 0);
     for (const e of this.enemies) {
       if (e.dead) continue;
       const p = this.coop ? this.nearestPlayer(e.x, e.y) : this.player;
@@ -107,10 +109,12 @@ const BattleEnemies = {
       const def = ENEMIES[e.type], avoidsTerrain = !def.ghost && !e.boss;
       e.t += dt;
       if (e.flash > 0) e.flash -= dt;
-      const dx = p.x - e.x, dy = p.y - e.y;
-      const d = Math.hypot(dx, dy) || 0.001;
+      const playerDistance = Math.hypot(p.x - e.x, p.y - e.y);
+      const target = this.enemyTarget(e, p, decoys);
+      const dx = target.x - e.x, dy = target.y - e.y;
+      const d = (target === p ? playerDistance : Math.hypot(dx, dy)) || 0.001;
       // 被甩得太远的敌人直接挪回玩家周围
-      if (d > far && !e.boss) {
+      if (playerDistance > far && !e.boss) {
         const a = Math.random() * TAU;
         e.x = p.x + Math.cos(a) * R; e.y = p.y + Math.sin(a) * R;
         if (avoidsTerrain) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
@@ -126,10 +130,10 @@ const BattleEnemies = {
       const stepSound = def.moveSound;
       if (sp > 0 && stepSound && e.t % stepSound.period < dt) this.playNearby(stepSound.cue, e, stepSound.range);
       const voice = def.voice;
-      if (sp > 0 && voice && d < voice.range && this.time >= this.voiceQuietUntil && this.time >= (this.voiceReady[voice.cue] ?? 0)) {
+      if (sp > 0 && voice && playerDistance < voice.range && this.time >= this.voiceQuietUntil && this.time >= (this.voiceReady[voice.cue] ?? 0)) {
         this.deferVoice(voice);
         // 保留方位，但在触发范围边缘也能听见人声，不压成段落末尾的微响。
-        this.play(voice.cue, 1 - 0.38 * d / voice.range, U.clamp(-dx / 200, -0.7, 0.7));
+        this.play(voice.cue, 1 - 0.38 * playerDistance / voice.range, U.clamp((e.x - p.x) / 200, -0.7, 0.7));
       }
       let mx = dx / d, my = dy / d;
       if (def.weave) {
@@ -182,12 +186,23 @@ const BattleEnemies = {
         if (e.x !== x || e.y !== y) Terrain.move(e, 0, 0, e.r, 0, this.landscape);
       }
 
-      if (d < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, p);
+      if (playerDistance < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, p);
       if (this.coop) for (const other of this.players) {
         if (other !== p && Math.hypot(other.x - e.x, other.y - e.y) < e.r + CFG.PLAYER_R) this.hurtPlayer(e.dmg, e, other);
       }
       if (this.state !== 'playing') break;
     }
+  },
+
+  enemyTarget(enemy, player = this.nearestPlayer(enemy.x, enemy.y), zones = this.zones) {
+    if (enemy.boss || ENEMIES[enemy.type].ranged) return player;
+    let best = null, distance = Infinity;
+    for (const z of zones) {
+      if (z.type !== 'decoy' || z.life <= 0) continue;
+      const d = (z.x - enemy.x) ** 2 + (z.y - enemy.y) ** 2;
+      if (d < distance && d < z.r ** 2) { best = z; distance = d; }
+    }
+    return best || player;
   },
 
   hopLift(e, period) { return Math.sin(Math.PI * ((e.t % period) / period)); },

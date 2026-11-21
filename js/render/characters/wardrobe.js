@@ -19,6 +19,12 @@ const Wardrobe = {
     smith: ['#675042', '#926346', '#566378', '#a85e48'],
     astronomer: ['#615488', '#5973a5', '#8664a1', '#51649e'],
     ranger: ['#477864', '#68965a', '#986c50', '#426c87'],
+    papercraft: ['#b37c49', '#c79655', '#9f7163', '#e0b376'],
+    watchman: ['#415670', '#6c5462', '#426866', '#91725c'],
+    herbalist: ['#477e69', '#609263', '#527983', '#a39b68'],
+    ferry: ['#456d81', '#417d7a', '#677ca5', '#608f9b'],
+    embroider: ['#9f5275', '#ac6267', '#7b568c', '#c3777c'],
+    exorcist: ['#554856', '#83534a', '#766453', '#a05d58'],
   },
 
   field: {
@@ -46,6 +52,12 @@ const Wardrobe = {
     smith: { base: '#7d5443', edge: '#dfac86' },
     astronomer: { base: '#55668b', edge: '#c8d8ff' },
     ranger: { base: '#537a58', edge: '#bbe398' },
+    papercraft: { base: '#b78d57', edge: '#fff0cc' },
+    watchman: { base: '#6c6172', edge: '#f0bd84' },
+    herbalist: { base: '#548877', edge: '#d1e6a1' },
+    ferry: { base: '#467c84', edge: '#bcf3e5' },
+    embroider: { base: '#a45972', edge: '#ffcbd6' },
+    exorcist: { base: '#835242', edge: '#efbc88' },
     cloak: { base: '#546c94', edge: '#b8cbe3' },
   },
 

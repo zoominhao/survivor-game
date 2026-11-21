@@ -283,6 +283,42 @@ const WEAPONS = {
     base: { dmg: 22, cd: 9, pierce: 1 },
     ups: [{ dmg: 6 }, { cd: -0.85 }, { pierce: 1 }, { dmg: 9 }, { cd: -1.2, dmg: 11 }],
   },
+  craneFold: {
+    name: '折鹤散羽', color: '#f2d8a5', kind: 'mouse', look: 'paperCrane', sound: 'paper', max: 6, exclusive: 'ruo',
+    desc: '折出纸鹤追向夜兽；命中后向两侧散出纸刃，纸刃不会重复打中已撞到的目标。',
+    base: { dmg: 14, cd: 1.28, count: 1, pierce: 1, speed: 400, size: 8, range: 415, life: 1.65, split: 0.55 },
+    ups: [{ dmg: 4 }, { count: 1 }, { cd: -0.2 }, { dmg: 5, size: 1 }, { dmg: 6, count: 1 }],
+  },
+  tripleClack: {
+    name: '三更梆响', color: '#eab773', kind: 'tripleClack', max: 6, exclusive: 'wen',
+    desc: '有夜兽靠近时敲三下梆子，从敲响的位置先后扩出三圈音浪。越晚出的音浪推力越大。',
+    base: { dmg: 7, cd: 2.7, radius: 118, kb: 142 },
+    ups: [{ radius: 11 }, { dmg: 3 }, { cd: -0.42 }, { radius: 14, dmg: 2 }, { dmg: 5 }],
+  },
+  herbalFog: {
+    name: '药雾护心', color: '#b4e7be', kind: 'herbalFog', max: 6, exclusive: 'shao',
+    desc: '在脚下留一团药雾，持续伤害并减速怪物，同时为圈内仍站着的守夜人缓慢回血。',
+    base: { dmg: 7, cd: 5.4, radius: 89, dur: 3.15, slow: 0.24, heal: 0.014, range: 170 },
+    ups: [{ radius: 12 }, { dmg: 4 }, { dur: 0.8 }, { heal: 0.008, cd: -0.55 }, { dmg: 6, radius: 14 }],
+  },
+  tideOar: {
+    name: '开潮分水', color: '#99dfeb', kind: 'tideOar', max: 6, exclusive: 'du',
+    desc: '沿最近移动方向劈出一道水路。水路内的夜兽受伤，并被向两边推开。',
+    base: { dmg: 18, cd: 1.7, range: 224, width: 29, kb: 245 },
+    ups: [{ dmg: 5 }, { width: 8 }, { cd: -0.23 }, { range: 32, dmg: 8 }, { width: 7, dmg: 9 }],
+  },
+  scarletThread: {
+    name: '牵魂红线', color: '#f9a3b2', kind: 'scarletThread', max: 6, exclusive: 'su',
+    desc: '把两只附近的夜兽用红线串起，贴着线的都受伤并减速。只有一只时，从自己脚下起线。',
+    base: { dmg: 20, cd: 1.85, range: 307, width: 17, slow: 0.43, chill: 1.5 },
+    ups: [{ dmg: 5 }, { width: 6 }, { cd: -0.27 }, { dmg: 8, slow: 0.08 }, { width: 7, dmg: 10 }],
+  },
+  maskEcho: {
+    name: '傩面借影', color: '#ffc183', kind: 'maskEcho', max: 6, exclusive: 'yan',
+    desc: '投下傩面，引走附近的近战夜兽。傩面烧尽时爆开；远程怪与 Boss 不上当。',
+    base: { dmg: 23, cd: 4.15, radius: 129, blast: 82, range: 245, dur: 2.1, kb: 154 },
+    ups: [{ dmg: 8 }, { blast: 14 }, { cd: -0.45 }, { radius: 24, dur: 0.3 }, { dmg: 12, blast: 12 }],
+  },
 };
 
 // ----- 被动道具 -----

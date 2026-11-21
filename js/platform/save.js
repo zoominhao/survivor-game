@@ -43,6 +43,16 @@ const Save = {
     if (!contractAvailable(d, d.selectedContract)) d.selectedContract = null;
     this.data = d;
   },
+  buyChar(id) {
+    const d = this.data;
+    const cost = typeof id === 'string' && Object.hasOwn(CHARS, id) ? CHARS[id].cost : 0;
+    if (!cost || !d || d.chars[id] || !Number.isFinite(d.coins) || d.coins < cost) return false;
+    d.coins -= cost;
+    d.chars[id] = true;
+    d.lastChar = id;
+    this.write();
+    return true;
+  },
   buySkill(id) {
     const cost = typeof id === 'string' && Object.hasOwn(WEAPONS, id) ? WEAPONS[id].unlockCost : null;
     const d = this.data;

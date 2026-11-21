@@ -5,11 +5,12 @@ const CharacterRendering = {
   // ---------- 角色造型 ----------
   // 以原点为中心、面朝右绘制;walk ∈ [-1, 1] 为走路摆动相位
   drawFigure(ctx, charId, walk, outfit = Wardrobe.style(CHARS[charId].look), aim = 0) {
-    const { look } = CHARS[charId];
+    const { look, group } = CHARS[charId];
     if (look === 'girl') this.drawGirl(ctx, walk, outfit);
     else if (look === 'echo') EchoFigure.runner(ctx, walk, outfit, aim);
     else if (look === 'xiaoxiao') XiaoxiaoArt.runner(ctx, walk, outfit, aim);
     else if (look === 'zhu') ZhuFigure.runner(ctx, walk, outfit, aim);
+    else if (group === 'folk') FolkFigures[look](ctx, walk, outfit);
     else TrailFigures[look](ctx, walk, outfit);
   },
 

@@ -11,6 +11,12 @@ const CHARS = {
   bron: { name: '铁匠·布隆',   color: '#8d99ae', weapon: 'aura',    cost: 300, desc: '生命 +40,护甲 +1,移速 -10%', look: 'smith', hp: 40, armor: 1, speed: -0.1 },
   nova: { name: '观星者·诺瓦', color: '#9d7bff', weapon: 'thunder', cost: 600, desc: '冷却 -12%,生命 -20', look: 'astronomer', haste: 0.12, hp: -20 },
   sain: { name: '游侠·塞恩',   color: '#52b788', weapon: 'blade',   cost: 900, desc: '移速 +15%,拾取范围 +30%', look: 'ranger', speed: 0.15, magnet: 0.3 },
+  ruo: { name: '纸匠·阿箬', color: '#e9c887', weapon: 'craneFold', cost: 180, desc: '追敌纸鹤命中后分成纸刃，冷却 -4%', look: 'papercraft', group: 'folk', haste: 0.04 },
+  wen: { name: '更夫·闻更', color: '#e2a56a', weapon: 'tripleClack', cost: 220, desc: '三重梆声逐圈震退，生命 +12、移速 -4%', look: 'watchman', group: 'folk', hp: 12, speed: -0.04 },
+  shao: { name: '药师·青芍', color: '#a5d6a7', weapon: 'herbalFog', cost: 260, desc: '固定药雾伤敌，也能为圈内队友回血', look: 'herbalist', group: 'folk', magnet: 0.12 },
+  du: { name: '渡娘·阿渡', color: '#86cfdb', weapon: 'tideOar', cost: 320, desc: '沿走位方向劈开水路，怪被推向两侧，移速 +5%', look: 'ferry', group: 'folk', speed: 0.05 },
+  su: { name: '绣娘·素绢', color: '#e8a0ac', weapon: 'scarletThread', cost: 380, desc: '两怪之间拉线，伤害并减速沿线敌人', look: 'embroider', group: 'folk', might: 0.04 },
+  yan: { name: '傩师·乌岩', color: '#eaaa76', weapon: 'maskEcho', cost: 450, desc: '傩面诱走近战怪，烧尽时爆开，生命 +8', look: 'exorcist', group: 'folk', hp: 8 },
 };
 
 // ----- 局外永久强化(价格 = cost × (当前等级 + 1)) -----

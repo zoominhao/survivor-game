@@ -1,6 +1,6 @@
 'use strict';
 
-const LAN_ROOM_VERSION = 2;
+const LAN_ROOM_VERSION = 3;
 const LanRoom = {
   clearRoom() {
     this.guestReady = false;
@@ -16,8 +16,9 @@ const LanRoom = {
   receiveRoom(data) {
     if (this.running || this.phase !== 'connected') return;
     if (this.role === 'host') {
-      if (data.t === 'hello' && !this.otherChar && LanState.own(CHARS, data.char)) {
-        if (data.version !== LAN_ROOM_VERSION) { this.statusText('队友的游戏版本较旧，请双方刷新后重试。'); return; }
+      if (data.t === 'hello' && !this.otherChar) {
+        if (data.version !== LAN_ROOM_VERSION) { this.statusText('双方游戏版本不同，请刷新后重试。'); return; }
+        if (!LanState.own(CHARS, data.char)) return;
         this.otherChar = data.char;
         this.fallbackAt = 0;
         this.shareRoom();

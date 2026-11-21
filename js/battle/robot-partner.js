@@ -7,7 +7,8 @@ const RobotPartner = (() => {
     flank: { name: '侧翼游击', spacing: 78, range: 112, orbit: 12 },
     range: { name: '远程支援', spacing: 104, range: 158, orbit: 7 },
   };
-  const roster = { ella: 'range', tuan: 'flank', echo: 'flank', xiaoxiao: 'guard', zhu: 'range', bron: 'guard', nova: 'range', sain: 'flank' };
+  const roster = { ella: 'range', tuan: 'flank', echo: 'flank', xiaoxiao: 'guard', zhu: 'range', bron: 'guard', nova: 'range', sain: 'flank',
+    ruo: 'range', wen: 'guard', shao: 'guard', du: 'flank', su: 'range', yan: 'flank' };
 
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 

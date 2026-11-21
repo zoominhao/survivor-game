@@ -130,14 +130,20 @@
 .lan-room dd { margin: 3px 0 0; font-weight: 700; overflow-wrap: anywhere; }
 .lan-room small { display: block; margin-top: 2px; color: var(--vermillion); }
 .lan-room small[data-ready="true"] { color: var(--gold); }
+#lanBond { padding-inline-start: 8px; border-inline-start: 2px solid var(--gold); }
 #practiceStatus { display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; }
 .practice-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .practice-actions button { padding-inline: 8px; }
+#btnPracticeRoster { grid-column: 1 / -1; }
 #audio button[aria-pressed="true"], #practice button[aria-pressed="true"] {
   border-color: var(--vermillion); box-shadow: inset 0 0 0 1px var(--vermillion);
 }
 
 /* 角色选择 */
+.roster-groups { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.roster-groups button { padding-inline: 10px; color: var(--dim); font-size: 13px; }
+.roster-groups button[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 -2px var(--gold); color: var(--gold); }
+#rosterCurrent { margin-inline-start: auto; color: var(--jade); font-size: 12px; }
 .chars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .char {
   position: relative;
@@ -189,11 +195,15 @@
   color: var(--jade); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right;
 }
 .contract-summary { margin-top: 8px; padding: 5px 8px; border-inline-start: 2px solid var(--vermillion); }
-.rescue-mark {
-  position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: calc(39px + env(safe-area-inset-bottom));
-  max-width: min(52vw, 280px); padding: 4px 8px; border: 1px solid var(--line); background: var(--bg);
+.lan-hud {
+  position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom));
+  display: grid; gap: 4px; justify-items: start; max-width: min(49vw, 280px);
+}
+.lan-hud > span {
+  padding: 4px 8px; border: 1px solid var(--line); background: var(--bg);
   color: var(--jade); font-size: 12px; font-variant-numeric: tabular-nums;
 }
+#lanFlag { color: var(--gold); }
 .signal-dock {
   position: absolute; right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom));
   display: grid; gap: 4px; justify-items: end;

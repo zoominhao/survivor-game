@@ -13,10 +13,12 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.time = 0;
       this.coop = !!partnerChar;
       this.robot = this.coop && robot;
+      this.bond = this.coop ? CoopBonds.forPair(charId, partnerChar) : null;
+      this.bondActive = false;
       this.robotBrain = this.robot ? RobotPartner.start(partnerChar) : null;
       this.signals = this.coop ? [null, null] : null;
       this.rescue = this.coop ? { used: false, progress: 0 } : null;
-      this.assisted = false;
+      this.assisted = !this.coop && this.practiceRoster && this.practiceChar === charId;
       this.practiceInvincible = false;
       this.environment = WorldInteractions.createRun();
       const data = this.save.data;
@@ -54,6 +56,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       this.partner = partnerChar ? this.makePlayer(partnerChar, 1, 34) : null;
       this.players = this.partner ? [this.player, this.partner] : [this.player];
       if (this.coop || this.openingScene !== 'dusk') this.enterLandscape(this.openingScene);
+      this.stepBond();
       this.state = 'playing';
     },
 
@@ -75,6 +78,7 @@ function createBattle({ save, emit = () => {}, play = () => {} }) {
       // 玩家移动
       this.movePlayer(this.player, input, dt);
       if (this.partner) this.movePlayer(this.partner, this.robot ? RobotPartner.input(this) : partnerInput, dt);
+      this.stepBond();
       this.spawn(dt);
       if (this.state !== 'playing') return;
 

@@ -53,7 +53,7 @@ const App = {
     if (Lan.running) { Lan.open(); return; }
     this.tapCount = 0; this.tapsSince = -Infinity;
     Input.endJoy();
-    Game.start(Save.data.lastChar);
+    Game.start(Game.practiceChar ?? Save.data.lastChar);
     Game.state = 'intro';
     UI.cache = {};
     const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2200;

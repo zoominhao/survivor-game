@@ -72,6 +72,8 @@ test('守夜印只用于已解锁英雄的个人修炼，可预览并叠加到�
   assert.equal(g.player.st.speed, 153);
   g.start('zhu', 'ella');
   assert.equal(g.player.hp, 95);
+  g.partner.x = 250;
+  g.stepBond();
   assert.equal(g.partner.st.speed, 150);
 });
 

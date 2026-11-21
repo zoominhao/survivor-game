@@ -40,6 +40,9 @@ const LanUI = {
     const inRoom = phase === 'connected' && !!Lan.otherChar;
     const host = Lan.role === 'host', start = this.$('btnLanStart'), ready = this.$('btnLanReady');
     show('lanRoom', inRoom);
+    const bond = inRoom ? CoopBonds.forPair(Lan.char, Lan.otherChar) : null;
+    this.$('lanBond').textContent = bond ? `合契：${bond.name} · ${bond.label}（靠近时生效）` :
+      `你的定位：${CoopBonds.roleName(Lan.char)} · 结伴靠近可获得合契，双人怪潮更强。`;
     show('btnLanStart', inRoom && host);
     show('btnLanReady', inRoom && !host);
     start.disabled = !inRoom || !host || !Lan.guestReady;
@@ -47,8 +50,9 @@ const LanUI = {
     ready.textContent = Lan.guestReady ? '取消准备' : '准备';
     ready.setAttribute('aria-pressed', String(Lan.guestReady));
     if (inRoom) {
-      this.$('lanRoomHost').textContent = CHARS[host ? Lan.char : Lan.otherChar].name;
-      this.$('lanRoomGuest').textContent = CHARS[host ? Lan.otherChar : Lan.char].name;
+      const member = id => `${CHARS[id].name} · ${CoopBonds.roleName(id)}`;
+      this.$('lanRoomHost').textContent = member(host ? Lan.char : Lan.otherChar);
+      this.$('lanRoomGuest').textContent = member(host ? Lan.otherChar : Lan.char);
       this.$('lanRoomReady').textContent = Lan.guestReady ? '已准备' : '未准备';
       this.$('lanRoomReady').dataset.ready = String(Lan.guestReady);
     }

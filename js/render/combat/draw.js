@@ -19,7 +19,9 @@ const CombatRendering = {
       ctx.setLineDash([]);
     }
     for (const z of g.zones) {
-      if (z.type === 'meteor' && z.look !== 'aiScan') {
+      if (z.look === 'watchClack' || z.look === 'herbalFog' || z.look === 'maskEcho') {
+        FolkSkillArt[z.look](ctx, z, time);
+      } else if (z.type === 'meteor' && z.look !== 'aiScan') {
         const k = 1 - z.t / z.max;
         ctx.fillStyle = `rgba(255,90,50,${0.08 + k * 0.2})`;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r * k, 0, TAU); ctx.fill();
@@ -249,6 +251,8 @@ const CombatRendering = {
         XiaoxiaoArt[b.look](ctx, b);
       } else if (b.look === 'code' || b.look === 'ticket') {
         ZhuSkillArt[b.look](ctx, b);
+      } else if (b.look === 'paperCrane' || b.look === 'paperFlake') {
+        FolkSkillArt.paper(ctx, b);
       } else if (b.look === 'soulCoin' || b.look === 'mirrorBolt') {
         RelicArt[b.look](ctx, b);
       } else if (b.look === 'candy' || b.look === 'potato' || b.look === 'tomato' || b.look === 'bubbletea') {
@@ -354,6 +358,8 @@ const CombatRendering = {
         XiaoxiaoArt.balm(ctx, f, k);
       } else if (f.type === 'mirrorWard') {
         RelicArt.mirrorWard(ctx, f, k);
+      } else if (f.type === 'tideOar' || f.type === 'scarletThread') {
+        FolkSkillArt[f.type](ctx, f, k);
       } else if (f.type === 'outfitPulse' && !this.reduceMotion?.matches) {
         const r = 13 + 25 * (1 - k);
         ctx.globalAlpha = k * 0.52;

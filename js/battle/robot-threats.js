@@ -8,8 +8,9 @@ const RobotThreats = (() => {
   function scan(g, p) {
     const near = (e, radius) => (e.x - p.x) ** 2 + (e.y - p.y) ** 2 < radius ** 2;
     const enemies = g.enemies.filter(e => !e.dead && near(e, 235)).map(e => {
-      const predicted = forecastEnemy(g, e, horizon);
-      const pursues = !e.boss && !ENEMIES[e.type].ranged && e.frozen <= 0 && g.nearestPlayer(e.x, e.y) === p;
+      const target = g.enemyTarget(e);
+      const predicted = forecastEnemy(g, e, horizon, target);
+      const pursues = !e.boss && !ENEMIES[e.type].ranged && e.frozen <= 0 && target === p;
       return { x: e.x, y: e.y, r: e.r + CFG.PLAYER_R,
         vx: (predicted.x - e.x) / horizon, vy: (predicted.y - e.y) / horizon,
         pursuit: pursues ? e.speed * (e.slowT > 0 ? 1 - e.slow : 1) : 0 };

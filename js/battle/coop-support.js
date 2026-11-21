@@ -37,6 +37,7 @@ const CoopSupport = {
     rescue.progress = 0;
     down.hp = Math.ceil(down.st.maxHp * 0.25);
     down.iframe = 1.5;
+    this.stepBond();
     this.burst(down.x, down.y, '#a9e8ad', 10);
     this.play('nightmareClear');
     this.emit('banner', `${down.slot + 1} 号守夜人被扶起`);

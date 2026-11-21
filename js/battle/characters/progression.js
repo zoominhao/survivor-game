@@ -28,6 +28,10 @@ const BattleProgression = {
   recalc(p = this.player) {
     const st = p.st, oldMax = st.maxHp || 0;
     Object.assign(st, this.statsFor(p.char, p.passives));
+    if (this.bondActive && this.bond.stat !== 'incoming') {
+      const { stat, factor = 1, add = 0 } = this.bond;
+      st[stat] = st[stat] * factor + add;
+    }
     if (oldMax && st.maxHp > oldMax) p.hp += st.maxHp - oldMax; // 生命上限提高时同步补血
   },
 

@@ -26,6 +26,16 @@ const BattleCoop = {
     return best;
   },
 
+  stepBond() {
+    if (!this.bond) return;
+    const [a, b] = this.players;
+    const range = this.bondActive ? BOND_BREAK_RANGE : BOND_JOIN_RANGE;
+    const active = a.hp > 0 && b.hp > 0 && (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= range ** 2;
+    if (active === this.bondActive) return;
+    this.bondActive = active;
+    for (const p of this.players) this.recalc(p);
+  },
+
   movePlayer(p, input, dt) {
     const { x: ix = 0, y: iy = 0 } = input;
     const il = Math.hypot(ix, iy), { speed, regen, maxHp } = p.st;

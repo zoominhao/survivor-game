@@ -42,8 +42,14 @@ const CoopUI = {
 
   updateCoopHud(g) {
     this.set('signalDock', 'hidden', !g.coop || g.state !== 'playing');
-    this.set('rescueMark', 'hidden', !g.rescue || (g.player.hp > 0 && g.partner.hp > 0));
-    if (!g.rescue || (g.player.hp > 0 && g.partner.hp > 0)) return;
+    if (!g.coop) return;
+    const down = g.player.hp <= 0 || g.partner.hp <= 0;
+    this.set('bondMark', 'hidden', !g.bond || down);
+    if (g.bond && !down) {
+      this.set('bondMark', 'text', g.bondActive ? `${g.bond.name} · ${g.bond.label}` : `${g.bond.name} · 靠近恢复`);
+    }
+    this.set('rescueMark', 'hidden', !g.rescue || !down);
+    if (!g.rescue || !down) return;
     const text = g.rescue.used ? '救援已用 · 击败 Boss 可复起' : g.rescue.progress > 0 ?
       `扶救中 · ${g.rescue.progress.toFixed(1)} / ${RESCUE_SECONDS} 秒` :
       g.player.hp <= 0 ? '倒下 · 队友靠近可扶救' : '靠近倒下的队友，站稳 2 秒';

@@ -25,10 +25,12 @@ function upgradeText(delta) {
     else if (k === 'pierce') out.push('穿透 +' + v);
     else if (k === 'bounces') out.push('弹射次数 +' + v);
     else if (k === 'guards') out.push('抵挡次数 +' + v);
-    else if (k === 'heal') out.push('回复量 +' + Math.round(v * 100) + '% 最大生命');
+    else if (k === 'heal') out.push('回复量 +' + Number((v * 100).toFixed(1)) + '% 最大生命');
     else if (k === 'reduce') out.push('减伤 +' + Math.round(v * 100) + '%');
     else if (k === 'slow') out.push('减速 +' + Math.round(v * 100) + '%');
     else if (k === 'radius' || k === 'blast') out.push('范围 +' + v);
+    else if (k === 'width') out.push('宽度 +' + v);
+    else if (k === 'range') out.push('距离 +' + v);
     else if (k === 'dur' || k === 'sauce') out.push('持续 +' + v + ' 秒');
     else if (k === 'size') out.push('体积 +' + v);
   }
@@ -36,6 +38,7 @@ function upgradeText(delta) {
 }
 
 const WeaponFns = {
+  ...FolkLoadouts,
   incense(g, w, s, dt) {
     w.timer -= dt;
     if (w.timer > 0) return;
@@ -114,7 +117,7 @@ const WeaponFns = {
 
   // 鼠伴出击 / 百鼠夜行：尽量分开追击不同目标，沿用投射物的追踪和命中规则。
   mouse(g, w, s, dt) {
-    const p = g.player, st = p.st;
+    const p = g.player, st = p.st, item = WEAPONS[w.id];
     w.timer -= dt;
     if (w.timer > 0) return;
     const count = s.count + st.amount;
@@ -127,10 +130,10 @@ const WeaponFns = {
       g.addProj({
         x: p.x, y: p.y, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
         r: s.size * st.area, speed: s.speed, life: s.life, dmg: s.dmg * st.might, pierce: s.pierce,
-        mode: 'homing', tg, seek: 0.2, wid: w.id, look: 'mouse', color: WEAPONS[w.id].color, kb: 75,
+        mode: 'homing', tg, seek: 0.2, wid: w.id, look: item.look || 'mouse', color: item.color, kb: 75, split: s.split,
       });
     }
-    g.play('mouse');
+    g.play(item.sound || 'mouse');
   },
 
   // 星火弹 / 星爆 / 彩糖 / 番茄 / 篮球：朝附近敌人投射。

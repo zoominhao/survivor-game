@@ -32,7 +32,7 @@ const HudUI = {
     this.set('coins', 'text', String(Math.floor(p.coins)));
     this.set('practiceFlag', 'hidden', !g.assisted);
     this.updateContractHud(g);
-    this.set('lanFlag', 'hidden', !g.coop);
+    this.set('lanHud', 'hidden', !g.coop);
     if (g.coop) {
       const mate = g.robot ? `AI·${CHARS[g.partner.char].name.split('·').at(-1)}` : '队友';
       this.set('lanFlag', 'text', `双人 · ${p.slot + 1} 号${p.hp <= 0 ? ' · 已倒下' : ''} · ${mate}${g.partner.hp > 0 ? '在场' : '已倒下'}`);

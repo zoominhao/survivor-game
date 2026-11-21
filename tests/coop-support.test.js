@@ -43,7 +43,7 @@ test('跟随路线被近处山石挡住时，机器人会先向侧面绕开', ()
 test('机器人从名册随机抽取，排除玩家角色与上一局搭档', () => {
   const { RobotPartner } = setup();
   const pool = new Set(Array.from({ length: 24 }, (_, i) => RobotPartner.pick('ella', 'zhu', () => i / 24)));
-  assert.equal(pool.size, 6);
+  assert.equal(pool.size, 12);
   assert.ok(!pool.has('ella') && !pool.has('zhu') && pool.has('bron') && pool.has('nova'));
   const a = RobotPartner.pick('zhu', null, () => 0);
   assert.notEqual(RobotPartner.pick('zhu', a, () => 0), a);
@@ -56,6 +56,7 @@ test('机器人会预判走来的夜兽，不为赶回玩家身边穿过怪群',
     g.spawn = () => {};
     Object.assign(g.player, { x: 220, y: 0, weapons: [] });
     Object.assign(g.partner, { x: 0, y: 0, weapons: [] });
+    g.stepBond();
     g.spawnEnemy('moth', 66, 0).speed = 116;
     if (robot) assert.ok(Math.abs(RobotPartner.input(g).y) > 0.5);
     for (let i = 0; i < 36; i++) g.update(1 / 60);

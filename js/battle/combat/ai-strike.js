@@ -1,14 +1,13 @@
 'use strict';
 
-function forecastEnemy(g, e, delay) {
-  const target = g.coop ? g.nearestPlayer(e.x, e.y) : g.player;
+function forecastEnemy(g, e, delay, target = g.enemyTarget(e)) {
   if (!target || e.frozen > 0 || ['wind', 'sealWind', 'fanWind'].includes(e.phase)) return e;
   const step = e.speed * (e.slowT > 0 ? 1 - e.slow : 1) * delay;
   if (e.phase === 'charge') {
     return { x: e.x + e.cx * step * e.chargeSpeed, y: e.y + e.cy * step * e.chargeSpeed };
   }
   const dx = target.x - e.x, dy = target.y - e.y, dist = Math.hypot(dx, dy) || 1;
-  const keep = ENEMIES[e.type].keep ?? e.r + CFG.PLAYER_R;
+  const keep = target.type === 'decoy' ? 0 : ENEMIES[e.type].keep ?? e.r + CFG.PLAYER_R;
   const advance = dist < keep && ENEMIES[e.type].ranged ? -Math.min(step, keep - dist) : Math.min(step, Math.max(0, dist - keep));
   return { x: e.x + dx * advance / dist, y: e.y + dy * advance / dist };
 }

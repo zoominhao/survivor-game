@@ -91,6 +91,7 @@ const LanState = (() => {
       parts: bound(g.parts, 100).map(q => pack(q, 'x y life c')), texts: bound(g.texts, 80).map(t => pack(t, 'x y life c s')),
       lit: [...e.lit].slice(-2000), reeds: [...e.reeds].slice(-2000), ready: [...e.landmarkReady].slice(-2000),
       rescue: g.rescue && [g.rescue.used, Math.round(g.rescue.progress * 100) / 100],
+      bondActive: g.bondActive === true,
       signals: g.signals?.map(v => v && v.until > g.time ? [v.id, Math.round(v.until * 100) / 100] : null),
     };
   }
@@ -102,6 +103,8 @@ const LanState = (() => {
     if (!players.every(Boolean) || !clock || !number(clock.time, 0, CFG.RUN_TIME + 1)) return null;
     const [partner, player] = players;
     const frame = { ...clock, player, partner, players, boss: null, bossClearAt: clock.bossClearAt ?? -Infinity, lastBossArena: clock.lastBossArena ?? null };
+    frame.bond = CoopBonds.forPair(player.char, partner.char);
+    frame.bondActive = s.bondActive === true && players.every(p => p.hp > 0);
     frame.rescue = Array.isArray(s.rescue) && typeof s.rescue[0] === 'boolean' && number(s.rescue[1], 0, RESCUE_SECONDS) ?
       { used: s.rescue[0], progress: s.rescue[1] } : null;
     frame.signals = [0, 1].map(slot => {

@@ -24,34 +24,42 @@ const MenuUI = {
     this.show('intro');
   },
 
-  showMenu() {
+  showMenu(group = this.rosterGroup) {
     Game.state = 'menu';
     const d = Save.data;
+    const selectedChar = Game.practiceChar ?? d.lastChar;
+    this.rosterGroup = group ?? CHARS[selectedChar].group ?? 'core';
+    this.$('btnCoreRoster').setAttribute('aria-pressed', String(this.rosterGroup === 'core'));
+    this.$('btnFolkRoster').setAttribute('aria-pressed', String(this.rosterGroup === 'folk'));
+    this.$('rosterCurrent').textContent = `已选：${CHARS[selectedChar].name}${Game.practiceChar ? ' · 试玩' : ''}`;
+    this.$('btnLan').disabled = !!Game.practiceChar;
     this.$('menuCoins').textContent = d.coins;
     this.$('menuBest').textContent = d.best ? U.fmtTime(d.best) : '--:--';
     this.$('menuWins').textContent = d.wins;
     this.$('menuRoute').textContent = `单人出发：${Environment.scenes[d.startScene].name}`;
     this.refreshContractMenu();
-    this.$('charNotice').textContent = '';
+    this.$('charNotice').textContent = Game.practiceRoster ? '标有「试玩」的角色仅限单人，不计战绩和奖励。' : '';
     const list = this.$('charList');
     list.innerHTML = '';
     for (const id in CHARS) {
       const c = CHARS[id], owned = !!d.chars[id], w = WEAPONS[c.weapon];
-      const selected = id === d.lastChar;
+      if ((c.group ?? 'core') !== this.rosterGroup) continue;
+      const trial = !owned && Game.practiceRoster, selected = id === selectedChar;
       const b = document.createElement('button');
-      b.className = 'char' + (selected ? ' sel' : '') + (owned ? '' : ' locked');
+      b.className = 'char' + (selected ? ' sel' : '') + (owned || trial ? '' : ' locked');
       b.setAttribute('aria-pressed', String(selected));
       b.innerHTML =
         `<span class="char-art"></span><span class="char-info"><b>${c.name}</b>` +
         `<small class="starter">${Icons.html(c.weapon)} ${w.name}</small><small>${c.desc}</small></span>` +
-        (selected ? '<span class="char-state" aria-hidden="true">已选</span>' : '') +
-        (owned ? '' : `<span class="price">${Icons.html('lock')}<span class="sr-only">解锁所需金币：</span>${c.cost}</span>`);
+        (trial ? '<span class="char-state">试玩</span>' : selected ? '<span class="char-state" aria-hidden="true">已选</span>' : '') +
+        (owned || trial ? '' : `<span class="price">${Icons.html('lock')}<span class="sr-only">解锁所需金币：</span>${c.cost}</span>`);
       b.addEventListener('click', () => {
         Sfx.unlock();
-        if (owned) {
+        if (trial) {
+          if (!Game.selectPracticeChar(id)) return;
+        } else if (owned) {
           d.lastChar = id;
-        } else if (d.coins >= c.cost) {
-          d.coins -= c.cost; d.chars[id] = true; d.lastChar = id;
+        } else if (Save.buyChar(id)) {
           Sfx.play('chest');
         } else {
           this.$('charNotice').textContent = `还差 ${c.cost - d.coins} 金币解锁${c.name}`;
@@ -59,7 +67,10 @@ const MenuUI = {
           return;
         }
         const restoreFocus = document.activeElement === b;
-        Save.write();
+        if (!trial) {
+          Game.selectPracticeChar(null);
+          if (owned) Save.write();
+        }
         this.showMenu();
         if (restoreFocus) list.querySelector('.sel').focus({ preventScroll: true });
       });
